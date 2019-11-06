@@ -39,7 +39,7 @@ async def countWord(ctx, word, channel=None):
         await index_channels(ctx.guild.id, ctx.guild.text_channels, ctx.message.created_at)
         if channel is not None:
             channel_id = next(
-                (c for c in ctx.guild.text_channels if c.name == channel), None)
+                (c for c in ctx.guild.text_channels if c.name == channel), None).id
 
             if channel_id is not None:
                 # getting the count through the database
@@ -47,9 +47,11 @@ async def countWord(ctx, word, channel=None):
                     channel_id, ctx.author.id, word)
 
             else:
+                # getting the count through the database
                 rows = database.count_word_in_guild(
                     ctx.guild.id, ctx.author.id, word)
         else:
+            # getting the count through the database
             rows = database.count_word_in_guild(
                 ctx.guild.id, ctx.author.id, word)
 
