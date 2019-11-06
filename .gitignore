@@ -1,1 +1,7 @@
+statsbotWork.code-workspace
 .env
+stats.db
+stats.db-journal
+.vscode/
+.vs/
+__pycache__/
