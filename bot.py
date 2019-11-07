@@ -34,9 +34,8 @@ async def index_channels(guildID, text_channels, before=None):  # indexing the c
 async def countWord(ctx, word, channel=None):
 
     rows = 0
-    # getting the count through the database with the last indexes added
+    # getting the count through the database
     async with ctx.channel.typing():
-        await index_channels(ctx.guild.id, ctx.guild.text_channels, ctx.message.created_at)
         if channel is not None:
             channel_id = next(
                 (c for c in ctx.guild.text_channels if c.name == channel), None).id
@@ -57,6 +56,11 @@ async def countWord(ctx, word, channel=None):
 
         await ctx.send('{} you have used the word {} {} times'.format(ctx.author.mention, word, rows))
 
+@client.event
+async def on_message(message):
+    await client.process_commands(message)
+    await index_channels(message.guild.id, message.guild.text_channels)
+    
 
 @client.event
 async def on_ready():
