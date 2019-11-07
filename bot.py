@@ -54,7 +54,7 @@ async def countWord(ctx, word, channel=None):
             rows = database.count_word_in_guild(
                 ctx.guild.id, ctx.author.id, word)
 
-        await ctx.send('{} you have used the word {} {} times'.format(ctx.author.mention, word, rows))
+    await ctx.send('{} you have used the word {} {} times'.format(ctx.author.mention, word, int(rows)))
 
 @client.event
 async def on_message(message):
