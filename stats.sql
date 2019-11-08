@@ -75,6 +75,22 @@ CREATE TABLE IF NOT EXISTS `STATS_DB`.`Mentions` (
 ENGINE = InnoDB;
 
 
+-- -----------------------------------------------------
+-- Table `mydb`.`Words`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `STATS_DB`.`Words` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `member_id` BIGINT NOT NULL,
+  `message_id` BIGINT NOT NULL,
+  `word` LONGTEXT NOT NULL,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `fk_Words_Messages1`
+    FOREIGN KEY (`message_id`)
+    REFERENCES `STATS_DB`.`Messages` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
+
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;

@@ -6,6 +6,8 @@ import discord
 from dotenv import load_dotenv
 from discord.ext import commands
 from datetime import datetime
+from collections import defaultdict
+from collections import Counter
 
 load_dotenv()
 token = os.getenv('DISCORD_TOKEN')
@@ -23,12 +25,48 @@ async def index_channels(guildID, text_channels, before=None):  # indexing the c
         # getting the last message datetime
         lastMessage = await database.get_last_message_date_by_channel(channel.id)
         dt = datetime.strptime(
-            lastMessage, '%Y-%m-%d %H:%M:%S.%f') if lastMessage is not None else None
+            lastMessage, '%Y-%m-%d %H:%M:%S') if lastMessage is not None else None
 
         messages = await channel.history(limit=None, before=before, after=dt).flatten()
         for message in messages:
             await database.add_message(message)
 
+def max_by_weigh(sequence):
+    if not sequence:
+        raise ValueError('empty sequence')
+
+    maximum = sequence[0]
+
+    for item in sequence:
+        # Compare elements by their weight stored
+        # in their second element.
+        if item[1] > maximum[1]:
+            maximum = item
+
+    return maximum
+
+@client.command(aliases=["max"])
+async def maxWord(ctx, channel=None):
+    author = ctx.message.mentions[0].id if len(
+        ctx.message.mentions) != 0 else None
+
+    rows = []
+    # getting the count through the database
+    async with ctx.channel.typing():
+        channel_id = next(
+            (c for c in ctx.guild.text_channels if channel is not None and c.name == channel), None)
+
+        if channel_id is not None:
+            # getting the count through the database
+            rows = await database.max_word_in_channel(
+                channel_id.id, author)
+
+        else:
+            # getting the count through the database
+            rows = await database.max_word_in_guild(
+                ctx.guild.id, author)
+
+    await ctx.send("{}: The word \"{}\" has been the most used by {} and is used {} times".format(ctx.author.mention, rows[2], ctx.guild.get_member(rows[1]).mention, rows[0]))
 
 @client.command(aliases=["count"])
 async def countWord(ctx, word, channel=None):
@@ -38,19 +76,14 @@ async def countWord(ctx, word, channel=None):
         ctx.message.mentions) != 0 else ctx.author.id
     # getting the count through the database
     async with ctx.channel.typing():
-        if channel is not None:
-            channel_id = next(
-                (c for c in ctx.guild.text_channels if c.name == channel), None)
+        channel_id = next(
+            (c for c in ctx.guild.text_channels if channel is not None and c.name == channel), None)
 
-            if channel_id is not None:
-                # getting the count through the database
-                rows = await database.count_word_in_channel(
-                    channel_id.id, author, word)
+        if channel_id is not None:
+            # getting the count through the database
+            rows = await database.count_word_in_channel(
+                channel_id.id, author, word)
 
-            else:
-                # getting the count through the database
-                rows = await database.count_word_in_guild(
-                    ctx.guild.id, author, word)
         else:
             # getting the count through the database
             rows = await database.count_word_in_guild(
@@ -58,11 +91,11 @@ async def countWord(ctx, word, channel=None):
 
     if rows is None:
         rows = 0
-        
+
     if author != ctx.author.id:
-        await ctx.send('{}: {} has used the word {} {} times'.format(ctx.author.mention, ctx.message.mentions[0].mention, word, int(rows)))
+        await ctx.send('{}: {} has used the word \"{}\" {} times'.format(ctx.author.mention, ctx.message.mentions[0].mention, word, int(rows)))
     else:
-        await ctx.send('{} you have used the word {} {} times'.format(ctx.author.mention, word, int(rows)))
+        await ctx.send('{} you have used the word \"{}\" {} times'.format(ctx.author.mention, word, int(rows)))
 
 
 @client.event

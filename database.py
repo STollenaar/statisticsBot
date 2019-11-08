@@ -43,7 +43,7 @@ async def add_channel(guild_id, channel_id):
 
     conn = await manage_connections()
     cur = conn.cursor()
-    
+
     try:
         cur.execute("INSERT INTO Channels VALUES (%s,%s)",
                     (channel_id, guild_id,))
@@ -65,17 +65,24 @@ async def has_channel_saved(channel_id):
 
 
 async def add_message(message):
-    
+
     conn = await manage_connections()
     cur = conn.cursor()
-    
+
     try:
-        cur.execute("INSERT INTO Messages (id, channel_id, author, content, date) VALUES (%s,%s,%s,%s,%s)", (message.id,
-                                                                                                             message.channel.id, message.author.id, message.content, message.created_at,))
+        if not message.content:
+            cur.execute("INSERT INTO Messages (id, channel_id, author, content, date) VALUES (%s,%s,%s,%s,%s)", (message.id,
+                                                                                                                message.channel.id, message.author.id, message.content, message.created_at.strftime('%Y-%m-%d %H:%M:%S'),))
 
         for member in message.mentions:
             cur.execute(
                 "INSERT INTO Mentions (message_id, member_id) VALUES (%s,%s)", (message.id, member.id,))
+
+        for word in message.content.split(' '):
+            if not word:
+                cur.execute("INSERT INTO Words (message_id, member_id, word) VALUES (%s, %s, %s)",
+                            (message.id, message.author.id, word,))
+
         conn.commit()
         cur.close()
         conn.close()
@@ -99,8 +106,8 @@ async def get_last_message_date_by_channel(channel_id):
 async def count_word_in_guild(guild_id, author_id, word):
     conn = await manage_connections()
     cur = conn.cursor()
-    cur.execute("SELECT SUM((LENGTH(m.content) - LENGTH(REPLACE(m.content, %s, ''))) / LENGTH(%s)) FROM Channels AS c INNER JOIN Messages AS m ON c.id=m.channel_id WHERE c.guild_id=%s AND m.author=%s AND m.content LIKE %s LIMIT 1",
-                (word, word, guild_id, author_id, '%'+word+'%', ))
+    cur.execute("SELECT COUNT(*) FROM Channels AS c INNER JOIN Messages as m ON c.id=m.channel_id INNER JOIN Words AS w ON m.id=w.message_id WHERE c.guild_id=%s AND m.author=%s AND w.word=%s LIMIT 1",
+                (guild_id, author_id, word,))
     row = cur.fetchone()
     cur.close()
     conn.close()
@@ -110,9 +117,37 @@ async def count_word_in_guild(guild_id, author_id, word):
 async def count_word_in_channel(channel_id, author_id, word):
     conn = await manage_connections()
     cur = conn.cursor()
-    cur.execute("SELECT SUM((LENGTH(m.content) - LENGTH(REPLACE(m.content, %s, ''))) / LENGTH(%s)) FROM Channels AS c INNER JOIN Messages AS m ON c.id=m.channel_id WHERE c.id=%s AND m.author=%s AND m.content LIKE %s LIMIT 1",
-                (word, word, channel_id, author_id, '%'+word+'%',))
+    cur.execute("SELECT COUNT(*) FROM Channels AS c INNER JOIN Messages as m ON c.id=m.channel_id INNER JOIN Words AS w ON m.id=w.message_id WHERE c.channel_id=%s AND m.author=%s AND w.word=%s LIMIT 1",
+                (channel_id, author_id, word,))
     row = cur.fetchone()
     cur.close()
     conn.close()
     return row[0] if row is not None else None
+
+
+async def max_word_in_guild(guild_id, author_id=None):
+    conn = await manage_connections()
+    cur = conn.cursor()
+    if author_id is not None:
+        cur.execute("SELECT COUNT(w.word) AS amount, w.member_id, w.word FROM Channels AS c INNER JOIN Messages as m ON c.id=m.channel_id INNER JOIN Words AS w ON m.id=w.message_id WHERE c.guild_id=%s AND w.member_id=%s GROUP BY w.word ORDER BY amount DESC", (guild_id, author_id,))
+    else:
+        cur.execute(
+            "SELECT COUNT(w.word) AS amount, w.member_id, w.word FROM Channels AS c INNER JOIN Messages as m ON c.id=m.channel_id INNER JOIN Words AS w ON m.id=w.message_id WHERE c.guild_id=%s GROUP BY w.word ORDER BY amount DESC", (guild_id,))
+    row = cur.fetchall()[0]
+    cur.close()
+    conn.close()
+    return row
+
+
+async def max_word_in_channel(channel_id, author_id=None):
+    conn = await manage_connections()
+    cur = conn.cursor()
+    if author_id is not None:
+        cur.execute("SELECT COUNT(w.word) AS amount, w.member_id, w.word FROM Channels AS c INNER JOIN Messages as m ON c.id=m.channel_id INNER JOIN Words AS w ON m.id=w.message_id WHERE c.id=%s AND w.word=%s GROUP BY w.member_id ORDER BY amount DESC", (channel_id, author_id,))
+    else:
+        cur.execute(
+            "SELECT COUNT(w.word) AS amount, w.member_id, w.word FROM Channels AS c INNER JOIN Messages as m ON c.id=m.channel_id INNER JOIN Words AS w ON m.id=w.message_id WHERE c.id=%s GROUP BY w.word ORDER BY amount DESC", (channel_id,))
+    row = cur.fetchall()[0]
+    cur.close()
+    conn.close()
+    return row
