@@ -1,7 +1,7 @@
 USER=stats
 USER_PASS=$USER
 
-service mysql start
+#service mysql start
 
 mysql -u root --password="$USER_PASS" -h localhost <<-EOSQL
  CREATE DATABASE IF NOT EXISTS STATS_DB;

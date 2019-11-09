@@ -58,13 +58,13 @@ async def maxWord(ctx, channel=None):
 
         if channel_id is not None:
             # getting the count through the database
-            rows = await database.max_word_in_channel(
-                channel_id.id, author)
+            rows = (await database.max_word_in_channel(
+                channel_id.id, author))[0]
 
         else:
             # getting the count through the database
-            rows = await database.max_word_in_guild(
-                ctx.guild.id, author)
+            rows = (await database.max_word_in_guild(
+                ctx.guild.id, author))[0]
 
     await ctx.send("{}: The word \"{}\" has been the most used by {} and is used {} times".format(ctx.author.mention, rows[2], ctx.guild.get_member(rows[1]).mention, rows[0]))
 

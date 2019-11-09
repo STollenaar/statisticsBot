@@ -50,14 +50,19 @@ CREATE TABLE IF NOT EXISTS `STATS_DB`.`Messages` (
   `content` LONGTEXT NOT NULL,
   `date` MEDIUMTEXT NOT NULL,
   `channel_id` BIGINT NOT NULL,
+  `guild_id` BIGINT NOT NULL,
   PRIMARY KEY (`id`),
   CONSTRAINT `fk_Messages_Channels1`
     FOREIGN KEY (`channel_id`)
     REFERENCES `STATS_DB`.`Channels` (`id`)
     ON DELETE CASCADE
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_Messages_Guilds1`  
+    FOREIGN KEY (`guild_id`)
+    REFERENCES `STATS_DB`.`Guilds`(`id`)
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
-
 
 -- -----------------------------------------------------
 -- Table `mydb`.`Mentions`
