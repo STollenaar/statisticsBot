@@ -111,7 +111,7 @@ async def count_word_in_guild(guild_id, author_id, word):
     row = cur.fetchone()
     cur.close()
     conn.close()
-    return row[0] if row is not None else None
+    return row[0] if row is not None else -1
 
 
 async def count_word_in_channel(channel_id, author_id, word):
@@ -122,7 +122,7 @@ async def count_word_in_channel(channel_id, author_id, word):
     row = cur.fetchone()
     cur.close()
     conn.close()
-    return row[0] if row is not None else None
+    return row[0] if row is not None else -1
 
 
 async def max_word_in_guild(guild_id, author_id=None):
@@ -151,3 +151,16 @@ async def max_word_in_channel(channel_id, author_id=None):
     cur.close()
     conn.close()
     return row
+
+
+async def last_message_of_user(guild_id, author_id, channel_id=None):
+    conn = await manage_connections()
+    cur = conn.cursor()
+    if channel_id is not None:
+        cur.execute("SELECT date FROM Messages WHERE guild_id=%s AND channel_id=%s AND author=%s ORDER BY id DESC LIMIT 1", (guild_id, channel_id.id, author_id,))
+    else:
+        cur.execute("SELECT date FROM Messages WHERE guild_id=%s AND author=%s ORDER BY id DESC LIMIT 1", (guild_id, author_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+    return row[0] if row is not None else "error"

@@ -31,6 +31,7 @@ async def index_channels(guildID, text_channels, before=None):  # indexing the c
         for message in messages:
             await database.add_message(message)
 
+
 def max_by_weigh(sequence):
     if not sequence:
         raise ValueError('empty sequence')
@@ -44,6 +45,26 @@ def max_by_weigh(sequence):
             maximum = item
 
     return maximum
+
+
+@client.command(aliases=["last"])
+async def lastMessage(ctx, channel=None):
+    author = ctx.message.mentions[0].id if len(
+        ctx.message.mentions) != 0 else None
+
+    if author is None:
+        await ctx.send("Error using this command, you didn't specify who")
+        return
+
+    rows = ""
+    # getting the count through the database
+    async with ctx.channel.typing():
+        channel_id = next(
+            (c for c in ctx.guild.text_channels if channel is not None and c.name == channel), None)
+        rows = await database.last_message_of_user(ctx.guild.id, author, channel_id)
+
+    await ctx.send("{}, {} last send something on {} UTC".format(ctx.author.mention, ctx.guild.get_member(author).mention, rows))
+
 
 @client.command(aliases=["max"])
 async def maxWord(ctx, channel=None):
@@ -68,6 +89,7 @@ async def maxWord(ctx, channel=None):
 
     await ctx.send("{}: The word \"{}\" has been the most used by {} and is used {} times".format(ctx.author.mention, rows[2], ctx.guild.get_member(rows[1]).mention, rows[0]))
 
+
 @client.command(aliases=["count"])
 async def countWord(ctx, word, channel=None):
 
@@ -88,9 +110,6 @@ async def countWord(ctx, word, channel=None):
             # getting the count through the database
             rows = await database.count_word_in_guild(
                 ctx.guild.id, author, word)
-
-    if rows is None:
-        rows = 0
 
     if author != ctx.author.id:
         await ctx.send('{}: {} has used the word \"{}\" {} times'.format(ctx.author.mention, ctx.message.mentions[0].mention, word, int(rows)))
