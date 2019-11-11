@@ -63,7 +63,7 @@ async def lastMessage(ctx, channel=None):
             (c for c in ctx.guild.text_channels if channel is not None and c.name == channel), None)
         rows = await database.last_message_of_user(ctx.guild.id, author, channel_id)
 
-    await ctx.send("{}, {} last send something on {} UTC".format(ctx.author.mention, ctx.guild.get_member(author).mention, rows))
+    await ctx.send("{}, {} last send something on {} ".format(ctx.author.mention, ctx.guild.get_member(author).mention, rows))
 
 
 @client.command(aliases=["max"])

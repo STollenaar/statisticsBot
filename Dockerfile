@@ -1,13 +1,9 @@
-FROM python:3
+FROM python:3-alpine
 
 # Create app directory
 COPY . /app
 WORKDIR /app
 
-RUN apt-get update && \
- apt-get install -y build-essential && \
- apt-get install -y mariadb-server && \
- apt-get install -y mariadb-client && \ 
- pip install -r requirements.txt
+RUN apk update && apk add mysql-client && rm -f /var/cache/apk/* && pip install -r requirements.txt
 
 CMD ./docker-entry.sh

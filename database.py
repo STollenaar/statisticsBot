@@ -3,7 +3,7 @@ import mysql.connector
 import asyncio
 from mysql.connector import pooling
 
-dbconfig = {"host": "localhost", "user": "stats",
+dbconfig = {"host": "databases", "user": "stats",
             "password": "stats", "database": "STATS_DB", "charset": "utf8mb4"}
 
 connpool = mysql.connector.pooling.MySQLConnectionPool(pool_name="statspool",
@@ -163,4 +163,4 @@ async def last_message_of_user(guild_id, author_id, channel_id=None):
     row = cur.fetchone()
     cur.close()
     conn.close()
-    return row[0] if row is not None else "error"
+    return row[0] + "UTC." if row is not None else "no message found."
