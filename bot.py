@@ -3,21 +3,16 @@ import os
 import database
 import discord
 
-from dotenv import load_dotenv
 from discord.ext import commands
 from datetime import datetime
 from collections import defaultdict
 from collections import Counter
-
-load_dotenv()
-token = os.getenv('DISCORD_TOKEN')
 
 client = discord.client
 client = commands.Bot(command_prefix='~', case_insensitive=True)
 
 
 async def index_channels(guildID, text_channels, before=None):  # indexing the channels
-
     for channel in text_channels:
         if not await database.has_channel_saved(channel.id):
             await database.add_channel(guildID, channel.id)
@@ -135,4 +130,4 @@ async def on_ready():
 
     print('done start up indexing')
 
-client.run(token)
+client.run(os.environ['DISCORD_TOKEN'])

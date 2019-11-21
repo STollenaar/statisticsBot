@@ -5,3 +5,4 @@ stats.db-journal
 .vscode/
 .vs/
 __pycache__/
+docker-compose.yml
