@@ -72,7 +72,7 @@ async def add_message(message):
     try:
         if message.content:
             cur.execute("INSERT INTO Messages (id, guild_id, channel_id, author, content, date) VALUES (%s, %s,%s,%s,%s,%s);", (message.id, message.guild.id,
-                                                                                                                               message.channel.id, message.author.id, message.content, message.created_at.strftime('%Y-%m-%d %H:%M:%S'),))
+                                                                                                                                message.channel.id, message.author.id, message.content, message.created_at.strftime('%Y-%m-%d %H:%M:%S'),))
 
             for member in message.mentions:
                 cur.execute(
@@ -86,7 +86,7 @@ async def add_message(message):
         conn.commit()
         cur.close()
         conn.close()
-    except: 
+    except:
         cur.close()
         conn.close()
         return
@@ -106,8 +106,13 @@ async def get_last_message_date_by_channel(channel_id):
 async def count_word_in_guild(guild_id, author_id, word):
     conn = await manage_connections()
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s AND m.author=%s AND w.word=%s LIMIT 1;",
-                (guild_id, author_id, word,))
+    if len(word.split(' ')) == 1:
+        cur.execute("SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s AND m.author=%s AND w.word=%s LIMIT 1;",
+                    (guild_id, author_id, word,))
+    else:
+        cur.execute("SELECT COUNT(*) FROM Messages as m WHERE m.guild_id=%s AND m.author=%s AND m.content LIKE %s LIMIT 1",
+                    (guild_id, author_id, '%'+word+'%'))
+
     row = cur.fetchone()
     cur.close()
     conn.close()
@@ -117,39 +122,52 @@ async def count_word_in_guild(guild_id, author_id, word):
 async def count_word_in_channel(channel_id, author_id, word):
     conn = await manage_connections()
     cur = conn.cursor()
-    cur.execute("SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.channel_id=%s AND m.author=%s AND w.word=%s LIMIT 1;",
-                (channel_id, author_id, word,))
+    if len(word.split(' ')) == 1:
+        cur.execute("SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.channel_id=%s AND m.author=%s AND w.word=%s LIMIT 1;",
+                    (channel_id, author_id, word,))
+    else:
+        cur.execute("SELECT COUNT(*) FROM Messages as m WHERE m.channel_id=%s AND m.author=%s AND m.content LIKE %s LIMIT 1",
+                    (channel_id, author_id, '%'+word+'%'))
+
     row = cur.fetchone()
     cur.close()
     conn.close()
     return row[0] if row is not None else -1
 
 
-async def max_word_in_guild(guild_id, author_id=None):
+async def max_word(guild_id, channel_id=None, author_id=None, word=None):
     conn = await manage_connections()
     cur = conn.cursor()
+    query = "SELECT COUNT(w.word) AS amount, m.author, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s"
+    pars = (guild_id,)
+
     if author_id is not None:
-        cur.execute("SELECT COUNT(w.word) AS amount, w.member_id, w.word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s AND w.member_id=%s GROUP BY w.word ORDER BY amount DESC;", (guild_id, author_id,))
+        query += " AND m.author = %s"
+        pars += (author_id,)
+    if channel_id is not None:
+        query += " AND m.id=%s"
+        pars += (channel_id,)
+    if word is not None:
+        if len(word.split(' ')) == 1:
+            query += " AND w.word=%s"
+        else:
+            query = query.replace('SELECT COUNT(w.word) AS amount, m.author, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id', 'SELECT COUNT(*) AS amount, m.author FROM Messages AS m')
+            query += " AND m.content LIKE %s"
+        pars += ('% '+word+' %',)
+
+    if word is not None and len(word.split(' ')) != 1:
+        query += " GROUP BY m.author ORDER BY amount DESC;"
     else:
-        cur.execute(
-            "SELECT COUNT(w.word) AS amount, w.member_id, w.word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s GROUP BY w.word ORDER BY amount DESC;", (guild_id,))
+        query += " GROUP BY w.word, m.author ORDER BY amount DESC;"
+
+    cur.execute(query, pars)
     row = cur.fetchall()
     cur.close()
     conn.close()
-    return row
 
+    if len(row[0]) < 3:
+        row[0]+= (word,)
 
-async def max_word_in_channel(channel_id, author_id=None):
-    conn = await manage_connections()
-    cur = conn.cursor()
-    if author_id is not None:
-        cur.execute("SELECT COUNT(w.word) AS w.amount, w.member_id, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE w.channel_id=%s AND w.word=%s GROUP BY w.member_id ORDER BY amount DESC;", (channel_id, author_id,))
-    else:
-        cur.execute(
-            "SELECT COUNT(w.word) AS w.amount, w.member_id, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE w.channel_id=%s GROUP BY w.word ORDER BY amount DESC;", (channel_id,))
-    row = cur.fetchall()
-    cur.close()
-    conn.close()
     return row
 
 
@@ -157,9 +175,11 @@ async def last_message_of_user(guild_id, author_id, channel_id=None):
     conn = await manage_connections()
     cur = conn.cursor()
     if channel_id is not None:
-        cur.execute("SELECT date FROM Messages WHERE guild_id=%s AND channel_id=%s AND author=%s ORDER BY id DESC LIMIT 1;", (guild_id, channel_id.id, author_id,))
+        cur.execute("SELECT date FROM Messages WHERE guild_id=%s AND channel_id=%s AND author=%s ORDER BY id DESC LIMIT 1;",
+                    (guild_id, channel_id.id, author_id,))
     else:
-        cur.execute("SELECT date FROM Messages WHERE guild_id=%s AND author=%s ORDER BY id DESC LIMIT 1;", (guild_id, author_id,))
+        cur.execute(
+            "SELECT date FROM Messages WHERE guild_id=%s AND author=%s ORDER BY id DESC LIMIT 1;", (guild_id, author_id,))
     row = cur.fetchone()
     cur.close()
     conn.close()
