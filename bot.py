@@ -84,6 +84,7 @@ async def maxWord(ctx, word=None, channel=None):
     except:
         await ctx.send("{}: The word(s) \"{}\" has been the most used by {} and is used {} times".format(ctx.author.mention, rows[2], "Deleted User", rows[0]))
 
+
 @client.command(aliases=["count"])
 async def countWord(ctx, word, channel=None):
 
@@ -95,15 +96,9 @@ async def countWord(ctx, word, channel=None):
         channel_id = next(
             (c for c in ctx.guild.text_channels if channel is not None and c.name == channel), None)
 
-        if channel_id is not None:
-            # getting the count through the database
-            rows = await database.count_word_in_channel(
-                channel_id.id, author, word)
-
-        else:
-            # getting the count through the database
-            rows = await database.count_word_in_guild(
-                ctx.guild.id, author, word)
+        # getting the count through the database
+        rows = await database.count_word(
+            ctx.guild.id, author, word, channel_id)
 
     if author != ctx.author.id:
         await ctx.send('{}: {} has used the word(s) \"{}\" {} times'.format(ctx.author.mention, ctx.message.mentions[0].mention, word, int(rows)))

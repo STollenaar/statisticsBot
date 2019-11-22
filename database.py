@@ -103,42 +103,34 @@ async def get_last_message_date_by_channel(channel_id):
     return row[0] if row is not None else None
 
 
-async def count_word_in_guild(guild_id, author_id, word):
+async def count_word(guild_id, author_id, word, channel_id=None):
     conn = await manage_connections()
     cur = conn.cursor()
+    query = None
+    pars = (guild_id, author_id,)
     if len(word.split(' ')) == 1:
-        cur.execute("SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s AND m.author=%s AND w.word=%s LIMIT 1;",
-                    (guild_id, author_id, word,))
+        query = "SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s AND m.author=%s AND w.word=%s"
+        pars += (word,)
     else:
-        cur.execute("SELECT COUNT(*) FROM Messages as m WHERE m.guild_id=%s AND m.author=%s AND m.content LIKE %s LIMIT 1",
-                    (guild_id, author_id, '%'+word+'%'))
+        query = "SELECT COUNT(*) FROM Messages as m WHERE m.guild_id=%s AND m.author=%s AND m.content LIKE %s"
+        pars += ('%'+word+'%',)
+    
+    if channel_id is not None:
+        query += " AND m.id = %s"
+        pars += (channel_id,)
 
+    query += "LIMIT 1;"
+    
+    cur.execute(query, pars)
     row = cur.fetchone()
     cur.close()
     conn.close()
     return row[0] if row is not None else -1
-
-
-async def count_word_in_channel(channel_id, author_id, word):
-    conn = await manage_connections()
-    cur = conn.cursor()
-    if len(word.split(' ')) == 1:
-        cur.execute("SELECT COUNT(*) FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.channel_id=%s AND m.author=%s AND w.word=%s LIMIT 1;",
-                    (channel_id, author_id, word,))
-    else:
-        cur.execute("SELECT COUNT(*) FROM Messages as m WHERE m.channel_id=%s AND m.author=%s AND m.content LIKE %s LIMIT 1",
-                    (channel_id, author_id, '%'+word+'%'))
-
-    row = cur.fetchone()
-    cur.close()
-    conn.close()
-    return row[0] if row is not None else -1
-
 
 async def max_word(guild_id, channel_id=None, author_id=None, word=None):
     conn = await manage_connections()
     cur = conn.cursor()
-    query = "SELECT COUNT(w.word) AS amount, m.author, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s"
+    query = "SELECT COUNT(w.word) AS amount, m.author, w.word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id WHERE m.guild_id=%s"
     pars = (guild_id,)
 
     if author_id is not None:
@@ -150,15 +142,16 @@ async def max_word(guild_id, channel_id=None, author_id=None, word=None):
     if word is not None:
         if len(word.split(' ')) == 1:
             query += " AND w.word=%s"
+            pars +=(word,)
         else:
             query = query.replace('SELECT COUNT(w.word) AS amount, m.author, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id', 'SELECT COUNT(*) AS amount, m.author FROM Messages AS m')
             query += " AND m.content LIKE %s"
-        pars += ('% '+word+' %',)
+            pars += ('% '+word+' %',)
 
     if word is not None and len(word.split(' ')) != 1:
         query += " GROUP BY m.author ORDER BY amount DESC;"
     else:
-        query += " GROUP BY w.word, m.author ORDER BY amount DESC;"
+        query += " GROUP BY m.author, w.word ORDER BY amount DESC;"
 
     cur.execute(query, pars)
     row = cur.fetchall()
