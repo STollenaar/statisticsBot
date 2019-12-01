@@ -144,7 +144,7 @@ async def max_word(guild_id, channel_id=None, author_id=None, word=None):
             query += " AND w.word=%s"
             pars +=(word,)
         else:
-            query = query.replace('SELECT COUNT(w.word) AS amount, m.author, word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id', 'SELECT COUNT(*) AS amount, m.author FROM Messages AS m')
+            query = query.replace('SELECT COUNT(w.word) AS amount, m.author, w.word FROM Messages as m INNER JOIN Words AS w ON m.id=w.message_id', 'SELECT COUNT(*) AS amount, m.author FROM Messages AS m')
             query += " AND m.content LIKE %s"
             pars += ('% '+word+' %',)
 
@@ -157,6 +157,9 @@ async def max_word(guild_id, channel_id=None, author_id=None, word=None):
     row = cur.fetchall()
     cur.close()
     conn.close()
+
+    if len(row) == 0:
+        row.append(("No One", 0,))
 
     if len(row[0]) < 3:
         row[0]+= (word,)
