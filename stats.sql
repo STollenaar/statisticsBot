@@ -2,101 +2,82 @@
 -- Tue Nov  5 23:27:44 2019
 -- Model: New Model    Version: 1.0
 -- MySQL Workbench Forward Engineering
-
-SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
-SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
-
+SET
+  @OLD_UNIQUE_CHECKS = @@UNIQUE_CHECKS,
+  UNIQUE_CHECKS = 0;
+SET
+  @OLD_FOREIGN_KEY_CHECKS = @@FOREIGN_KEY_CHECKS,
+  FOREIGN_KEY_CHECKS = 0;
+SET
+  @OLD_SQL_MODE = @@SQL_MODE,
+  SQL_MODE = 'ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 -- -----------------------------------------------------
--- Schema mydb
+  -- Schema mydb
+  -- -----------------------------------------------------
+  -- -----------------------------------------------------
+  -- Schema mydb
+  -- -----------------------------------------------------
+  CREATE SCHEMA IF NOT EXISTS `STATS_DB` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE `STATS_DB`;
 -- -----------------------------------------------------
-
+  -- Table `mydb`.`Guilds`
+  -- -----------------------------------------------------
+  CREATE TABLE IF NOT EXISTS `STATS_DB`.`Guilds` (`id` BIGINT NOT NULL, PRIMARY KEY (`id`)) ENGINE = InnoDB;
 -- -----------------------------------------------------
--- Schema mydb
+  -- Table `mydb`.`Channels`
+  -- -----------------------------------------------------
+  CREATE TABLE IF NOT EXISTS `STATS_DB`.`Channels` (
+    `id` BIGINT NOT NULL,
+    `guild_id` BIGINT NOT NULL,
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_Channels_Guilds` FOREIGN KEY (`guild_id`) REFERENCES `STATS_DB`.`Guilds` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  ) ENGINE = InnoDB;
 -- -----------------------------------------------------
-CREATE SCHEMA IF NOT EXISTS `STATS_DB` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
-USE `STATS_DB` ;
-
+  -- Table `mydb`.`Messages`
+  -- -----------------------------------------------------
+  CREATE TABLE IF NOT EXISTS `STATS_DB`.`Messages` (
+    `id` BIGINT NOT NULL,
+    `author` BIGINT NOT NULL,
+    `content` LONGTEXT NOT NULL,
+    `date` MEDIUMTEXT NOT NULL,
+    `channel_id` BIGINT NOT NULL,
+    `guild_id` BIGINT NOT NULL,
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_Messages_Channels1` FOREIGN KEY (`channel_id`) REFERENCES `STATS_DB`.`Channels` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
+    CONSTRAINT `fk_Messages_Guilds1` FOREIGN KEY (`guild_id`) REFERENCES `STATS_DB`.`Guilds` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE utf8mb4_general_ci;
 -- -----------------------------------------------------
--- Table `mydb`.`Guilds`
+  -- Table `mydb`.`Mentions`
+  -- -----------------------------------------------------
+  CREATE TABLE IF NOT EXISTS `STATS_DB`.`Mentions` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `member_id` BIGINT NOT NULL,
+    `message_id` BIGINT NOT NULL,
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_Mentions_Messages1` FOREIGN KEY (`message_id`) REFERENCES `STATS_DB`.`Messages` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  ) ENGINE = InnoDB;
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `STATS_DB`.`Guilds` (
-  `id` BIGINT NOT NULL,
-  PRIMARY KEY (`id`))
-ENGINE = InnoDB;
-
-
+  -- Table `mydb`.`Words`
+  -- -----------------------------------------------------
+  CREATE TABLE IF NOT EXISTS `STATS_DB`.`Words` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT,
+    `member_id` BIGINT NOT NULL,
+    `message_id` BIGINT NOT NULL,
+    `word` LONGTEXT NOT NULL,
+    PRIMARY KEY (`id`),
+    CONSTRAINT `fk_Words_Messages1` FOREIGN KEY (`message_id`) REFERENCES `STATS_DB`.`Messages` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE utf8mb4_general_ci;
 -- -----------------------------------------------------
--- Table `mydb`.`Channels`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `STATS_DB`.`Channels` (
-  `id` BIGINT NOT NULL,
-  `guild_id` BIGINT NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_Channels_Guilds`
-    FOREIGN KEY (`guild_id`)
-    REFERENCES `STATS_DB`.`Guilds` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`Messages`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `STATS_DB`.`Messages` (
-  `id` BIGINT NOT NULL,
-  `author` BIGINT NOT NULL,
-  `content` LONGTEXT NOT NULL,
-  `date` MEDIUMTEXT NOT NULL,
-  `channel_id` BIGINT NOT NULL,
-  `guild_id` BIGINT NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_Messages_Channels1`
-    FOREIGN KEY (`channel_id`)
-    REFERENCES `STATS_DB`.`Channels` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION,
-  CONSTRAINT `fk_Messages_Guilds1`  
-    FOREIGN KEY (`guild_id`)
-    REFERENCES `STATS_DB`.`Guilds`(`id`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
-
--- -----------------------------------------------------
--- Table `mydb`.`Mentions`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `STATS_DB`.`Mentions` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `member_id` BIGINT NOT NULL,
-  `message_id` BIGINT NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_Mentions_Messages1`
-    FOREIGN KEY (`message_id`)
-    REFERENCES `STATS_DB`.`Messages` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `mydb`.`Words`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `STATS_DB`.`Words` (
-  `id` BIGINT NOT NULL AUTO_INCREMENT,
-  `member_id` BIGINT NOT NULL,
-  `message_id` BIGINT NOT NULL,
-  `word` LONGTEXT NOT NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_Words_Messages1`
-    FOREIGN KEY (`message_id`)
-    REFERENCES `STATS_DB`.`Messages` (`id`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB DEFAULT CHARSET=utf8mb4 COLLATE utf8mb4_general_ci;
-
-SET SQL_MODE=@OLD_SQL_MODE;
-SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
-SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
-
+  -- Table `mydb`.`Members`
+  -- -----------------------------------------------------
+  CREATE TABLE IF NOT EXISTS `STATS_DB`.`Members` (
+    `id` BIGINT NOT NULL,
+    `name` BIGINT NOT NULL,
+    PRIMARY KEY (`id`)
+  ) ENGINE = InnoDB DEFAULt CHARSET = utf8mb4 COLLATE utf8mb4_general_ci;
+SET
+  SQL_MODE = @OLD_SQL_MODE;
+SET
+  FOREIGN_KEY_CHECKS = @OLD_FOREIGN_KEY_CHECKS;
+SET
+  UNIQUE_CHECKS = @OLD_UNIQUE_CHECKS;

@@ -83,6 +83,10 @@ async def add_message(message):
                     cur.execute("INSERT INTO Words (message_id, member_id, word) VALUES (%s, %s, %s);",
                                 (message.id, message.author.id, word,))
 
+            try:
+                cur.execute("INSERT INTO Members (id, name) VALUES (%s, %s);", (message.author.id, message.author.name))
+            except:
+                pass
         conn.commit()
         cur.close()
         conn.close()
