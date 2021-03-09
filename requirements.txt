@@ -1,2 +1,0 @@
-discord.py==1.2.5
-mysql-connector==2.2.9
