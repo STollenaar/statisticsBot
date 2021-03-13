@@ -60,8 +60,7 @@ func CountFilterOccurences(guilID string, filter bson.D) (messageObject []util.C
 		primitive.E{
 			Key: "$group",
 			Value: bson.M{
-				"_id":       "$Author",
-				"ChannelID": "$ChannelID",
+				"_id": "$Author",
 				"Words": bson.D{
 					primitive.E{
 						Key:   "$push",
@@ -86,7 +85,6 @@ func CountFilterOccurences(guilID string, filter bson.D) (messageObject []util.C
 					"Author": "$_id",
 					"Word":   "$Words",
 				},
-				"ChannelID": "$ChannelID",
 				"wordCount": bson.D{
 					primitive.E{
 						Key:   "$sum",
@@ -101,8 +99,7 @@ func CountFilterOccurences(guilID string, filter bson.D) (messageObject []util.C
 		primitive.E{
 			Key: "$group",
 			Value: bson.M{
-				"_id":       "$_id.Author",
-				"ChannelID": "$ChannelID",
+				"_id": "$_id.Author",
 				"Words": bson.D{
 					primitive.E{
 						Key: "$push",
@@ -128,10 +125,6 @@ func CountFilterOccurences(guilID string, filter bson.D) (messageObject []util.C
 				primitive.E{
 					Key:   "_id",
 					Value: "$_id",
-				},
-				primitive.E{
-					Key:   "ChannelID",
-					Value: "$ChannelID",
 				},
 				primitive.E{
 					Key: "Word",
