@@ -1,11 +1,10 @@
-FROM python:alpine
+FROM golang:1.16.0-alpine
 
 # Create app directory
-COPY ./requirements.txt /app/requirements.txt
-WORKDIR /app
+WORKDIR /usr/src/app
 
-RUN apk add --virtual .build-deps gcc musl-dev \
-  .build-deps && apk update && apk add mysql-client && pip install -r requirements.txt && apk del
+COPY . .
 
-COPY . /app
-CMD ./docker-entry.sh
+RUN go get .
+
+CMD go run .
