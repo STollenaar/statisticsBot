@@ -1,9 +1,9 @@
-package lib
+package commands
 
 import (
-	"context"
 	"fmt"
 	"regexp"
+	"statsisticsbot/lib"
 	"statsisticsbot/util"
 	"strings"
 
@@ -46,19 +46,25 @@ func LastMessage(message *discordgo.MessageCreate, args commandArgs) {
 		"ChannelID": channelFilter,
 	}
 
-	findOptions := options.FindOne()
+	findOptions := options.Find()
 	findOptions.SetSort(bson.D{
 		primitive.E{
 			Key:   "Date",
 			Value: -1,
 		},
 	})
-
-	collection := client.Database("statistics_bot").Collection(message.GuildID)
-	resultCursor := collection.FindOne(context.TODO(), filter, findOptions)
+	findOptions.SetLimit(1)
 
 	var messageObject util.MessageObject
-	err := resultCursor.Decode(&messageObject)
+
+	filterResult, err := lib.GetFromFilter(message.GuildID, filter, findOptions)
+	if err != nil {
+		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintln("Something went wrong.. maybe try again with something else?"))
+		return
+	}
+
+	err = filterResult.Decode(&messageObject)
+
 	if err != nil {
 		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintln("Something went wrong.. maybe try again with something else?"))
 		return

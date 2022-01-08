@@ -1,8 +1,9 @@
-package lib
+package commands
 
 import (
 	"context"
 	"regexp"
+	"statsisticsbot/lib"
 	"statsisticsbot/util"
 	"strings"
 
@@ -11,6 +12,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+var Bot *discordgo.Session
 
 // CommandParsed parsed struct for count command
 type CommandParsed struct {
@@ -55,7 +58,7 @@ func parseArguments(message *discordgo.Message, args commandArgs) (parsedArgumen
 }
 
 // CountFilterOccurences counting the occurences of the filter inside the database
-func CountFilterOccurences(guilID string, filter bson.D) (messageObject []util.CountGrouped) {
+func CountFilterOccurences(guildID string, filter bson.D) (messageObject []util.CountGrouped) {
 	initialGroup := bson.D{
 		primitive.E{
 			Key: "$group",
@@ -143,8 +146,7 @@ func CountFilterOccurences(guilID string, filter bson.D) (messageObject []util.C
 		},
 	}
 
-	collection := client.Database("statistics_bot").Collection(guilID)
-	resultCursor, err := collection.Aggregate(context.TODO(), mongo.Pipeline{filter, initialGroup, unwind, unwind, wordCount, resultGroup, counted})
+	resultCursor, err := lib.GetFromAggregate(guildID, mongo.Pipeline{filter, initialGroup, unwind, unwind, wordCount, resultGroup, counted})
 	if err != nil {
 		panic(err)
 	}

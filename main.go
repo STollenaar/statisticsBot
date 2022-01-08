@@ -2,13 +2,18 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"statsisticsbot/lib"
+	"statsisticsbot/lib/commands"
+	"statsisticsbot/lib/routes"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/nint8835/parsley"
 )
@@ -36,9 +41,9 @@ func main() {
 	parser := parsley.New("stat~")
 	parser.RegisterHandler(bot)
 	parser.NewCommand("ping", "pong", PingCommand)
-	parser.NewCommand("count", "Returns amount of times word is used.", lib.CountCommand)
-	parser.NewCommand("max", "Returns the most used word", lib.MaxCommand)
-	parser.NewCommand("last", "Returns the last time a user send a message", lib.LastMessage)
+	parser.NewCommand("count", "Returns amount of times word is used.", commands.CountCommand)
+	parser.NewCommand("max", "Returns the most used word", commands.MaxCommand)
+	parser.NewCommand("last", "Returns the last time a user send a message", commands.LastMessage)
 
 	if err != nil {
 		fmt.Println("Error loading command ", err)
@@ -52,14 +57,22 @@ func main() {
 	}
 
 	lib.Init()
+	handleRequests()
+
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-sc
 	bot.Close()
-
 }
 
 // PingCommand sends back the pong
 func PingCommand(message *discordgo.MessageCreate, args struct{}) {
 	bot.ChannelMessageSend(message.ChannelID, fmt.Sprintln("Pong"))
+}
+
+func handleRequests() {
+	router := mux.NewRouter().StrictSlash(true)
+
+	router.HandleFunc("/userMessages/{guildID}/{userID}", routes.GetUserMessages).Methods("POST")
+	log.Fatal(http.ListenAndServe(":3000", router))
 }
