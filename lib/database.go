@@ -195,3 +195,15 @@ func constructMessageObject(message *discordgo.Message, guildID string) mongo.Wr
 
 	return messageModel
 }
+
+// Get a result from the database using a filter
+func GetFromFilter(guildID string, filter primitive.M, findOptions *options.FindOptions) (*mongo.Cursor, error) {
+	collection := client.Database("statistics_bot").Collection(guildID)
+	return collection.Find(context.TODO(), filter, findOptions)
+}
+
+// Get a result from the database using an aggregate
+func GetFromAggregate(guildID string, pipeline mongo.Pipeline) (*mongo.Cursor, error) {
+	collection := client.Database("statistics_bot").Collection(guildID)
+	return collection.Aggregate(context.TODO(), pipeline)
+}
