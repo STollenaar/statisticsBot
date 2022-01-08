@@ -73,6 +73,6 @@ func PingCommand(message *discordgo.MessageCreate, args struct{}) {
 func handleRequests() {
 	router := mux.NewRouter().StrictSlash(true)
 
-	router.HandleFunc("/userMessages/{guildID}/{userID}", routes.GetUserMessages).Methods("POST")
+	router.HandleFunc("/userMessages/{guildID}/{userID}", routes.GetUserMessages)
 	log.Fatal(http.ListenAndServe(":3000", router))
 }
