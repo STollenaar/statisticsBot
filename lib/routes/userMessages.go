@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"statsisticsbot/lib"
@@ -19,6 +20,12 @@ func GetUserMessages(w http.ResponseWriter, r *http.Request) {
 
 	filter := bson.M{
 		"Author": userID,
+		"Content.10": bson.D{
+			primitive.E{
+				Key:   "$exists",
+				Value: true,
+			},
+		},
 	}
 
 	findOptions := options.Find()
@@ -28,7 +35,7 @@ func GetUserMessages(w http.ResponseWriter, r *http.Request) {
 			Value: -1,
 		},
 	})
-	findOptions.SetLimit(500)
+	findOptions.SetLimit(1000)
 
 	var messageObject []util.MessageObject
 
@@ -37,7 +44,7 @@ func GetUserMessages(w http.ResponseWriter, r *http.Request) {
 		panic(err)
 	}
 
-	err = resultCursor.Decode(&messageObject)
+	err = resultCursor.All(context.TODO(), &messageObject)
 	if err != nil {
 		panic(err)
 	}
