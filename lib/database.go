@@ -36,13 +36,25 @@ func getClient() {
 }
 
 // Init doing the initialization of all the messages
-func Init() {
+func Init(GuildID *string) {
 	getClient()
 	re = regexp.MustCompile("\\s|\\.|\\\"")
 	guilds, err := Bot.UserGuilds(100, "", "")
 	if err != nil {
 		fmt.Println(err)
 	}
+
+	// TODO: Probably reformat this
+	if GuildID != nil {
+		for _, v := range guilds {
+			if v.ID == *GuildID {
+				guilds = []*discordgo.UserGuild{}
+				guilds = append(guilds, v)
+				break
+			}
+		}
+	}
+
 	var waitGroup sync.WaitGroup
 	for _, guild := range guilds {
 		channels, err := Bot.GuildChannels(guild.ID)
@@ -114,8 +126,8 @@ func loadMessages(channel *discordgo.Channel) {
 	lastMessage := getLastMessage(channel)
 	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
 	messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
-		messageTime, _ := message.Timestamp.Parse()
-		lastMessageTime, _ := lastMessage.Date.Parse()
+		messageTime := message.Timestamp
+		lastMessageTime := lastMessage.Date
 		return messageTime.After(lastMessageTime)
 	})
 
@@ -131,8 +143,8 @@ func loadMessages(channel *discordgo.Channel) {
 		for lastMessageCollected != nil {
 			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
 			moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
-				messageTime, _ := message.Timestamp.Parse()
-				lastMessageTime, _ := lastMessage.Date.Parse()
+				messageTime := message.Timestamp
+				lastMessageTime := lastMessage.Date
 				return messageTime.After(lastMessageTime)
 			})
 
