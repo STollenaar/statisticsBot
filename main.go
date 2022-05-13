@@ -15,7 +15,6 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
-	"github.com/nint8835/parsley"
 )
 
 var (
@@ -53,11 +52,60 @@ var (
 				},
 			},
 		},
+		{
+			Name:        "max",
+			Description: "Returns who used a certain word the most. In a certain channel, or of a user",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "word",
+					Description: "Word to count",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    false,
+				},
+				{
+					Name:        "user",
+					Description: "User to filter with",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Required:    false,
+				},
+				{
+					Name:        "channel",
+					Description: "Channel to filter with",
+					Type:        discordgo.ApplicationCommandOptionChannel,
+					Required:    false,
+				},
+			},
+		},
+		{
+			Name:        "last",
+			Description: "Returns the last time someone used a certain word or when a user said that word or something. Could be in a certain channel.",
+			Options: []*discordgo.ApplicationCommandOption{
+				{
+					Name:        "word",
+					Description: "Word to count",
+					Type:        discordgo.ApplicationCommandOptionString,
+					Required:    false,
+				},
+				{
+					Name:        "user",
+					Description: "User to filter with",
+					Type:        discordgo.ApplicationCommandOptionUser,
+					Required:    false,
+				},
+				{
+					Name:        "channel",
+					Description: "Channel to filter with",
+					Type:        discordgo.ApplicationCommandOptionChannel,
+					Required:    false,
+				},
+			},
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"ping":  PingCommand,
 		"count": botcommand.CountCommand,
+		"max":   botcommand.CountCommand,
 	}
 )
 
@@ -102,13 +150,6 @@ func main() {
 		}
 		registeredCommands[i] = cmd
 	}
-
-	parser := parsley.New("stat~")
-	parser.RegisterHandler(bot)
-	parser.NewCommand("ping", "pong", PingCommand)
-	// parser.NewCommand("count", "Returns amount of times word is used.", commands.CountCommand)
-	// parser.NewCommand("max", "Returns the most used word", commands.MaxCommand)
-	// parser.NewCommand("last", "Returns the last time a user send a message", commands.LastMessage)
 
 	lib.Init(GuildID)
 	handleRequests()
