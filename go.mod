@@ -6,14 +6,12 @@ require (
 	github.com/bwmarrin/discordgo v0.25.0
 	github.com/gorilla/mux v1.8.0
 	github.com/joho/godotenv v1.4.0
-	github.com/nint8835/parsley v1.0.3
 	go.mongodb.org/mongo-driver v1.9.1
 )
 
 require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/klauspost/compress v1.15.4 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

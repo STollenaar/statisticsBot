@@ -2,10 +2,9 @@ package commands
 
 import (
 	"context"
-	"regexp"
+	"sort"
 	"statsisticsbot/lib"
 	"statsisticsbot/util"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -19,42 +18,72 @@ var Bot *discordgo.Session
 type CommandParsed struct {
 	Word          string
 	GuildID       string
-	UserTarget    string
-	ChannelTarget string
+	UserTarget    *discordgo.User
+	ChannelTarget *discordgo.Channel
 }
 
-// commandArgs basic command args
-type commandArgs struct {
-	Word        string `description:"The word to for the command."`
-	Target      string `default:"" description:"The first to filter for."`
-	TargetOther string `default:"" description:"The second to filter for."`
+func (cmd *CommandParsed) isEmpty() bool {
+	return cmd.UserTarget != nil || cmd.ChannelTarget != nil || cmd.Word != ""
 }
 
 // parseArguments parses the arguments from the command into an unified struct
-func parseArguments(message *discordgo.Message, args commandArgs) (parsedArguments CommandParsed) {
-	reTarget := regexp.MustCompile("[\\<>@#&!]")
+func parseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) (parsedArguments *CommandParsed) {
+	parsedArguments = new(CommandParsed)
 
-	parsedArguments = CommandParsed{Word: args.Word, GuildID: message.GuildID}
-
-	if args.Target != "" {
-		if strings.Contains(args.Target, "@") {
-			parsedArguments.UserTarget = reTarget.ReplaceAllString(args.Target, "")
-		} else if strings.Contains(args.Target, "#") {
-			parsedArguments.ChannelTarget = reTarget.ReplaceAllString(args.Target, "")
-		}
-	} else {
-		parsedArguments.UserTarget = message.Author.ID
+	// Access options in the order provided by the user.
+	options := interaction.ApplicationCommandData().Options
+	parsedArguments.GuildID = interaction.GuildID
+	// Or convert the slice into a map
+	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
+	for _, opt := range options {
+		optionMap[opt.Name] = opt
 	}
 
-	if args.TargetOther != "" {
-		if strings.Contains(args.TargetOther, "@") {
-			parsedArguments.UserTarget = reTarget.ReplaceAllString(args.TargetOther, "")
-		} else if strings.Contains(args.TargetOther, "#") {
-			parsedArguments.ChannelTarget = reTarget.ReplaceAllString(args.TargetOther, "")
-		}
+	if option, ok := optionMap["word"]; ok {
+		// Option values must be type asserted from interface{}.
+		// Discordgo provides utility functions to make this simple.
+		parsedArguments.Word = option.StringValue()
+	}
+	if option, ok := optionMap["user"]; ok {
+		// Option values must be type asserted from interface{}.
+		// Discordgo provides utility functions to make this simple.
+		parsedArguments.UserTarget = option.UserValue(bot)
+	}
+	if option, ok := optionMap["channel"]; ok {
+		// Option values must be type asserted from interface{}.
+		// Discordgo provides utility functions to make this simple.
+		parsedArguments.ChannelTarget = option.ChannelValue(bot)
 	}
 
 	return parsedArguments
+}
+
+func CreateCommandArguments(wordRequired, userRequired, channelRequired bool) (args []*discordgo.ApplicationCommandOption) {
+	args = append(args,
+		&discordgo.ApplicationCommandOption{
+			Name:        "word",
+			Description: "Word to count",
+			Type:        discordgo.ApplicationCommandOptionString,
+			Required:    wordRequired,
+		},
+		&discordgo.ApplicationCommandOption{
+			Name:        "user",
+			Description: "User to filter with",
+			Type:        discordgo.ApplicationCommandOptionUser,
+			Required:    userRequired,
+		},
+		&discordgo.ApplicationCommandOption{
+			Name:        "channel",
+			Description: "Channel to filter with",
+			Type:        discordgo.ApplicationCommandOptionChannel,
+			Required:    channelRequired,
+		},
+	)
+	sort.Slice(args, func(i, j int) bool {
+		return args[i].Required
+	})
+
+	return args
 }
 
 // CountFilterOccurences counting the occurences of the filter inside the database

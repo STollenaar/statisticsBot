@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"regexp"
 	"statsisticsbot/lib"
 	"statsisticsbot/util"
 	"strings"
@@ -14,22 +13,18 @@ import (
 )
 
 // LastMessage find the last message of a person
-func LastMessage(message *discordgo.MessageCreate, args commandArgs) {
-	if !strings.Contains(args.Word, "<@!") {
-		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Not specifying a user, please use a user as the reference"))
-		return
-	}
-	re := regexp.MustCompile("[\\<>@#&!]")
-	author := re.ReplaceAllString(args.Word, "")
-	commandParsed := parseArguments(message.Message, args)
+func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	bot.ChannelTyping(interaction.ChannelID)
+
+	parsedArguments := parseArguments(bot, interaction)
 
 	var channelFilter bson.D
 
-	if commandParsed.ChannelTarget != "" {
+	if channel := parsedArguments.ChannelTarget; channel != nil {
 		channelFilter = bson.D{
 			primitive.E{
 				Key:   "$eq",
-				Value: commandParsed.ChannelTarget,
+				Value: channel.ID,
 			},
 		}
 	} else {
@@ -42,7 +37,7 @@ func LastMessage(message *discordgo.MessageCreate, args commandArgs) {
 	}
 
 	filter := bson.M{
-		"Author":    author,
+		"Author":    parsedArguments.UserTarget.ID,
 		"ChannelID": channelFilter,
 	}
 
@@ -57,20 +52,34 @@ func LastMessage(message *discordgo.MessageCreate, args commandArgs) {
 
 	var messageObject util.MessageObject
 
-	filterResult, err := lib.GetFromFilter(message.GuildID, filter, findOptions)
+	filterResult, err := lib.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
 	if err != nil {
-		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintln("Something went wrong.. maybe try again with something else?"))
+		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Something went wrong.. maybe try again with something else?",
+			},
+		})
 		return
 	}
 
 	err = filterResult.Decode(&messageObject)
 
 	if err != nil {
-		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintln("Something went wrong.. maybe try again with something else?"))
+		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Something went wrong.. maybe try again with something else?",
+			},
+		})
 		return
 	}
 
 	channel, _ := Bot.Channel(messageObject.ChannelID)
-	user, _ := Bot.User(messageObject.Author)
-	Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("%s last has send something in %s and said \"%s\"", user.Mention(), channel.Mention(), strings.Join(messageObject.Content, " ")))
+	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: fmt.Sprintf("%s last has send something in %s and said \"%s\"", parsedArguments.UserTarget.Mention(), channel.Mention(), strings.Join(messageObject.Content, " ")),
+		},
+	})
 }

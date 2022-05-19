@@ -2,9 +2,7 @@ package commands
 
 import (
 	"fmt"
-	"regexp"
 	"statsisticsbot/util"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -12,30 +10,31 @@ import (
 )
 
 // MaxCommand counts the amount of occurences of a certain word
-func MaxCommand(message *discordgo.MessageCreate, args commandArgs) {
-	Bot.ChannelTyping(message.ChannelID)
+func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
+	bot.ChannelTyping(interaction.ChannelID)
 
-	parsedArguments := parseArguments(message.Message, args)
+	parsedArguments := parseArguments(bot, interaction)
 	maxWord := FindAllWordOccurences(parsedArguments)
 
-	if maxWord.Author != message.Author.ID {
-		user, _ := Bot.User(maxWord.Author)
-		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", user.Mention(), maxWord.Word.Word, maxWord.Word.Count))
+	var response string
+	if parsedArguments.UserTarget.ID != interaction.Member.User.ID {
+		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.UserTarget.Mention(), maxWord.Word.Word, maxWord.Word.Count)
 	} else {
-		Bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count))
+		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
-}
-
-type elemFilter struct {
-	array      string
-	expression bson.D
+	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: response,
+		},
+	})
 }
 
 // FindAllWordOccurences finding the occurences of a word in the database
-func FindAllWordOccurences(args CommandParsed) util.CountGrouped {
-	filter := getFilter(args.Word)
+func FindAllWordOccurences(arguments *CommandParsed) util.CountGrouped {
+	filter := getFilter(arguments)
 
-	messageObject := CountFilterOccurences(args.GuildID, filter)
+	messageObject := CountFilterOccurences(arguments.GuildID, filter)
 	if len(messageObject) == 1 {
 		return messageObject[0]
 	} else if len(messageObject) > 1 {
@@ -46,40 +45,39 @@ func FindAllWordOccurences(args CommandParsed) util.CountGrouped {
 	}
 }
 
-func getFilter(kind string) (result bson.D) {
-	re := regexp.MustCompile("[\\<>@#&!]")
-	id := re.ReplaceAllString(kind, "")
-	if kind != "" {
-		if strings.Contains(kind, "@") {
+func getFilter(arguments *CommandParsed) (result bson.D) {
+	if !arguments.isEmpty() {
+
+		if user := arguments.UserTarget; user != nil {
 			// Filtering based on author
-			result = bson.D{
-				primitive.E{
+			result = append(result,
+				bson.E{
 					Key: "$match",
 					Value: bson.D{
 						primitive.E{
 							Key:   "Author",
-							Value: id,
+							Value: user.ID,
 						},
 					},
-				},
-			}
-		} else if strings.Contains(kind, "#") {
+				})
+		}
+		if channel := arguments.ChannelTarget; channel != nil {
 			// Filtering based on channelID
-			result = bson.D{
-				primitive.E{
+			result = append(result,
+				bson.E{
 					Key: "$match",
 					Value: bson.D{
 						primitive.E{
 							Key:   "ChannelID",
-							Value: id,
+							Value: channel.ID,
 						},
 					},
-				},
-			}
-		} else {
-			result = bson.D{
-				// Filtering based on word
-				primitive.E{
+				})
+		}
+
+		if word := arguments.Word; word != "" {
+			result = append(result,
+				bson.E{
 					Key: "$match",
 					Value: bson.D{
 						primitive.E{
@@ -87,14 +85,14 @@ func getFilter(kind string) (result bson.D) {
 							Value: bson.D{
 								primitive.E{
 									Key:   "$in",
-									Value: []string{kind},
+									Value: []string{word},
 								},
 							},
 						},
 					},
-				},
-			}
+				})
 		}
 	}
+
 	return result
 }

@@ -12,38 +12,12 @@ import (
 func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	bot.ChannelTyping(interaction.ChannelID)
 
-	// Access options in the order provided by the user.
-	options := interaction.ApplicationCommandData().Options
-
-	// Or convert the slice into a map
-	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-	for _, opt := range options {
-		optionMap[opt.Name] = opt
-	}
-
-	var parsedArguments CommandParsed
-	if option, ok := optionMap["word"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.Word = option.StringValue()
-	}
-	if option, ok := optionMap["user"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.UserTarget = option.StringValue()
-	}
-	if option, ok := optionMap["channel"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.ChannelTarget = option.StringValue()
-	}
-
+	parsedArguments := parseArguments(bot, interaction)
 	amount := FindSpecificWordOccurences(parsedArguments)
 
 	var response string
-	if parsedArguments.UserTarget != interaction.Member.User.ID {
-		user, _ := Bot.User(parsedArguments.UserTarget)
-		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", user.Mention(), parsedArguments.Word, amount)
+	if parsedArguments.UserTarget.ID != interaction.Member.User.ID {
+		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.UserTarget.Mention(), parsedArguments.Word, amount)
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.Word, amount)
 	}
@@ -56,11 +30,11 @@ func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCrea
 }
 
 // FindSpecificWordOccurences finding the occurences of a word in the database
-func FindSpecificWordOccurences(args CommandParsed) int {
+func FindSpecificWordOccurences(args *CommandParsed) int {
 
 	var channelFilter bson.D
 
-	if args.ChannelTarget != "" {
+	if args.ChannelTarget != nil {
 		channelFilter = bson.D{
 			primitive.E{
 				Key:   "$eq",

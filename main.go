@@ -31,81 +31,25 @@ var (
 		{
 			Name:        "count",
 			Description: "Returns the amount of times a word is used.",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "word",
-					Description: "Word to count",
-					Type:        discordgo.ApplicationCommandOptionString,
-					Required:    true,
-				},
-				{
-					Name:        "user",
-					Description: "User to filter with",
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Required:    false,
-				},
-				{
-					Name:        "channel",
-					Description: "Channel to filter with",
-					Type:        discordgo.ApplicationCommandOptionChannel,
-					Required:    false,
-				},
-			},
+			Options:     botcommand.CreateCommandArguments(true, false, false),
 		},
 		{
 			Name:        "max",
 			Description: "Returns who used a certain word the most. In a certain channel, or of a user",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "word",
-					Description: "Word to count",
-					Type:        discordgo.ApplicationCommandOptionString,
-					Required:    false,
-				},
-				{
-					Name:        "user",
-					Description: "User to filter with",
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Required:    false,
-				},
-				{
-					Name:        "channel",
-					Description: "Channel to filter with",
-					Type:        discordgo.ApplicationCommandOptionChannel,
-					Required:    false,
-				},
-			},
+			Options:     botcommand.CreateCommandArguments(false, false, false),
 		},
 		{
 			Name:        "last",
-			Description: "Returns the last time someone used a certain word or when a user said that word or something. Could be in a certain channel.",
-			Options: []*discordgo.ApplicationCommandOption{
-				{
-					Name:        "word",
-					Description: "Word to count",
-					Type:        discordgo.ApplicationCommandOptionString,
-					Required:    false,
-				},
-				{
-					Name:        "user",
-					Description: "User to filter with",
-					Type:        discordgo.ApplicationCommandOptionUser,
-					Required:    false,
-				},
-				{
-					Name:        "channel",
-					Description: "Channel to filter with",
-					Type:        discordgo.ApplicationCommandOptionChannel,
-					Required:    false,
-				},
-			},
+			Description: "Returns the last time someone used a certain word somewhere or someone.",
+			Options:     botcommand.CreateCommandArguments(false, true, false),
 		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
 		"ping":  PingCommand,
 		"count": botcommand.CountCommand,
-		"max":   botcommand.CountCommand,
+		"max":   botcommand.MaxCommand,
+		"last":  botcommand.LastMessage,
 	}
 )
 
