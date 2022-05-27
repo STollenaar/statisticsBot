@@ -22,7 +22,7 @@ type CommandParsed struct {
 	ChannelTarget *discordgo.Channel
 }
 
-func (cmd *CommandParsed) isEmpty() bool {
+func (cmd *CommandParsed) isNotEmpty() bool {
 	return cmd.UserTarget != nil || cmd.ChannelTarget != nil || cmd.Word != ""
 }
 
@@ -87,7 +87,7 @@ func CreateCommandArguments(wordRequired, userRequired, channelRequired bool) (a
 }
 
 // CountFilterOccurences counting the occurences of the filter inside the database
-func CountFilterOccurences(guildID string, filter bson.D) (messageObject []util.CountGrouped) {
+func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (messageObject []util.CountGrouped) {
 	initialGroup := bson.D{
 		primitive.E{
 			Key: "$group",
@@ -107,6 +107,23 @@ func CountFilterOccurences(guildID string, filter bson.D) (messageObject []util.
 			Key:   "$unwind",
 			Value: "$Words",
 		},
+	}
+
+	var refilter bson.D
+	if wordFilter != "" {
+		refilter = bson.D{
+			primitive.E{
+				Key: "$match",
+				Value: bson.M{
+					"Words": bson.D{
+						primitive.E{
+							Key:   "$in",
+							Value: []string{wordFilter},
+						},
+					},
+				},
+			},
+		}
 	}
 
 	wordCount := bson.D{
@@ -175,7 +192,7 @@ func CountFilterOccurences(guildID string, filter bson.D) (messageObject []util.
 		},
 	}
 
-	resultCursor, err := lib.GetFromAggregate(guildID, mongo.Pipeline{filter, initialGroup, unwind, unwind, wordCount, resultGroup, counted})
+	resultCursor, err := lib.GetFromAggregate(guildID, mongo.Pipeline{filter, initialGroup, unwind, unwind, refilter, wordCount, resultGroup, counted})
 	if err != nil {
 		panic(err)
 	}

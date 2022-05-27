@@ -178,7 +178,31 @@ func loadMessages(channel *discordgo.Channel) {
 func constructMessageObject(message *discordgo.Message, guildID string) mongo.WriteModel {
 	messageModel := mongo.NewUpdateOneModel()
 
-	content := re.Split(message.Content, -1)
+	var content []string
+	if message.Content == "" && len(message.Embeds) > 0 {
+		for _, embed := range message.Embeds {
+			if embed.Title != "" {
+				content = append(content, re.Split(embed.Title, -1)...)
+			}
+			if author := embed.Author; author != nil && author.Name != "" {
+				content = append(content, re.Split(author.Name, -1)...)
+			}
+			if embed.Description != "" {
+				content = append(content, re.Split(embed.Description, -1)...)
+			}
+			if len(embed.Fields) > 0 {
+				for _, field := range embed.Fields {
+					content = append(content, re.Split(field.Name, -1)...)
+					content = append(content, re.Split(field.Value, -1)...)
+				}
+			}
+			if footer := embed.Footer; footer != nil && footer.Text != "" {
+				content = append(content, re.Split(footer.Text, -1)...)
+			}
+		}
+	} else {
+		content = re.Split(message.Content, -1)
+	}
 	filter := bson.D{
 		primitive.E{
 			Key:   "_id",

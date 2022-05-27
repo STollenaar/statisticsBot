@@ -17,7 +17,7 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 	maxWord := FindAllWordOccurences(parsedArguments)
 
 	var response string
-	if parsedArguments.UserTarget.ID != interaction.Member.User.ID {
+	if parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID {
 		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.UserTarget.Mention(), maxWord.Word.Word, maxWord.Word.Count)
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
@@ -32,9 +32,9 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 
 // FindAllWordOccurences finding the occurences of a word in the database
 func FindAllWordOccurences(arguments *CommandParsed) util.CountGrouped {
-	filter := getFilter(arguments)
+	filter, wordFilter := getFilter(arguments)
 
-	messageObject := CountFilterOccurences(arguments.GuildID, filter)
+	messageObject := CountFilterOccurences(arguments.GuildID, filter, wordFilter)
 	if len(messageObject) == 1 {
 		return messageObject[0]
 	} else if len(messageObject) > 1 {
@@ -45,8 +45,8 @@ func FindAllWordOccurences(arguments *CommandParsed) util.CountGrouped {
 	}
 }
 
-func getFilter(arguments *CommandParsed) (result bson.D) {
-	if !arguments.isEmpty() {
+func getFilter(arguments *CommandParsed) (result bson.D, wordFilter string) {
+	if arguments.isNotEmpty() {
 
 		if user := arguments.UserTarget; user != nil {
 			// Filtering based on author
@@ -76,6 +76,7 @@ func getFilter(arguments *CommandParsed) (result bson.D) {
 		}
 
 		if word := arguments.Word; word != "" {
+			wordFilter = word
 			result = append(result,
 				bson.E{
 					Key: "$match",
@@ -94,5 +95,5 @@ func getFilter(arguments *CommandParsed) (result bson.D) {
 		}
 	}
 
-	return result
+	return result, wordFilter
 }

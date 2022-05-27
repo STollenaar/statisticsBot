@@ -13,13 +13,16 @@ func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCrea
 	bot.ChannelTyping(interaction.ChannelID)
 
 	parsedArguments := parseArguments(bot, interaction)
+	if parsedArguments.UserTarget == nil {
+		parsedArguments.UserTarget = interaction.Member.User
+	}
 	amount := FindSpecificWordOccurences(parsedArguments)
 
 	var response string
-	if parsedArguments.UserTarget.ID != interaction.Member.User.ID {
-		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.UserTarget.Mention(), parsedArguments.Word, amount)
+	if parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID {
+		response = fmt.Sprintf("%s has used the word \"%s\" %d time(s) \n", parsedArguments.UserTarget.Mention(), parsedArguments.Word, amount)
 	} else {
-		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.Word, amount)
+		response = fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", parsedArguments.Word, amount)
 	}
 	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -60,13 +63,13 @@ func FindSpecificWordOccurences(args *CommandParsed) int {
 						Value: []string{args.Word},
 					},
 				},
-				"Author":    args.UserTarget,
+				"Author":    args.UserTarget.ID,
 				"ChannelID": channelFilter,
 			},
 		},
 	}
 
-	messages := CountFilterOccurences(args.GuildID, filter)
+	messages := CountFilterOccurences(args.GuildID, filter, "")
 
 	if len(messages) == 0 {
 		return 0
