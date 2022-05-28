@@ -1,10 +1,10 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"statsisticsbot/lib"
 	"statsisticsbot/util"
-	"strings"
 
 	"github.com/bwmarrin/discordgo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -50,7 +50,7 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 	})
 	findOptions.SetLimit(1)
 
-	var messageObject util.MessageObject
+	var messageObjects []util.MessageObject
 
 	filterResult, err := lib.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
 	if err != nil {
@@ -63,7 +63,7 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 		return
 	}
 
-	err = filterResult.Decode(&messageObject)
+	err = filterResult.All(context.TODO(), &messageObjects)
 
 	if err != nil {
 		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
@@ -74,12 +74,18 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 		})
 		return
 	}
+	messageObject := messageObjects[0]
 
-	channel, _ := Bot.Channel(messageObject.ChannelID)
+	channel, _ := bot.Channel(messageObject.ChannelID)
+	messageLink := getMessageLink(messageObject.GuildID, messageObject.ChannelID, messageObject.MessageID)
 	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("%s last has send something in %s and said \"%s\"", parsedArguments.UserTarget.Mention(), channel.Mention(), strings.Join(messageObject.Content, " ")),
+			Content: fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink),
 		},
 	})
+}
+
+func getMessageLink(GuildId, ChannelId, MessageId string) string {
+	return fmt.Sprintf("[here is the message](https://discordapp.com/channels/%s/%s/%s)", GuildId, ChannelId, MessageId)
 }

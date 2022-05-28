@@ -12,8 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-var Bot *discordgo.Session
-
 // CommandParsed parsed struct for count command
 type CommandParsed struct {
 	Word          string

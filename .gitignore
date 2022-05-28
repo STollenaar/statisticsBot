@@ -1,5 +1,5 @@
 statsbotWork.code-workspace
 .env
-.vscode/
 .vs/
 docker-compose.yml
+__debug_bin
