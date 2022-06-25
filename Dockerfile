@@ -1,10 +1,11 @@
 FROM golang:1.18.0-alpine
 
+ARG ARCH
+
+
 # Create app directory
 WORKDIR /usr/src/app
 
-COPY . .
+COPY statisticsBot .
 
-RUN go get .
-
-CMD go run .
+CMD ./statisticsBot

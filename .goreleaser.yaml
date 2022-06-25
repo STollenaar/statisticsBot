@@ -1,0 +1,57 @@
+env:
+  - REPO={{ .Env.ACCOUNT }}.dkr.ecr.ca-central-1.amazonaws.com/discordbots
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    - aws ecr get-login-password  --profile {{ .Env.PROFILE }} --region ca-central-1 | docker login --username AWS --password-stdin {{ .Env.ACCOUNT }}.dkr.ecr.ca-central-1.amazonaws.com
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+archives:
+  - replacements:
+      linux: Linux
+      amd64: x86_64
+checksum:
+  name_template: "checksums.txt"
+dockers:
+  - id: statisticsbot-amd-build
+    ids:
+      - statisticsBot
+    goarch: amd64
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=ARCH=amd64"
+    image_templates:
+      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-amd64"
+      - "{{ .Env.REPO }}:{{ .ProjectName }}-latest-amd64"
+    dockerfile: Dockerfile
+  - id: statisticsbot-arm-build
+    ids:
+      - statisticsBot
+    goarch: arm64
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--build-arg=ARCH=arm64"
+    image_templates:
+      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-arm64"
+      - "{{ .Env.REPO }}:{{ .ProjectName }}-latest-arm64"
+    dockerfile: Dockerfile
+docker_manifests:
+  - name_template: "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}"
+    image_templates:
+      - "{{ .Env.REPO }}:{{ .Version }}-amd64"
+      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-arm64"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

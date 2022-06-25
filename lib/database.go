@@ -16,14 +16,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Bot main reference to the bot
-var Bot *discordgo.Session
-var re *regexp.Regexp
-var client *mongo.Client
+var (
+	Bot          *discordgo.Session
+	re           *regexp.Regexp
+	client       *mongo.Client
+	databaseHost string
+)
+
+func init() {
+	databaseHost = os.Getenv("DATABASE_HOST")
+}
 
 // getClient gets the mongo client on the first load
 func getClient() {
-	c, err := mongo.NewClient(options.Client().ApplyURI("mongodb://" + os.Getenv("DATABASE_HOST") + ":27017"))
+	c, err := mongo.NewClient(options.Client().ApplyURI("mongodb://" + databaseHost + ":27017"))
 	client = c
 	if err != nil {
 		log.Fatal(err)

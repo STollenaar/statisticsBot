@@ -3,3 +3,4 @@ statsbotWork.code-workspace
 .vs/
 docker-compose.yml
 __debug_bin
+dist/
