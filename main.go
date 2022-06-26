@@ -11,10 +11,10 @@ import (
 	"statsisticsbot/lib"
 	botcommand "statsisticsbot/lib/commands"
 	"statsisticsbot/lib/routes"
+	"statsisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gorilla/mux"
-	"github.com/joho/godotenv"
 )
 
 var (
@@ -22,8 +22,6 @@ var (
 
 	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
-
-	discordToken string
 
 	commands = []*discordgo.ApplicationCommand{
 		{
@@ -58,23 +56,7 @@ var (
 func init() {
 	flag.Parse()
 
-	_, err := os.Stat(".env")
-	if err == nil {
-		err = godotenv.Load(".env")
-		if err != nil {
-			log.Fatal("Error loading environment variables")
-		}
-	}
-
-	discordToken = os.Getenv("DISCORD_TOKEN")
-	if discordToken == "" {
-		log.Fatal("DISCORD_TOKEN not found")
-	}
-
-	bot, err = discordgo.New("Bot " + discordToken)
-	if err != nil {
-		log.Fatal("Error loading bot ", err)
-	}
+	bot, _ = discordgo.New("Bot " + util.GetDiscordToken())
 
 	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {

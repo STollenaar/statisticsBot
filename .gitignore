@@ -4,3 +4,4 @@ statsbotWork.code-workspace
 docker-compose.yml
 __debug_bin
 dist/
+config.json

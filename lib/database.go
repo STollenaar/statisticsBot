@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"regexp"
 	"statsisticsbot/util"
 	"sync"
@@ -17,19 +16,14 @@ import (
 )
 
 var (
-	Bot          *discordgo.Session
-	re           *regexp.Regexp
-	client       *mongo.Client
-	databaseHost string
+	Bot    *discordgo.Session
+	re     *regexp.Regexp
+	client *mongo.Client
 )
-
-func init() {
-	databaseHost = os.Getenv("DATABASE_HOST")
-}
 
 // getClient gets the mongo client on the first load
 func getClient() {
-	c, err := mongo.NewClient(options.Client().ApplyURI("mongodb://" + databaseHost + ":27017"))
+	c, err := mongo.NewClient(options.Client().ApplyURI("mongodb://" + util.ConfigFile.DATABASE_HOST + ":27017"))
 	client = c
 	if err != nil {
 		log.Fatal(err)
