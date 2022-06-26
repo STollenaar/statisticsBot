@@ -28,8 +28,8 @@ dockers:
       - "--platform=linux/amd64"
       - "--build-arg=ARCH=amd64"
     image_templates:
-      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-amd64"
-      - "{{ .Env.REPO }}:{{ .ProjectName }}-latest-amd64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-amd64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest-amd64"
     dockerfile: Dockerfile
   - id: statisticsbot-arm-build
     ids:
@@ -40,14 +40,14 @@ dockers:
       - "--platform=linux/arm64"
       - "--build-arg=ARCH=arm64"
     image_templates:
-      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-arm64"
-      - "{{ .Env.REPO }}:{{ .ProjectName }}-latest-arm64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-arm64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest-arm64"
     dockerfile: Dockerfile
 docker_manifests:
-  - name_template: "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}"
+  - name_template: "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}"
     image_templates:
-      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-amd64"
-      - "{{ .Env.REPO }}:{{ .ProjectName }}-{{ .Version }}-arm64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-amd64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-arm64"
 changelog:
   sort: asc
   filters:
