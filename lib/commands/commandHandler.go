@@ -107,7 +107,12 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 		},
 	}
 
-	var refilter bson.D
+	refilter := bson.D{
+		primitive.E{
+			Key:   "$skip",
+			Value: 0,
+		},
+	}
 	if wordFilter != "" {
 		refilter = bson.D{
 			primitive.E{
