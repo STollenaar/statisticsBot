@@ -2,7 +2,6 @@ package util
 
 import (
 	"context"
-	"encoding/json"
 	"log"
 	"os"
 
@@ -23,29 +22,19 @@ var ConfigFile *Config
 
 func init() {
 	ConfigFile = new(Config)
-	if _, err := os.Stat("config.json"); err != nil {
-		_, err := os.Stat(".env")
-		if err == nil {
-			err = godotenv.Load(".env")
-			if err != nil {
-				log.Fatal("Error loading environment variables")
-			}
-		}
-
-		ConfigFile = &Config{
-			DISCORD_TOKEN:      os.Getenv("DISCORD_TOKEN"),
-			DATABASE_HOST:      os.Getenv("DATABASE_HOST"),
-			AWS_REGION:         os.Getenv("AWS_REGION"),
-			AWS_PARAMETER_NAME: os.Getenv("AWS_PARAMETER_NAME"),
-		}
-		data, _ := json.MarshalIndent(ConfigFile, "", "    ")
-		os.WriteFile("config.json", data, 0644)
-	} else {
-		data, _ := os.ReadFile("config.json")
-		err := json.Unmarshal(data, ConfigFile)
+	_, err := os.Stat(".env")
+	if err == nil {
+		err = godotenv.Load(".env")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatal("Error loading environment variables")
 		}
+	}
+
+	ConfigFile = &Config{
+		DISCORD_TOKEN:      os.Getenv("DISCORD_TOKEN"),
+		DATABASE_HOST:      os.Getenv("DATABASE_HOST"),
+		AWS_REGION:         os.Getenv("AWS_REGION"),
+		AWS_PARAMETER_NAME: os.Getenv("AWS_PARAMETER_NAME"),
 	}
 
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
