@@ -26,8 +26,14 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 	maxWord := FindAllWordOccurences(parsedArguments)
 
 	var response string
-	if parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID {
-		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", parsedArguments.UserTarget.Mention(), maxWord.Word.Word, maxWord.Word.Count)
+	if (parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID) || maxWord.Author != interaction.Member.User.ID {
+		targetUser := parsedArguments.UserTarget
+		if targetUser == nil {
+			t, _ := bot.GuildMember(interaction.GuildID, maxWord.Author)
+			targetUser = t.User
+
+		}
+		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", targetUser.Mention(), maxWord.Word.Word, maxWord.Word.Count)
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
