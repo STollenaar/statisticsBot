@@ -20,7 +20,7 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 
 	parsedArguments := parseArguments(bot, interaction)
 	if !parsedArguments.isNotEmpty() {
-		parsedArguments.UserTarget = interaction.User
+		parsedArguments.UserTarget = interaction.Member.User
 	}
 
 	maxWord := FindAllWordOccurences(parsedArguments)
