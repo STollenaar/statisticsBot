@@ -14,7 +14,12 @@ import (
 
 // LastMessage find the last message of a person
 func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.ChannelTyping(interaction.ChannelID)
+	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Loading Data...",
+		},
+	})
 
 	parsedArguments := parseArguments(bot, interaction)
 
@@ -54,23 +59,18 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 
 	filterResult, err := lib.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
 	if err != nil {
-		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Something went wrong.. maybe try again with something else?",
-			},
+		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			Content: "Something went wrong.. maybe try again with something else?",
 		})
+
 		return
 	}
 
 	err = filterResult.All(context.TODO(), &messageObjects)
 
 	if err != nil {
-		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Something went wrong.. maybe try again with something else?",
-			},
+		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			Content: "Something went wrong.. maybe try again with something else?",
 		})
 		return
 	}
@@ -78,11 +78,8 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 
 	channel, _ := bot.Channel(messageObject.ChannelID)
 	messageLink := getMessageLink(messageObject.GuildID, messageObject.ChannelID, messageObject.MessageID)
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink),
-		},
+	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		Content: fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink),
 	})
 }
 

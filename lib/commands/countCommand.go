@@ -10,7 +10,12 @@ import (
 
 // CountCommand counts the amount of occurences of a certain word
 func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.ChannelTyping(interaction.ChannelID)
+	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Loading Data...",
+		},
+	})
 
 	parsedArguments := parseArguments(bot, interaction)
 	if parsedArguments.UserTarget == nil {
@@ -24,11 +29,8 @@ func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCrea
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", parsedArguments.Word, amount)
 	}
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: response,
-		},
+	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		Content: response,
 	})
 }
 

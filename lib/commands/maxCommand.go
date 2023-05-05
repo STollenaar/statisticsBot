@@ -11,7 +11,12 @@ import (
 
 // MaxCommand counts the amount of occurences of a certain word
 func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.ChannelTyping(interaction.ChannelID)
+	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Loading Data...",
+		},
+	})
 
 	parsedArguments := parseArguments(bot, interaction)
 	maxWord := FindAllWordOccurences(parsedArguments)
@@ -22,11 +27,9 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: response,
-		},
+
+	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		Content: response,
 	})
 }
 
