@@ -2,6 +2,7 @@ package commands
 
 import (
 	"context"
+	"fmt"
 	"sort"
 	"statsisticsbot/lib"
 	"statsisticsbot/util"
@@ -121,7 +122,7 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 					"Words": bson.D{
 						primitive.E{
 							Key:   "$in",
-							Value: []string{wordFilter},
+							Value: []string{fmt.Sprintf("/%s/i", wordFilter)},
 						},
 					},
 				},

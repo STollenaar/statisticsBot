@@ -93,7 +93,7 @@ func getFilter(arguments *CommandParsed) (result bson.D, wordFilter string) {
 							Value: bson.D{
 								primitive.E{
 									Key:   "$in",
-									Value: []string{word},
+									Value: []string{fmt.Sprintf("/%s/i", word)},
 								},
 							},
 						},

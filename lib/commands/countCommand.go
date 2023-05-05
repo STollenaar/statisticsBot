@@ -62,7 +62,7 @@ func FindSpecificWordOccurences(args *CommandParsed) int {
 				"Content": bson.D{
 					primitive.E{
 						Key:   "$in",
-						Value: []string{args.Word},
+						Value: []string{fmt.Sprintf("/%s/i", args.Word)},
 					},
 				},
 				"Author":    args.UserTarget.ID,
