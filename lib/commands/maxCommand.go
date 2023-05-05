@@ -92,8 +92,11 @@ func getFilter(arguments *CommandParsed) (result bson.D, wordFilter string) {
 							Key: "Content",
 							Value: bson.D{
 								primitive.E{
-									Key:   "$in",
-									Value: []string{fmt.Sprintf("/%s/i", word)},
+									Key: "$regex",
+									Value: primitive.Regex{
+										Pattern: word,
+										Options: "i",
+									},
 								},
 							},
 						},
