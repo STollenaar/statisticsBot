@@ -59,56 +59,50 @@ func FindAllWordOccurences(arguments *CommandParsed) util.CountGrouped {
 }
 
 func getFilter(arguments *CommandParsed) (result bson.D, wordFilter string) {
+	var expressions bson.D
 	if arguments.isNotEmpty() {
-
 		if user := arguments.UserTarget; user != nil {
 			// Filtering based on author
-			result = append(result,
-				bson.E{
-					Key: "$match",
-					Value: bson.D{
-						primitive.E{
-							Key:   "Author",
-							Value: user.ID,
-						},
-					},
-				})
+			expressions = append(expressions,
+				primitive.E{
+					Key:   "Author",
+					Value: user.ID,
+				},
+			)
 		}
 		if channel := arguments.ChannelTarget; channel != nil {
 			// Filtering based on channelID
-			result = append(result,
-				bson.E{
-					Key: "$match",
-					Value: bson.D{
-						primitive.E{
-							Key:   "ChannelID",
-							Value: channel.ID,
-						},
-					},
-				})
+			expressions = append(expressions,
+				primitive.E{
+					Key:   "ChannelID",
+					Value: channel.ID,
+				},
+			)
 		}
 
 		if word := arguments.Word; word != "" {
 			wordFilter = word
-			result = append(result,
-				bson.E{
-					Key: "$match",
+			expressions = append(expressions,
+				primitive.E{
+					Key: "Content",
 					Value: bson.D{
 						primitive.E{
-							Key: "Content",
-							Value: bson.D{
-								primitive.E{
-									Key: "$regex",
-									Value: primitive.Regex{
-										Pattern: word,
-										Options: "i",
-									},
-								},
+							Key: "$regex",
+							Value: primitive.Regex{
+								Pattern: fmt.Sprintf("^%s$", word),
+								Options: "i",
 							},
 						},
 					},
-				})
+				},
+			)
 		}
+	}
+	result = bson.D{
+		primitive.E{
+			Key:   "$match",
+			Value: expressions,
+		},
 	}
 
 	return result, wordFilter

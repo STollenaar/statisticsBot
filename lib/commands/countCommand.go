@@ -43,7 +43,7 @@ func FindSpecificWordOccurences(args *CommandParsed) int {
 		channelFilter = bson.D{
 			primitive.E{
 				Key:   "$eq",
-				Value: args.ChannelTarget,
+				Value: args.ChannelTarget.ID,
 			},
 		}
 	} else {
@@ -63,7 +63,7 @@ func FindSpecificWordOccurences(args *CommandParsed) int {
 					primitive.E{
 						Key: "$regex",
 						Value: primitive.Regex{
-							Pattern: args.Word,
+							Pattern: fmt.Sprintf("^%s$", args.Word),
 							Options: "i",
 						},
 					},
