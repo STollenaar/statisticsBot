@@ -30,10 +30,13 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 		targetUser := parsedArguments.UserTarget
 		if targetUser == nil {
 			t, _ := bot.GuildMember(interaction.GuildID, maxWord.Author)
-			targetUser = t.User
-
+			if t == nil {
+				response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Author, maxWord.Word.Word, maxWord.Word.Count)
+			} else {
+				targetUser = t.User
+				response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", targetUser.Mention(), maxWord.Word.Word, maxWord.Word.Count)
+			}
 		}
-		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", targetUser.Mention(), maxWord.Word.Word, maxWord.Word.Count)
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
