@@ -23,9 +23,9 @@ var (
 
 // getClient gets the mongo client on the first load
 func getClient() {
-	  // Use the SetServerAPIOptions() method to set the Stable API version to 1
-	  serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	c, err := mongo.NewClient(options.Client().SetAuth(util.CreateMongoAuth()).ApplyURI("mongodb+srv://" + util.ConfigFile.DATABASE_HOST + "/?retryWrites=true&w=majority").SetServerAPIOptions(serverAPI))
+	// Use the SetServerAPIOptions() method to set the Stable API version to 1
+	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
+	c, err := mongo.NewClient(options.Client().ApplyURI("mongodb+srv://" + util.ConfigFile.DATABASE_HOST + "/?retryWrites=true&w=majority").SetAuth(util.CreateMongoAuth()).SetServerAPIOptions(serverAPI))
 	client = c
 	if err != nil {
 		log.Fatal(err)
