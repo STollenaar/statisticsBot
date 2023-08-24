@@ -18,6 +18,7 @@ type Config struct {
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
 
+	MONGO_HOST_PARAMETER     string
 	MONGO_USERNAME_PARAMETER string
 	MONGO_PASSWORD_PARAMETER string
 }
@@ -39,12 +40,42 @@ func init() {
 		DATABASE_HOST:            os.Getenv("DATABASE_HOST"),
 		AWS_REGION:               os.Getenv("AWS_REGION"),
 		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
+		MONGO_HOST_PARAMETER:     os.Getenv("MONGO_HOST_PARAMETER"),
 		MONGO_USERNAME_PARAMETER: os.Getenv("MONGO_USERNAME_PARAMETER"),
 		MONGO_PASSWORD_PARAMETER: os.Getenv("MONGO_PASSWORD_PARAMETER"),
 	}
 
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
 		log.Fatal("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
+	}
+	if ConfigFile.DATABASE_HOST == "" && ConfigFile.MONGO_HOST_PARAMETER == "" {
+		log.Fatal("DATABASE_HOST or MONGO_HOST_PARAMETER is not set")
+	}
+	if ConfigFile.MONGO_PASSWORD_PARAMETER == "" || ConfigFile.MONGO_USERNAME_PARAMETER == "" {
+		log.Fatal("Mongo authentication parameters are not set")
+	}
+}
+
+func GetMongoHost() string {
+	if ConfigFile.DATABASE_HOST != "" {
+		return ConfigFile.DATABASE_HOST
+	} else {
+		cfg, err := config.LoadDefaultConfig(context.TODO())
+
+		if err != nil {
+			log.Fatal(err)
+		}
+		cfg.Region = ConfigFile.AWS_REGION
+
+		ssmClient := ssm.NewFromConfig(cfg)
+		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+			Name:           &ConfigFile.MONGO_HOST_PARAMETER,
+			WithDecryption: true,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		return *out.Parameter.Value
 	}
 }
 
