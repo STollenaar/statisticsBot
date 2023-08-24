@@ -5,4 +5,4 @@ docker-compose.yml
 __debug_bin
 dist/
 config.json
-terraform/.terraform/providers/spices.dev/stollenaar/awsprofiler/0.0.1/linux_amd64
+terraform/.terraform/
