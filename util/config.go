@@ -23,7 +23,38 @@ type Config struct {
 	MONGO_PASSWORD_PARAMETER string
 }
 
-var ConfigFile *Config
+var (
+	ConfigFile *Config
+	ssmClient  *ssm.Client
+)
+
+func init() {
+	ConfigFile = &Config{
+		AWS_REGION: os.Getenv("AWS_REGION"),
+	}
+}
+
+func init() {
+
+	// Create a config with the credentials provider.
+	cfg, err := config.LoadDefaultConfig(context.TODO(),
+		config.WithSharedConfigProfile("personal"),
+		config.WithRegion(ConfigFile.AWS_REGION),
+	)
+
+	if err != nil {
+		if _, isProfileNotExistError := err.(config.SharedConfigProfileNotExistError); isProfileNotExistError {
+			cfg, err = config.LoadDefaultConfig(context.TODO(),
+				config.WithRegion(ConfigFile.AWS_REGION),
+			)
+		}
+		if err != nil {
+			log.Fatal("Error loading AWS config:", err)
+		}
+	}
+
+	ssmClient = ssm.NewFromConfig(cfg)
+}
 
 func init() {
 	ConfigFile = new(Config)
@@ -38,7 +69,6 @@ func init() {
 	ConfigFile = &Config{
 		DISCORD_TOKEN:            os.Getenv("DISCORD_TOKEN"),
 		DATABASE_HOST:            os.Getenv("DATABASE_HOST"),
-		AWS_REGION:               os.Getenv("AWS_REGION"),
 		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
 		MONGO_HOST_PARAMETER:     os.Getenv("MONGO_HOST_PARAMETER"),
 		MONGO_USERNAME_PARAMETER: os.Getenv("MONGO_USERNAME_PARAMETER"),
@@ -60,14 +90,6 @@ func GetMongoHost() string {
 	if ConfigFile.DATABASE_HOST != "" {
 		return ConfigFile.DATABASE_HOST
 	} else {
-		cfg, err := config.LoadDefaultConfig(context.TODO())
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		cfg.Region = ConfigFile.AWS_REGION
-
-		ssmClient := ssm.NewFromConfig(cfg)
 		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 			Name:           &ConfigFile.MONGO_HOST_PARAMETER,
 			WithDecryption: true,
@@ -80,14 +102,6 @@ func GetMongoHost() string {
 }
 
 func CreateMongoAuth() options.Credential {
-	cfg, err := config.LoadDefaultConfig(context.TODO())
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	cfg.Region = ConfigFile.AWS_REGION
-
-	ssmClient := ssm.NewFromConfig(cfg)
 	mongoUsername, _ := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 		Name:           &ConfigFile.MONGO_USERNAME_PARAMETER,
 		WithDecryption: true,
@@ -106,14 +120,6 @@ func GetDiscordToken() string {
 	if ConfigFile.DISCORD_TOKEN != "" {
 		return ConfigFile.DISCORD_TOKEN
 	} else {
-		cfg, err := config.LoadDefaultConfig(context.TODO())
-
-		if err != nil {
-			log.Fatal(err)
-		}
-		cfg.Region = ConfigFile.AWS_REGION
-
-		ssmClient := ssm.NewFromConfig(cfg)
 		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 			Name:           &ConfigFile.AWS_PARAMETER_NAME,
 			WithDecryption: true,
