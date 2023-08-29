@@ -112,7 +112,9 @@ func getLastMessage(channel *discordgo.Channel) util.MessageObject {
 	var lastMessage util.MessageObject
 
 	if err := collection.FindOne(context.TODO(), bson.M{"ChannelID": channel.ID}, &findOpts).Decode(&lastMessage); err != nil {
-		fmt.Println("Error fetching last message: ", err)
+		if err != mongo.ErrNoDocuments {
+			fmt.Println("Error fetching last message: ", err)
+		}
 	}
 	return lastMessage
 }

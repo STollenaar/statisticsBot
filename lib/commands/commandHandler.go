@@ -85,86 +85,77 @@ func CreateCommandArguments(wordRequired, userRequired, channelRequired bool) (a
 	return args
 }
 
-// CountFilterOccurences counting the occurences of the filter inside the database
-func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (messageObject []util.CountGrouped) {
-	initialGroup := bson.D{
-		primitive.E{
-			Key: "$group",
-			Value: bson.M{
-				"_id": "$Author",
-				"Words": bson.D{
-					primitive.E{
-						Key:   "$push",
-						Value: "$Content",
-					},
-				},
-			},
-		},
-	}
-	unwind := bson.D{
-		primitive.E{
-			Key:   "$unwind",
-			Value: "$Words",
-		},
+func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (messageObject []util.CountGrouped,err error) {
+	pipeline := mongo.Pipeline{
+		filter,
 	}
 
-	refilter := bson.D{
-		primitive.E{
-			Key:   "$skip",
-			Value: 0,
-		},
-	}
 	if wordFilter != "" {
-		refilter = bson.D{
-			primitive.E{
+		pipeline = append(pipeline, bson.D{
+			bson.E{
 				Key: "$match",
 				Value: bson.M{
-					"Words": bson.D{
-						primitive.E{
-							Key: "$regex",
-							Value: primitive.Regex{
-								Pattern: fmt.Sprintf("^%s$", wordFilter),
-								Options: "i",
-							},
+					"GuildID": guildID,
+					"Content": bson.M{
+						"$regex": primitive.Regex{
+							Pattern: fmt.Sprintf("^%s$", wordFilter),
+							Options: "i",
 						},
 					},
 				},
 			},
-		}
+		})
 	}
 
-	wordCount := bson.D{
-		primitive.E{
-			Key: "$group",
-			Value: bson.M{
-				"_id": bson.M{
-					"Author": "$_id",
-					"Word":   "$Words",
-				},
-				"wordCount": bson.D{
-					primitive.E{
-						Key:   "$sum",
-						Value: 1,
+	pipeline = append(pipeline,
+		bson.D{
+			bson.E{
+				Key:   "$unwind",
+				Value: "$Content",
+			},
+		},
+		bson.D{
+			bson.E{
+				Key: "$group",
+				Value: bson.M{
+					"_id": bson.M{
+						"Author": "$Author",
+						"Word":   "$Content",
+					},
+					"wordCount": bson.M{
+						"$sum": 1,
 					},
 				},
 			},
 		},
-	}
-
-	resultGroup := bson.D{
-		primitive.E{
-			Key: "$group",
-			Value: bson.M{
-				"_id": "$_id.Author",
-				"Words": bson.D{
-					primitive.E{
-						Key: "$push",
-						Value: bson.M{
-							"Word": "$_id.Word",
-							"wordCount": bson.D{
-								primitive.E{
-									Key:   "$sum",
-									Value: "$wordCount",
+		bson.D{
+			bson.E{
+				Key: "$group",
+				Value: bson.M{
+					"_id": "$_id.Author",
+					"Words": bson.M{
+						"$push": bson.M{
+							"Word":      "$_id.Word",
+							"wordCount": "$wordCount",
+						},
+					},
+				},
+			},
+		},
+		bson.D{
+			bson.E{
+				Key: "$project",
+				Value: bson.M{
+					"_id": 1,
+					"Word": bson.M{
+						"$arrayElemAt": []interface{}{
+							"$Words",
+							bson.M{
+								"$indexOfArray": []interface{}{
+									"$Words.wordCount",
+									bson.M{
+										"$max": "$Words.wordCount",
+									},
 								},
 							},
 						},
@@ -172,40 +163,17 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 				},
 			},
 		},
-	}
+	)
 
-	counted := bson.D{
-		primitive.E{
-			Key: "$project",
-			Value: bson.D{
-				primitive.E{
-					Key:   "_id",
-					Value: "$_id",
-				},
-				primitive.E{
-					Key: "Word",
-					Value: bson.M{
-						"$arrayElemAt": []interface{}{"$Words", bson.M{
-							"$indexOfArray": []interface{}{"$Words.wordCount", bson.D{
-								primitive.E{
-									Key:   "$max",
-									Value: "$Words.wordCount",
-								},
-							}},
-						}},
-					},
-				},
-			},
-		},
-	}
-
-	resultCursor, err := lib.GetFromAggregate(guildID, mongo.Pipeline{filter, initialGroup, unwind, unwind, refilter, wordCount, resultGroup, counted})
+	cursor, err := lib.GetFromAggregate(guildID, pipeline)
 	if err != nil {
-		panic(err)
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
+
+	if err := cursor.All(context.TODO(), &messageObject); err != nil {
+		return nil, err
 	}
 
-	if err = resultCursor.All(context.TODO(), &messageObject); err != nil {
-		panic(err)
-	}
-	return messageObject
+	return messageObject, nil
 }

@@ -51,7 +51,12 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 func FindAllWordOccurences(arguments *CommandParsed) util.CountGrouped {
 	filter, wordFilter := getFilter(arguments)
 
-	messageObject := CountFilterOccurences(arguments.GuildID, filter, wordFilter)
+	messageObject, err := CountFilterOccurences(arguments.GuildID, filter, wordFilter)
+	if err != nil {
+		fmt.Println(err)
+		return util.CountGrouped{}
+	}
+
 	if len(messageObject) == 1 {
 		return messageObject[0]
 	} else if len(messageObject) > 1 {

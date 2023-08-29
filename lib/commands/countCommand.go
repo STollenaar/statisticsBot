@@ -74,8 +74,12 @@ func FindSpecificWordOccurences(args *CommandParsed) int {
 		},
 	}
 
-	messages := CountFilterOccurences(args.GuildID, filter, "")
+	messages, err := CountFilterOccurences(args.GuildID, filter, "")
 
+	if err != nil {
+		fmt.Println(err)
+		return 0
+	}
 	if len(messages) == 0 {
 		return 0
 	}
