@@ -8,9 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/stollenaar/statisticsbot/lib"
-	botcommand "github.com/stollenaar/statisticsbot/lib/commands"
-	"github.com/stollenaar/statisticsbot/lib/routes"
+	botcommand "github.com/stollenaar/statisticsbot/internal/commands"
+	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
