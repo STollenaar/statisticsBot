@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log"
 	"regexp"
-	"statsisticsbot/util"
 	"sync"
+
+	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
 	"go.mongodb.org/mongo-driver/bson"

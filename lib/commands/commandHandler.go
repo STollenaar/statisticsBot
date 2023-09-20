@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"statsisticsbot/lib"
-	"statsisticsbot/util"
+
+	"github.com/stollenaar/statisticsbot/lib"
+	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
 	"go.mongodb.org/mongo-driver/bson"

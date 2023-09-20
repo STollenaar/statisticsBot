@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"statsisticsbot/lib"
-	"statsisticsbot/util"
+
+	"github.com/stollenaar/statisticsbot/lib"
+	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"

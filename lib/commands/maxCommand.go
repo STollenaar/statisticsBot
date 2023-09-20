@@ -2,7 +2,8 @@ package commands
 
 import (
 	"fmt"
-	"statsisticsbot/util"
+
+	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
 	"go.mongodb.org/mongo-driver/bson"
