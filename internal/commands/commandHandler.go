@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/stollenaar/statisticsbot/database"
+	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"

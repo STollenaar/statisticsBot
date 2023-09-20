@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/stollenaar/statisticsbot/lib"
+	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/gorilla/mux"
@@ -40,7 +40,7 @@ func GetUserMessages(w http.ResponseWriter, r *http.Request) {
 
 	var messageObject []util.MessageObject
 
-	resultCursor, err := lib.GetFromFilter(guildID, filter, findOptions)
+	resultCursor, err := database.GetFromFilter(guildID, filter, findOptions)
 	if err != nil {
 		panic(err)
 	}
