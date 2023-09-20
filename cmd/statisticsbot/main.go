@@ -9,6 +9,7 @@ import (
 	"syscall"
 
 	botcommand "github.com/stollenaar/statisticsbot/internal/commands"
+	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/util"
 
@@ -68,8 +69,7 @@ func main() {
 
 	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages)
 
-	lib.Bot = bot
-	bot.AddHandler(lib.MessageListener)
+	bot.AddHandler(database.MessageListener)
 
 	err := bot.Open()
 	if err != nil {
@@ -86,7 +86,7 @@ func main() {
 		registeredCommands[i] = cmd
 	}
 
-	lib.Init(GuildID)
+	database.Init(GuildID)
 	handleRequests()
 
 	defer bot.Close()

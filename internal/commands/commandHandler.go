@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/stollenaar/statisticsbot/lib"
+	"github.com/stollenaar/statisticsbot/database"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
@@ -166,7 +166,7 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 		},
 	)
 
-	cursor, err := lib.GetFromAggregate(guildID, pipeline)
+	cursor, err := database.GetFromAggregate(guildID, pipeline)
 	if err != nil {
 		return nil, err
 	}

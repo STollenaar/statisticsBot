@@ -1,4 +1,4 @@
-package lib
+package database
 
 import (
 	"context"
@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	Bot    *discordgo.Session
 	re     *regexp.Regexp
 	client *mongo.Client
 )
@@ -39,7 +38,7 @@ func getClient() {
 }
 
 // Init doing the initialization of all the messages
-func Init(GuildID *string) {
+func Init(Bot *discordgo.Session, GuildID *string) {
 	getClient()
 	re = regexp.MustCompile("\\s|\\.|\\\"")
 	guilds, err := Bot.UserGuilds(100, "", "")
@@ -121,7 +120,7 @@ func getLastMessage(channel *discordgo.Channel) util.MessageObject {
 }
 
 // loadMessages loading messages from the channel
-func loadMessages(channel *discordgo.Channel) {
+func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	fmt.Println("Loading ", channel.Name)
 	defer util.Elapsed(channel.Name)() // timing how long it took to collect the messages
 	collection := client.Database("statistics_bot").Collection(channel.GuildID)

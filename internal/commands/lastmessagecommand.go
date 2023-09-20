@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/stollenaar/statisticsbot/lib"
+	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
@@ -58,7 +58,7 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 
 	var messageObjects []util.MessageObject
 
-	filterResult, err := lib.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
+	filterResult, err := database.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
 	if err != nil {
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 			Content: "Something went wrong.. maybe try again with something else?",
