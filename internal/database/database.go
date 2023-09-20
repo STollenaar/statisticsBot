@@ -38,10 +38,10 @@ func getClient() {
 }
 
 // Init doing the initialization of all the messages
-func Init(Bot *discordgo.Session, GuildID *string) {
+func Init(bot *discordgo.Session, GuildID *string) {
 	getClient()
 	re = regexp.MustCompile("\\s|\\.|\\\"")
-	guilds, err := Bot.UserGuilds(100, "", "")
+	guilds, err := bot.UserGuilds(100, "", "")
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -59,7 +59,7 @@ func Init(Bot *discordgo.Session, GuildID *string) {
 
 	var waitGroup sync.WaitGroup
 	for _, guild := range guilds {
-		channels, err := Bot.GuildChannels(guild.ID)
+		channels, err := bot.GuildChannels(guild.ID)
 		if err != nil {
 			fmt.Println("Error loading channels ", err)
 			return
@@ -67,10 +67,10 @@ func Init(Bot *discordgo.Session, GuildID *string) {
 
 		// Async checking the channels of guild for new messages
 		waitGroup.Add(1)
-		go func(channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
+		go func(bot *discordgo.Session, channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
-			initChannels(channels, waitGroup)
-		}(channels, &waitGroup)
+			initChannels(bot, channels, waitGroup)
+		}(bot, channels, &waitGroup)
 	}
 
 	// Waiting for all async calls to complete
@@ -79,7 +79,7 @@ func Init(Bot *discordgo.Session, GuildID *string) {
 }
 
 // initChannels loading all the channels of the guild
-func initChannels(channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
+func initChannels(bot *discordgo.Session, channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
 	for _, channel := range channels {
 		fmt.Printf("Checking %s \n", channel.Name)
 		// Check if channel is a guild text channel and not a voice or DM channel
@@ -89,10 +89,10 @@ func initChannels(channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
 
 		// Async loading of the messages in that channnel
 		waitGroup.Add(1)
-		go func(channel *discordgo.Channel) {
+		go func(bot *discordgo.Session, channel *discordgo.Channel) {
 			defer waitGroup.Done()
-			loadMessages(channel)
-		}(channel)
+			loadMessages(bot, channel)
+		}(bot, channel)
 	}
 }
 
