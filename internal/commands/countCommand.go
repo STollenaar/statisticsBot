@@ -30,7 +30,7 @@ func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCrea
 		response = fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", parsedArguments.Word, amount)
 	}
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-		Content: response,
+		Content: &response,
 	})
 }
 

@@ -57,11 +57,11 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 	findOptions.SetLimit(1)
 
 	var messageObjects []util.MessageObject
-
+	response := "Something went wrong.. maybe try again with something else?"
 	filterResult, err := database.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
 	if err != nil {
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: "Something went wrong.. maybe try again with something else?",
+			Content: &response,
 		})
 
 		return
@@ -71,7 +71,7 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 
 	if err != nil {
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: "Something went wrong.. maybe try again with something else?",
+			Content: &response,
 		})
 		return
 	}
@@ -79,8 +79,9 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 
 	channel, _ := bot.Channel(messageObject.ChannelID)
 	messageLink := getMessageLink(messageObject.GuildID, messageObject.ChannelID, messageObject.MessageID)
+	response = fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink)
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-		Content: fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink),
+		Content: &response,
 	})
 }
 

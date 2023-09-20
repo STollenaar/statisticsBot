@@ -44,7 +44,7 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 	}
 
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-		Content: response,
+		Content: &response,
 	})
 }
 
