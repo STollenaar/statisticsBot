@@ -84,8 +84,8 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
     {
       name      = local.name
       image     = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-latest-arm64"
-      cpu       = 256
-      memory    = 400
+      cpu       = 150
+      memory    = 100
       essential = true
 
       portMappings = [
@@ -115,6 +115,32 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
         {
           name  = "MONGO_USERNAME_PARAMETER"
           value = "/mongodb/statsuser/username"
+        },
+      ]
+    },
+    {
+      name      = "sqspoller"
+      image     = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:sqspoller-latest-arm64"
+      cpu       = 50
+      memory    = 100
+      essential = true
+
+      environment = [
+        {
+          name  = "AWS_REGION"
+          value = data.aws_region.current.name
+        },
+        {
+          name  = "SQS_REQUEST"
+          value = aws_sqs_queue.markov_user_request.name
+        },
+        {
+          name  = "SQS_RESPONSE"
+          value = aws_sqs_queue.markov_user_response.name
+        },
+        {
+          name  = "STATSBOT_URL"
+          value = "localhost"
         },
       ]
     }
