@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/joho/godotenv"
@@ -92,7 +93,7 @@ func GetMongoHost() string {
 	} else {
 		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 			Name:           &ConfigFile.MONGO_HOST_PARAMETER,
-			WithDecryption: true,
+			WithDecryption: aws.Bool(true),
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -104,11 +105,11 @@ func GetMongoHost() string {
 func CreateMongoAuth() options.Credential {
 	mongoUsername, _ := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 		Name:           &ConfigFile.MONGO_USERNAME_PARAMETER,
-		WithDecryption: true,
+		WithDecryption: aws.Bool(true),
 	})
 	mongoPassword, _ := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 		Name:           &ConfigFile.MONGO_PASSWORD_PARAMETER,
-		WithDecryption: true,
+		WithDecryption: aws.Bool(true),
 	})
 	return options.Credential{
 		Username: *mongoUsername.Parameter.Value,
@@ -122,7 +123,7 @@ func GetDiscordToken() string {
 	} else {
 		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 			Name:           &ConfigFile.AWS_PARAMETER_NAME,
-			WithDecryption: true,
+			WithDecryption: aws.Bool(true),
 		})
 		if err != nil {
 			log.Fatal(err)
