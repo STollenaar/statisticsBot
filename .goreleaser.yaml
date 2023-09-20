@@ -1,49 +1,98 @@
 env:
   - REPO={{ .Env.ACCOUNT }}.dkr.ecr.ca-central-1.amazonaws.com/discordbots
-before:
-  hooks:
-    # You may remove this if you don't use go modules.
-    - go mod tidy
 builds:
-  - env:
+  - id: sqspoller
+    binary: sqspoller
+    dir: ./cmd/sqspoller
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
     goarch:
       - amd64
       - arm64
+    hooks:
+      pre:
+        - dir: ./cmd/sqspoller
+          cmd: go mod tidy
+  - id: statisticsbot
+    binary: statisticsbot
+    dir: ./cmd/statisticsbot
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    hooks:
+      pre:
+        - dir: ./cmd/statisticsbot
+          cmd: go mod tidy
 checksum:
   name_template: "checksums.txt"
 dockers:
   - id: statisticsbot-amd-build
     ids:
-      - statisticsBot
+      - statisticsbot
     goarch: amd64
     use: buildx
     build_flag_templates:
       - "--platform=linux/amd64"
       - "--build-arg=ARCH=amd64"
+      - "--build-arg=KIND=statisticsbot"
     image_templates:
       - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-amd64"
       - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest-amd64"
     dockerfile: Dockerfile
   - id: statisticsbot-arm-build
     ids:
-      - statisticsBot
+      - statisticsbot
     goarch: arm64
     use: buildx
     build_flag_templates:
       - "--platform=linux/arm64"
       - "--build-arg=ARCH=arm64"
+      - "--build-arg=KIND=statisticsbot"
     image_templates:
       - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-arm64"
       - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest-arm64"
+    dockerfile: Dockerfile
+  - id: sqspoller-amd-build
+    ids:
+      - sqspoller
+    goarch: amd64
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--build-arg=ARCH=amd64"
+      - "--build-arg=KIND=sqspoller"
+    image_templates:
+      - "{{ .Env.REPO }}:sqspoller-{{ .Version }}-amd64"
+      - "{{ .Env.REPO }}:sqspoller-latest-amd64"
+    dockerfile: Dockerfile
+  - id: sqspoller-arm-build
+    ids:
+      - sqspoller
+    goarch: arm64
+    use: buildx
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--build-arg=ARCH=arm64"
+      - "--build-arg=KIND=sqspoller"
+    image_templates:
+      - "{{ .Env.REPO }}:sqspoller-{{ .Version }}-arm64"
+      - "{{ .Env.REPO }}:sqspoller-latest-arm64"
     dockerfile: Dockerfile
 docker_manifests:
   - name_template: "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}"
     image_templates:
       - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-amd64"
       - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-arm64"
+  - name_template: "{{ .Env.REPO }}:sqspoller-{{ .Version }}"
+    image_templates:
+      - "{{ .Env.REPO }}:sqspoller-{{ .Version }}-amd64"
+      - "{{ .Env.REPO }}:sqspoller-{{ .Version }}-arm64"
 changelog:
   sort: asc
   filters:
