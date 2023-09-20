@@ -43,6 +43,28 @@ resource "aws_ecs_service" "statisticsbot_service" {
     enable   = true
     rollback = true
   }
+
+  service_connect_configuration {
+    enabled   = true
+    namespace = data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_namespace.arn
+    service {
+      client_alias {
+        dns_name = local.name
+        port     = 3000
+      }
+      port_name = "api"
+    }
+  }
+}
+
+resource "aws_sqs_queue" "markov_user_request" {
+  name                      = "user-request"
+  message_retention_seconds = 60 * 10
+}
+
+resource "aws_sqs_queue" "markov_user_response" {
+  name                      = "user-response"
+  message_retention_seconds = 60 * 10
 }
 
 resource "aws_ecs_task_definition" "statisticsbot_service" {
@@ -69,6 +91,7 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
       portMappings = [
         {
           containerPort = 3000
+          name          = "api"
           hostPort      = 3000
         }
       ]
