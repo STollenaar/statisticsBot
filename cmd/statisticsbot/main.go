@@ -86,7 +86,7 @@ func main() {
 		registeredCommands[i] = cmd
 	}
 
-	database.Init(GuildID)
+	database.Init(bot, GuildID)
 	handleRequests()
 
 	defer bot.Close()
