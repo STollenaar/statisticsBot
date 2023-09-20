@@ -22,3 +22,12 @@ type wordCounted struct {
 	Word  string `bson:"Word" json:"Word"`
 	Count int    `bson:"wordCount" json:"Count"`
 }
+
+type SQSObject struct {
+	Type          string `json:"type"`
+	Command       string `json:"command"`
+	Data          string `json:"data"`
+	GuildID       string `json:"guildID"`
+	Token         string `json:"token"`
+	ApplicationID string `json:"applicationID"`
+}
