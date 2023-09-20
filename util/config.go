@@ -22,6 +22,9 @@ type Config struct {
 	MONGO_HOST_PARAMETER     string
 	MONGO_USERNAME_PARAMETER string
 	MONGO_PASSWORD_PARAMETER string
+
+	SQS_REQUEST  string
+	SQS_RESPONSE string
 }
 
 var (
@@ -74,6 +77,8 @@ func init() {
 		MONGO_HOST_PARAMETER:     os.Getenv("MONGO_HOST_PARAMETER"),
 		MONGO_USERNAME_PARAMETER: os.Getenv("MONGO_USERNAME_PARAMETER"),
 		MONGO_PASSWORD_PARAMETER: os.Getenv("MONGO_PASSWORD_PARAMETER"),
+		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
+		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
 	}
 
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
