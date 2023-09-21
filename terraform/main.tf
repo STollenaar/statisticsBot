@@ -28,6 +28,19 @@ provider "aws" {
   profile = local.used_profile.name
 }
 
+resource "aws_iam_role" "statisticsbot_role" {
+  name               = "StatisticsbotRole"
+  description        = "Role for the statisticsbot"
+  assume_role_policy = data.aws_iam_policy_document.assume_policy_document.json
+}
+
+resource "aws_iam_role_policy" "statisticsbot_role_policy" {
+  role   = aws_iam_role.statisticsbot_role.id
+  name   = "inline-role"
+  policy = data.aws_iam_policy_document.ssm_access_role_policy_document.json
+}
+
+
 resource "aws_ecs_service" "statisticsbot_service" {
   name            = local.name
   cluster         = data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_cluster.id
@@ -84,8 +97,8 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
     {
       name      = local.name
       image     = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-latest-arm64"
-      cpu       = 150
-      memory    = 100
+      cpu       = 256
+      memory    = 400
       essential = true
 
       portMappings = [
@@ -116,20 +129,6 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
           name  = "MONGO_USERNAME_PARAMETER"
           value = "/mongodb/statsuser/username"
         },
-      ]
-    },
-    {
-      name      = "sqspoller"
-      image     = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:sqspoller-latest-arm64"
-      cpu       = 50
-      memory    = 100
-      essential = true
-
-      environment = [
-        {
-          name  = "AWS_REGION"
-          value = data.aws_region.current.name
-        },
         {
           name  = "SQS_REQUEST"
           value = aws_sqs_queue.markov_user_request.name
@@ -137,10 +136,6 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
         {
           name  = "SQS_RESPONSE"
           value = aws_sqs_queue.markov_user_response.name
-        },
-        {
-          name  = "STATSBOT_URL"
-          value = "localhost"
         },
       ]
     }
