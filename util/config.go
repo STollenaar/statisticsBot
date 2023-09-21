@@ -18,6 +18,7 @@ type Config struct {
 
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
+	TERMINAL_REGEX     string
 
 	MONGO_HOST_PARAMETER     string
 	MONGO_USERNAME_PARAMETER string
@@ -79,6 +80,10 @@ func init() {
 		MONGO_PASSWORD_PARAMETER: os.Getenv("MONGO_PASSWORD_PARAMETER"),
 		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
 		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
+		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
+	}
+	if ConfigFile.TERMINAL_REGEX == "" {
+		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
 	}
 
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
