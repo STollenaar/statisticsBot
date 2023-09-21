@@ -3,18 +3,16 @@ package main
 import (
 	"flag"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 
 	botcommand "github.com/stollenaar/statisticsbot/internal/commands"
 	"github.com/stollenaar/statisticsbot/internal/database"
-	"github.com/stollenaar/statisticsbot/internal/routes"
+	"github.com/stollenaar/statisticsbot/internal/sqspoller"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/gorilla/mux"
 )
 
 var (
@@ -87,9 +85,10 @@ func main() {
 	}
 
 	database.Init(bot, GuildID)
-	handleRequests()
-
 	defer bot.Close()
+	if util.ConfigFile.SQS_REQUEST != "" && util.ConfigFile.SQS_RESPONSE != "" {
+		go sqspoller.PollSQS()
+	}
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
@@ -123,11 +122,4 @@ func PingCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 			Content: "Pong",
 		},
 	})
-}
-
-func handleRequests() {
-	router := mux.NewRouter().StrictSlash(true)
-
-	router.HandleFunc("/userMessages/{guildID}/{userID}", routes.GetUserMessages)
-	log.Fatal(http.ListenAndServe(":3000", router))
 }

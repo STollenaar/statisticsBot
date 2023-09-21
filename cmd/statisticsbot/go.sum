@@ -14,6 +14,8 @@ github.com/aws/aws-sdk-go-v2/internal/ini v1.3.42 h1:GPUcE/Yq7Ur8YSUk6lVkoIMWnJN
 github.com/aws/aws-sdk-go-v2/internal/ini v1.3.42/go.mod h1:rzfdUlfA+jdgLDmPKjd3Chq9V7LVLYo1Nz++Wb91aRo=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.35 h1:CdzPW9kKitgIiLV1+MHobfR5Xg25iYnyzWZhyQuSlDI=
 github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.35/go.mod h1:QGF2Rs33W5MaN9gYdEQOBBFPLwTZkEhRwI33f7KIG0o=
+github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5 h1:RyDpTOMEJO6ycxw1vU/6s0KLFaH3M0z/z9gXHSndPTk=
+github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5/go.mod h1:RZBu4jmYz3Nikzpu/VuVvRnTEJ5a+kf36WT2fcl5Q+Q=
 github.com/aws/aws-sdk-go-v2/service/ssm v1.37.5 h1:s9QR0F1W5+11lq04OJ/mihpRpA2VDFIHmu+ktgAbNfg=
 github.com/aws/aws-sdk-go-v2/service/ssm v1.37.5/go.mod h1:JjBzoceyKkpQY3v1GPIdg6kHqUFHRJ7SDlwtwoH0Qh8=
 github.com/aws/aws-sdk-go-v2/service/sso v1.14.0 h1:AR/hlTsCyk1CwlyKnPFvIMvnONydRjDDRT9OGb0i+/g=
@@ -59,8 +61,14 @@ github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a4
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3/go.mod h1:YL+SbUNrPCdNoAfQpYmSokR2WODHKlIkg3yXmH4f8Uc=
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230920143702-8fd1f762a70e h1:eloakzfAGcW9iMPy0GpQ5YskHT4U19AtEpwPVx7XRFc=
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230920143702-8fd1f762a70e/go.mod h1:YlYCa/eqHFeWLFAIyHGeN+Y7jo23b5nxNUkC5LEofdA=
+github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589 h1:OzPLnpk5J/rpUjJwgASsBTfsRe+IuSp+kKt/JgwejGU=
+github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589/go.mod h1:YlYCa/eqHFeWLFAIyHGeN+Y7jo23b5nxNUkC5LEofdA=
+github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337 h1:2NTc9C4pc4T9F0Knmhr+XWecEUmRFyT4G/MnoHsq1qo=
+github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337/go.mod h1:PE/x+GwIqC1MlEMTt84vWj0A4a1spGYvJ5p1aRYtNRg=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230920153240-43f0264ee9cc h1:FJb/gVsr1BK3HvICOR8kXryVymXZz71ZHmSgr19P578=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230920153240-43f0264ee9cc/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
+github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1 h1:2sodhfa8CPw+9oSLwdl1+QujG69ZqNZuNLc/vEEg7yw=
+github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=

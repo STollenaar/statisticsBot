@@ -7,8 +7,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20230920154259-df32245c40e0
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3
-	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230920143702-8fd1f762a70e
-	github.com/stollenaar/statisticsbot/util v0.0.0-20230920153240-43f0264ee9cc
+	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589
+	github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1
 )
 
 require (
@@ -20,6 +20,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.35 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.42 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.35 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.37.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.16.0 // indirect
@@ -31,6 +32,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
+	github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
