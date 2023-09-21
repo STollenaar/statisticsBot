@@ -3,7 +3,6 @@ module github.com/stollenaar/statisticsbot/internal/routes
 go 1.20
 
 require (
-	github.com/gorilla/mux v1.8.0
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920142231-8bf05ab18d3e
 	github.com/stollenaar/statisticsbot/util v0.0.0-20230920141302-ecf88b84c33a
 	go.mongodb.org/mongo-driver v1.12.1
