@@ -2,23 +2,16 @@ package routes
 
 import (
 	"context"
-	"encoding/json"
-	"net/http"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
 
-	"github.com/gorilla/mux"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func GetUserMessages(w http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-	guildID := vars["guildID"]
-	userID := vars["userID"]
-
+func GetUserMessages(guildID, userID string) []util.MessageObject {
 	filter := bson.M{
 		"Author": userID,
 		"Content.10": bson.D{
@@ -49,5 +42,5 @@ func GetUserMessages(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	json.NewEncoder(w).Encode(messageObject)
+	return messageObject
 }
