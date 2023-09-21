@@ -35,10 +35,8 @@ github.com/golang/snappy v0.0.1/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEW
 github.com/golang/snappy v0.0.4 h1:yAGX7huGHXlcLOEtBnF4w7FQwA26wojNCwOYAEhLjQM=
 github.com/golang/snappy v0.0.4/go.mod h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/google/go-cmp v0.5.8 h1:e6P7q2lk1O+qJJb4BtCQXlK8vWEO8V1ZeuEdJNOqZyg=
 github.com/google/go-cmp v0.5.8/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
-github.com/gorilla/mux v1.8.0 h1:i40aqfkR1h2SlN9hojwV5ZA91wcXFOvkdNIeFDP5koI=
-github.com/gorilla/mux v1.8.0/go.mod h1:DVbg23sWSpFRCP0SfiEN6jmj59UnW/n46BH5rLB71So=
+github.com/google/go-cmp v0.5.9 h1:O2Tfq5qg4qc4AmwVlvv0oLiVAGB7enBSJ2x2DqQFi38=
 github.com/gorilla/websocket v1.4.2/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/gorilla/websocket v1.5.0 h1:PPwGk2jz7EePpoHN/+ClbZu8SPxiqlu12wZP/3sWmnc=
 github.com/gorilla/websocket v1.5.0/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
@@ -59,14 +57,10 @@ github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20230920154259-df32
 github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20230920154259-df32245c40e0/go.mod h1:Tl/77GmsAvyLiE9J8u4AEx79VYmIdKDKKGGHl4wXmkE=
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3 h1:Xd7pIVt0GF2EGHMTxVpAqLvTqaN9Ty66AT7lYxKpUfM=
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3/go.mod h1:YL+SbUNrPCdNoAfQpYmSokR2WODHKlIkg3yXmH4f8Uc=
-github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230920143702-8fd1f762a70e h1:eloakzfAGcW9iMPy0GpQ5YskHT4U19AtEpwPVx7XRFc=
-github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230920143702-8fd1f762a70e/go.mod h1:YlYCa/eqHFeWLFAIyHGeN+Y7jo23b5nxNUkC5LEofdA=
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589 h1:OzPLnpk5J/rpUjJwgASsBTfsRe+IuSp+kKt/JgwejGU=
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589/go.mod h1:YlYCa/eqHFeWLFAIyHGeN+Y7jo23b5nxNUkC5LEofdA=
 github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337 h1:2NTc9C4pc4T9F0Knmhr+XWecEUmRFyT4G/MnoHsq1qo=
 github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337/go.mod h1:PE/x+GwIqC1MlEMTt84vWj0A4a1spGYvJ5p1aRYtNRg=
-github.com/stollenaar/statisticsbot/util v0.0.0-20230920153240-43f0264ee9cc h1:FJb/gVsr1BK3HvICOR8kXryVymXZz71ZHmSgr19P578=
-github.com/stollenaar/statisticsbot/util v0.0.0-20230920153240-43f0264ee9cc/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1 h1:2sodhfa8CPw+9oSLwdl1+QujG69ZqNZuNLc/vEEg7yw=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
