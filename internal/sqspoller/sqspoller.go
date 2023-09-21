@@ -1,15 +1,17 @@
-package main
+package sqspoller
 
 import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
-	"github.com/stollenaar/copypastabotv2/pkg/markov"
+	"github.com/stollenaar/statisticsbot/interal/routes"
 	"github.com/stollenaar/statisticsbot/util"
 )
 
@@ -19,9 +21,12 @@ var (
 
 	sqsRequestURL  *string
 	sqsResponseURL *string
+	reTarget       *regexp.Regexp
 )
 
 func init() {
+	reTarget = regexp.MustCompile(`[\<>@#&!]`)
+
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		panic("configuration error, " + err.Error())
@@ -55,7 +60,7 @@ func init() {
 	go pollSQS(sqsObjectChannel)
 }
 
-func main() {
+func PollSQS() {
 	for sqsObject := range sqsObjectChannel {
 		switch sqsObject.Type {
 		case "url":
@@ -92,20 +97,8 @@ func pollSQS(chl chan<- util.SQSObject) {
 }
 
 func handleURLObject(sqsObject util.SQSObject) {
-	response := util.SQSObject{
-		Type:          sqsObject.Type,
-		Command:       sqsObject.Command,
-		GuildID:       sqsObject.GuildID,
-		Token:         sqsObject.Token,
-		ApplicationID: sqsObject.ApplicationID,
-	}
-	content, err := markov.GetMarkovURL(sqsObject.Data)
-	if err != nil {
-		response.Data = fmt.Errorf("something went wrong: %w", err).Error()
-	} else {
-		response.Data = content
-	}
-	data, err := json.Marshal(response)
+
+	data, err := json.Marshal(sqsObject)
 	if err != nil {
 		fmt.Printf("Error marshalling response object: %v", err)
 		return
@@ -125,12 +118,12 @@ func handleUserObject(sqsObject util.SQSObject) {
 		ApplicationID: sqsObject.ApplicationID,
 	}
 
-	content, err := markov.GetUserMarkov(sqsObject.GuildID, sqsObject.Data)
-	if err != nil {
-		response.Data = fmt.Errorf("something went wrong: %w", err).Error()
-	} else {
-		response.Data = content
-	}
+	messageObjects := routes.GetUserMessages(sqsObject.GuildID, sqsObject.Data)
+
+	messages := mapToContent(&messageObjects)
+	messages = filterNonTexts(messages)
+
+	response.Data = strings.Join(messages, " ")
 
 	data, err := json.Marshal(response)
 	if err != nil {
@@ -141,4 +134,36 @@ func handleUserObject(sqsObject util.SQSObject) {
 		MessageBody: aws.String(string(data)),
 		QueueUrl:    sqsResponseURL,
 	})
+}
+
+func mapToContent(messages *[]util.MessageObject) (result []string) {
+	for _, message := range *messages {
+		if len(message.Content) == 0 {
+			continue
+		}
+		lastWord := message.Content[len(message.Content)-1]
+		if !isTerminalWord(lastWord) {
+			lastWord += "."
+			message.Content[len(message.Content)-1] = lastWord
+		}
+		result = append(result, message.Content...)
+	}
+	return result
+}
+
+func filterNonTexts(messages []string) (result []string) {
+	for _, message := range messages {
+		if len(reTarget.FindAllString(message, -1)) != 3 {
+			result = append(result, message)
+		}
+	}
+	return result
+}
+
+func isTerminalWord(word string) bool {
+	compiled, err := regexp.MatchString(util.ConfigFile.TERMINAL_REGEX, word)
+	if err != nil {
+		fmt.Println(fmt.Errorf("error matching string with regex %s, on word %s. %w", util.ConfigFile.TERMINAL_REGEX, word, err))
+	}
+	return compiled
 }

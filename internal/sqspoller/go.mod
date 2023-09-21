@@ -1,4 +1,4 @@
-module github.com/stollenaar/cmd/sqspoller
+module github.com/stollenaar/internal/sqspoller
 
 go 1.20
 
@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.40
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5
 	github.com/stollenaar/copypastabotv2/pkg/markov v0.0.0-20230920211439-074cbd9bbcd4
-	github.com/stollenaar/statisticsbot/util v0.0.0-20230920184726-87f6ee62bd2e
+	github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1
 )
 
 require (
