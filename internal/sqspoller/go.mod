@@ -1,4 +1,4 @@
-module github.com/stollenaar/internal/sqspoller
+module github.com/stollenaar/statisticsbot/internal/sqspoller
 
 go 1.20
 
