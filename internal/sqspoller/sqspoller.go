@@ -37,9 +37,11 @@ func init() {
 
 	// Get URL of request queue
 	fmt.Printf("configstats: %v, %v, %v\n", *util.ConfigFile, util.ConfigFile.SQS_REQUEST, util.ConfigFile.SQS_RESPONSE)
-	urlResult, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
+	input := sqs.GetQueueUrlInput{
 		QueueName: &util.ConfigFile.SQS_REQUEST,
-	})
+	}
+	fmt.Printf("GetQueueURL input: %v\n", input)
+	urlResult, err := sqsClient.GetQueueUrl(context.TODO(),&input)
 	if err != nil {
 		fmt.Println("Got an error getting the queue URL:")
 		panic(err)
