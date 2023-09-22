@@ -65,6 +65,9 @@ func pollSQS(chl chan<- util.SQSObject) {
 			fmt.Println("Got an error receiving messages:")
 			fmt.Println(err)
 		}
+		if msgResult == nil {
+			continue
+		}
 
 		for _, message := range msgResult.Messages {
 			var object util.SQSObject
