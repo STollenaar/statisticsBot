@@ -36,6 +36,7 @@ func init() {
 	sqsObjectChannel = make(chan util.SQSObject)
 
 	// Get URL of request queue
+	fmt.Printf("configstats: %v, %v, %v\n", *util.ConfigFile, util.ConfigFile.SQS_REQUEST, util.ConfigFile.SQS_RESPONSE)
 	urlResult, err := sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
 		QueueName: &util.ConfigFile.SQS_REQUEST,
 	})
