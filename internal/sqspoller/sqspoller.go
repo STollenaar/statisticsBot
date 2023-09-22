@@ -35,31 +35,6 @@ func init() {
 	sqsClient = sqs.NewFromConfig(cfg)
 	sqsObjectChannel = make(chan util.SQSObject)
 
-	// Get URL of request queue
-	fmt.Printf("configstats: %v, %v, %v\n", *util.ConfigFile, util.ConfigFile.SQS_REQUEST, util.ConfigFile.SQS_RESPONSE)
-	input := sqs.GetQueueUrlInput{
-		QueueName: &util.ConfigFile.SQS_REQUEST,
-	}
-	fmt.Printf("GetQueueURL input: %v\n", input)
-	urlResult, err := sqsClient.GetQueueUrl(context.TODO(),&input)
-	if err != nil {
-		fmt.Println("Got an error getting the queue URL:")
-		panic(err)
-	}
-
-	sqsRequestURL = urlResult.QueueUrl
-
-	// Get URL of response queue
-	urlResult, err = sqsClient.GetQueueUrl(context.TODO(), &sqs.GetQueueUrlInput{
-		QueueName: &util.ConfigFile.SQS_RESPONSE,
-	})
-	if err != nil {
-		fmt.Println("Got an error getting the queue URL:")
-		panic(err)
-	}
-
-	sqsResponseURL = urlResult.QueueUrl
-
 	go pollSQS(sqsObjectChannel)
 }
 
