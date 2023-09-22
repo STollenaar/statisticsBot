@@ -19,8 +19,6 @@ var (
 	sqsClient        *sqs.Client
 	sqsObjectChannel chan util.SQSObject
 
-	sqsRequestURL  *string
-	sqsResponseURL *string
 	reTarget       *regexp.Regexp
 )
 
@@ -57,7 +55,7 @@ func pollSQS(chl chan<- util.SQSObject) {
 			MessageAttributeNames: []string{
 				string(types.QueueAttributeNameAll),
 			},
-			QueueUrl:            sqsRequestURL,
+			QueueUrl:            &util.ConfigFile.SQS_REQUEST,
 			MaxNumberOfMessages: 1,
 			VisibilityTimeout:   int32(5),
 		})
@@ -86,7 +84,7 @@ func handleURLObject(sqsObject util.SQSObject) {
 	}
 	sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		MessageBody: aws.String(string(data)),
-		QueueUrl:    sqsResponseURL,
+		QueueUrl:    &util.ConfigFile.SQS_RESPONSE,
 	})
 }
 
@@ -113,7 +111,7 @@ func handleUserObject(sqsObject util.SQSObject) {
 	}
 	sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		MessageBody: aws.String(string(data)),
-		QueueUrl:    sqsResponseURL,
+		QueueUrl:    &util.ConfigFile.SQS_RESPONSE,
 	})
 }
 
