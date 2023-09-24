@@ -72,8 +72,17 @@ func pollSQS(chl chan<- util.SQSObject) {
 			continue
 		}
 		for _, message := range msgResult.Messages {
+			_, err = sqsClient.DeleteMessage(context.TODO(), &sqs.DeleteMessageInput{
+				QueueUrl:      &util.ConfigFile.SQS_REQUEST,
+				ReceiptHandle: message.ReceiptHandle,
+			})
+			if err != nil {
+				fmt.Println(err)
+			}
+
 			var object util.SQSObject
 			err = json.Unmarshal([]byte(*message.Body), &object)
+
 			if err != nil {
 				fmt.Println(err)
 			}
