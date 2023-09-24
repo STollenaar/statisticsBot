@@ -33,7 +33,7 @@ func init() {
 	sqsClient = sqs.NewFromConfig(cfg)
 	sqsObjectChannel = make(chan util.SQSObject)
 
-	go pollSQS(sqsObjectChannel)
+	go pollSQS()
 }
 
 func PollSQS() {
@@ -41,6 +41,7 @@ func PollSQS() {
 		select {
 		case <-sqsObjectChannel:
 			sqsObject := <-sqsObjectChannel
+			fmt.Printf("Handling object %v\n", sqsObject)
 			switch sqsObject.Type {
 			case "url":
 				handleURLObject(sqsObject)
@@ -54,7 +55,7 @@ func PollSQS() {
 	}
 }
 
-func pollSQS(chl chan<- util.SQSObject) {
+func pollSQS() {
 	for {
 		msgResult, err := sqsClient.ReceiveMessage(context.TODO(), &sqs.ReceiveMessageInput{
 			MessageAttributeNames: []string{
@@ -87,7 +88,7 @@ func pollSQS(chl chan<- util.SQSObject) {
 				fmt.Println(err)
 			}
 			fmt.Printf("Message received %v\n", object)
-			chl <- object
+			sqsObjectChannel <- object
 		}
 	}
 }
