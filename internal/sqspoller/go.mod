@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.40
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.24.5
 	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589
-	github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1
+	github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978
 )
 
 require (

@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/stollenaar/statisticsbot/util v0.0.0-20230920141302-ecf88b84c33a
+	github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978
 	go.mongodb.org/mongo-driver v1.12.1
 )
 

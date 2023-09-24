@@ -4,7 +4,7 @@ go 1.20
 
 require (
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920142231-8bf05ab18d3e
-	github.com/stollenaar/statisticsbot/util v0.0.0-20230920141302-ecf88b84c33a
+	github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978
 	go.mongodb.org/mongo-driver v1.12.1
 )
 

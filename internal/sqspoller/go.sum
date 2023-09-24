@@ -58,6 +58,8 @@ github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589/go.mod h1:YlYCa/eqHFeWLFAIyHGeN+Y7jo23b5nxNUkC5LEofdA=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1 h1:2sodhfa8CPw+9oSLwdl1+QujG69ZqNZuNLc/vEEg7yw=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
+github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978 h1:jPAuORcqTscnToeucqutGnNikowYono5lp8MiVo/hMQ=
+github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=

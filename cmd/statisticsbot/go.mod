@@ -7,7 +7,7 @@ require (
 	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20230920154259-df32245c40e0
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3
 	github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230922204148-205c2561a685
-	github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1
+	github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978
 )
 
 require (
