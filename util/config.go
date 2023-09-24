@@ -85,19 +85,13 @@ func init() {
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
 	}
-
-	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
-		log.Fatal("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
-	}
-	if ConfigFile.DATABASE_HOST == "" && ConfigFile.MONGO_HOST_PARAMETER == "" {
-		log.Fatal("DATABASE_HOST or MONGO_HOST_PARAMETER is not set")
-	}
-	if ConfigFile.MONGO_PASSWORD_PARAMETER == "" || ConfigFile.MONGO_USERNAME_PARAMETER == "" {
-		log.Fatal("Mongo authentication parameters are not set")
-	}
 }
 
 func GetMongoHost() string {
+	if ConfigFile.DATABASE_HOST == "" && ConfigFile.MONGO_HOST_PARAMETER == "" {
+		log.Fatal("DATABASE_HOST or MONGO_HOST_PARAMETER is not set")
+	}
+
 	if ConfigFile.DATABASE_HOST != "" {
 		return ConfigFile.DATABASE_HOST
 	} else {
@@ -113,6 +107,10 @@ func GetMongoHost() string {
 }
 
 func CreateMongoAuth() options.Credential {
+	if ConfigFile.MONGO_PASSWORD_PARAMETER == "" || ConfigFile.MONGO_USERNAME_PARAMETER == "" {
+		log.Fatal("Mongo authentication parameters are not set")
+	}
+
 	mongoUsername, _ := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
 		Name:           &ConfigFile.MONGO_USERNAME_PARAMETER,
 		WithDecryption: aws.Bool(true),
@@ -128,6 +126,10 @@ func CreateMongoAuth() options.Credential {
 }
 
 func GetDiscordToken() string {
+	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
+		log.Fatal("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
+	}
+
 	if ConfigFile.DISCORD_TOKEN != "" {
 		return ConfigFile.DISCORD_TOKEN
 	} else {
