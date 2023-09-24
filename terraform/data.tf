@@ -46,6 +46,7 @@ data "aws_iam_policy_document" "sqs_role_policy_document" {
     sid    = "SQSSendMessage"
     effect = "Allow"
     actions = [
+      "sqs:DeleteMessage",
       "sqs:ReceiveMessage",
       "sqs:SendMessage",
     ]
