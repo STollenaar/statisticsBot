@@ -56,18 +56,6 @@ resource "aws_ecs_service" "statisticsbot_service" {
     enable   = true
     rollback = true
   }
-
-  service_connect_configuration {
-    enabled   = true
-    namespace = data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_namespace.arn
-    service {
-      client_alias {
-        dns_name = local.name
-        port     = 3000
-      }
-      port_name = "api"
-    }
-  }
 }
 
 resource "aws_sqs_queue" "markov_user_request" {
@@ -83,7 +71,8 @@ resource "aws_sqs_queue" "markov_user_response" {
 resource "aws_ecs_task_definition" "statisticsbot_service" {
   family                   = local.name
   requires_compatibilities = ["EC2"]
-  execution_role_arn       = data.terraform_remote_state.discord_bots_cluster.outputs.spices_role.arn
+  execution_role_arn       = aws_iam_role.statisticsbot_role.arn
+  task_role_arn            = aws_iam_role.statisticsbot_role.arn
 
   cpu          = 256
   memory       = 400
@@ -101,13 +90,6 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
       memory    = 400
       essential = true
 
-      portMappings = [
-        {
-          containerPort = 3000
-          name          = "api"
-          hostPort      = 3000
-        }
-      ]
       environment = [
         {
           name  = "AWS_REGION"
@@ -131,11 +113,11 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
         },
         {
           name  = "SQS_REQUEST"
-          value = aws_sqs_queue.markov_user_request.name
+          value = aws_sqs_queue.markov_user_request.url
         },
         {
           name  = "SQS_RESPONSE"
-          value = aws_sqs_queue.markov_user_response.name
+          value = aws_sqs_queue.markov_user_response.url
         },
       ]
     }

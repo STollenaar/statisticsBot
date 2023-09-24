@@ -34,6 +34,7 @@ data "aws_iam_policy_document" "ssm_access_role_policy_document" {
     resources = ["*"]
   }
   source_policy_documents = [
+    data.aws_iam_policy_document.ecr_role_policy_document.json,
     data.aws_iam_policy_document.sqs_role_policy_document.json,
     data.aws_iam_policy_document.cloudwatch_role_policy_document.json
   ]
@@ -45,13 +46,40 @@ data "aws_iam_policy_document" "sqs_role_policy_document" {
     sid    = "SQSSendMessage"
     effect = "Allow"
     actions = [
-      "sqs:GetQueueUrl",
       "sqs:ReceiveMessage",
       "sqs:SendMessage",
     ]
     resources = [
       aws_sqs_queue.markov_user_request.arn,
       aws_sqs_queue.markov_user_response.arn,
+    ]
+  }
+}
+
+# IAM policy document for the container to access ECR
+data "aws_iam_policy_document" "ecr_role_policy_document" {
+  statement {
+    sid    = "ECRAccess"
+    effect = "Allow"
+    actions = [
+      "ec2:DescribeTags",
+      "ecs:CreateCluster",
+      "ecs:DeregisterContainerInstance",
+      "ecs:DiscoverPollEndpoint",
+      "ecs:Poll",
+      "ecs:RegisterContainerInstance",
+      "ecs:StartTelemetrySession",
+      "ecs:UpdateContainerInstancesState",
+      "ecs:Submit*",
+      "ecr:GetAuthorizationToken",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:BatchGetImage",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = [
+      "*"
     ]
   }
 }
