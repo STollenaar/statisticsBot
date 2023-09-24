@@ -66,10 +66,10 @@ func pollSQS(chl chan<- util.SQSObject) {
 		if msgResult == nil {
 			continue
 		}
-
 		for _, message := range msgResult.Messages {
 			var object util.SQSObject
 			json.Unmarshal([]byte(*message.Body), &object)
+			fmt.Printf("Message received %v\n", object)
 			chl <- object
 		}
 	}
