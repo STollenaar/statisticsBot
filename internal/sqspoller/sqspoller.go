@@ -99,10 +99,14 @@ func handleURLObject(sqsObject util.SQSObject) {
 		fmt.Printf("Error marshalling response object: %v", err)
 		return
 	}
-	sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
+	_, err = sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		MessageBody: aws.String(string(data)),
 		QueueUrl:    &util.ConfigFile.SQS_RESPONSE,
 	})
+	if err != nil {
+		fmt.Printf("Error sending message response object: %v", err)
+		return
+	}
 }
 
 func handleUserObject(sqsObject util.SQSObject) {
@@ -126,10 +130,14 @@ func handleUserObject(sqsObject util.SQSObject) {
 		fmt.Printf("Error marshalling response object: %v", err)
 		return
 	}
-	sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
+	_, err = sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
 		MessageBody: aws.String(string(data)),
 		QueueUrl:    &util.ConfigFile.SQS_RESPONSE,
 	})
+	if err != nil {
+		fmt.Printf("Error sending message response object: %v", err)
+		return
+	}
 }
 
 func mapToContent(messages *[]util.MessageObject) (result []string) {
