@@ -19,7 +19,7 @@ var (
 	sqsClient        *sqs.Client
 	sqsObjectChannel chan util.SQSObject
 
-	reTarget       *regexp.Regexp
+	reTarget *regexp.Regexp
 )
 
 func init() {
@@ -37,14 +37,19 @@ func init() {
 }
 
 func PollSQS() {
-	for sqsObject := range sqsObjectChannel {
-		switch sqsObject.Type {
-		case "url":
-			handleURLObject(sqsObject)
-		case "user":
-			handleUserObject(sqsObject)
-		default:
-			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)
+	for {
+		select {
+		case <-sqsObjectChannel:
+			sqsObject := <-sqsObjectChannel
+			switch sqsObject.Type {
+			case "url":
+				handleURLObject(sqsObject)
+			case "user":
+				handleUserObject(sqsObject)
+			default:
+				fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)
+			}
+
 		}
 	}
 }
@@ -69,7 +74,7 @@ func pollSQS(chl chan<- util.SQSObject) {
 		for _, message := range msgResult.Messages {
 			var object util.SQSObject
 			err = json.Unmarshal([]byte(*message.Body), &object)
-			if err !=nil {
+			if err != nil {
 				fmt.Println(err)
 			}
 			fmt.Printf("Message received %v\n", object)
