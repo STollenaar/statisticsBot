@@ -59,8 +59,8 @@ github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a4
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3/go.mod h1:YL+SbUNrPCdNoAfQpYmSokR2WODHKlIkg3yXmH4f8Uc=
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589 h1:OzPLnpk5J/rpUjJwgASsBTfsRe+IuSp+kKt/JgwejGU=
 github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20230921220844-b3cb20f58589/go.mod h1:YlYCa/eqHFeWLFAIyHGeN+Y7jo23b5nxNUkC5LEofdA=
-github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337 h1:2NTc9C4pc4T9F0Knmhr+XWecEUmRFyT4G/MnoHsq1qo=
-github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230921222458-4c236eef1337/go.mod h1:PE/x+GwIqC1MlEMTt84vWj0A4a1spGYvJ5p1aRYtNRg=
+github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230922204148-205c2561a685 h1:KuRbCZfNcwzxyPclbo/EdIKcsIfIWXhuOSWRVAxZ1ec=
+github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230922204148-205c2561a685/go.mod h1:PE/x+GwIqC1MlEMTt84vWj0A4a1spGYvJ5p1aRYtNRg=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1 h1:2sodhfa8CPw+9oSLwdl1+QujG69ZqNZuNLc/vEEg7yw=
 github.com/stollenaar/statisticsbot/util v0.0.0-20230921221608-59c21048f5c1/go.mod h1:YyzT51KitwD6rDVwmaxLJA4rrc75HCHnaSswEDYGnfk=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
