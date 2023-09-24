@@ -38,21 +38,18 @@ func init() {
 
 func PollSQS() {
 	for {
-		select {
-		case <-sqsObjectChannel:
-			sqsObject := <-sqsObjectChannel
-			fmt.Printf("Handling object %v\n", sqsObject)
-			switch sqsObject.Type {
-			case "url":
-				handleURLObject(sqsObject)
-			case "user":
-				handleUserObject(sqsObject)
-			default:
-				fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)
-			}
-
+		sqsObject := <-sqsObjectChannel
+		fmt.Printf("Handling object %v\n", sqsObject)
+		switch sqsObject.Type {
+		case "url":
+			handleURLObject(sqsObject)
+		case "user":
+			handleUserObject(sqsObject)
+		default:
+			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)
 		}
 	}
+
 }
 
 func pollSQS() {
