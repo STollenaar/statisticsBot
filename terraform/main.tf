@@ -59,13 +59,15 @@ resource "aws_ecs_service" "statisticsbot_service" {
 }
 
 resource "aws_sqs_queue" "markov_user_request" {
-  name                      = "user-request"
-  message_retention_seconds = 60 * 10
+  name                       = "user-request"
+  message_retention_seconds  = 60 * 10
+  visibility_timeout_seconds = 60 * 5
 }
 
 resource "aws_sqs_queue" "markov_user_response" {
-  name                      = "user-response"
-  message_retention_seconds = 60 * 10
+  name                       = "user-response"
+  message_retention_seconds  = 60 * 10
+  visibility_timeout_seconds = 60 * 5
 }
 
 resource "aws_ecs_task_definition" "statisticsbot_service" {
