@@ -61,6 +61,7 @@ resource "aws_ecs_service" "statisticsbot_service" {
 resource "aws_sqs_queue" "markov_user_request" {
   name                       = "user-request"
   message_retention_seconds  = 60 * 10
+  receive_wait_time_seconds  = 10
   visibility_timeout_seconds = 60 * 5
 }
 
