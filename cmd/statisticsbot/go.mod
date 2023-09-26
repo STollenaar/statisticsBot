@@ -6,7 +6,7 @@ require (
 	github.com/bwmarrin/discordgo v0.27.1
 	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20230920154259-df32245c40e0
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920153940-e4a472a34ee3
-	github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230924234120-068da73bb716
+	github.com/stollenaar/statisticsbot/internal/sqspoller v0.0.0-20230926013101-ee4612b55ef1
 	github.com/stollenaar/statisticsbot/util v0.0.0-20230924143258-59f731009978
 )
 
