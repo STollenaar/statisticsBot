@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -54,6 +53,7 @@ func PollSQS() {
 }
 
 func pollSQS() {
+
 	for {
 		msgResult, err := sqsClient.ReceiveMessage(context.TODO(), &sqs.ReceiveMessageInput{
 			MessageAttributeNames: []string{
@@ -62,13 +62,14 @@ func pollSQS() {
 			QueueUrl:            &util.ConfigFile.SQS_REQUEST,
 			MaxNumberOfMessages: 1,
 			VisibilityTimeout:   int32(5),
+			WaitTimeSeconds:     10,
+			AttributeNames:      []types.QueueAttributeName{types.QueueAttributeName(types.MessageSystemAttributeNameSentTimestamp)},
 		})
 		if err != nil {
 			fmt.Println("Got an error receiving messages:")
 			fmt.Println(err)
 		}
 		if msgResult == nil {
-			time.Sleep(time.Second*5)
 			continue
 		}
 		for _, message := range msgResult.Messages {
