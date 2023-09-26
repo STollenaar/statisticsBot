@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -67,6 +68,7 @@ func pollSQS() {
 			fmt.Println(err)
 		}
 		if msgResult == nil {
+			time.Sleep(time.Second*5)
 			continue
 		}
 		for _, message := range msgResult.Messages {
