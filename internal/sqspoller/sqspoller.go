@@ -62,7 +62,7 @@ func pollSQS() {
 			QueueUrl:            &util.ConfigFile.SQS_REQUEST,
 			MaxNumberOfMessages: 1,
 			VisibilityTimeout:   int32(5),
-			WaitTimeSeconds:     10,
+			WaitTimeSeconds:     60,
 			AttributeNames:      []types.QueueAttributeName{types.QueueAttributeName(types.MessageSystemAttributeNameSentTimestamp)},
 		})
 		if err != nil {
