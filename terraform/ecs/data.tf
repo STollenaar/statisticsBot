@@ -1,10 +1,18 @@
 data "terraform_remote_state" "discord_bots_cluster" {
   backend = "s3"
   config = {
-    profile = local.used_profile.name
-    region  = "ca-central-1"
-    bucket  = "stollenaar-terraform-states"
-    key     = "infrastructure/terraform.tfstate"
+    region = "ca-central-1"
+    bucket = "stollenaar-terraform-states"
+    key    = "infrastructure/terraform.tfstate"
+  }
+}
+
+data "terraform_remote_state" "sqs_queues" {
+  backend = "s3"
+  config = {
+    region = "ca-central-1"
+    bucket = "stollenaar-terraform-states"
+    key    = "discordbots/statisticsbot/sqs/terraform.tfstate"
   }
 }
 
@@ -51,8 +59,8 @@ data "aws_iam_policy_document" "sqs_role_policy_document" {
       "sqs:SendMessage",
     ]
     resources = [
-      aws_sqs_queue.markov_user_request.arn,
-      aws_sqs_queue.markov_user_response.arn,
+      data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_request.arn,
+      data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_response.arn,
     ]
   }
 }
@@ -113,8 +121,6 @@ data "aws_iam_policy_document" "assume_policy_document" {
     actions = ["sts:AssumeRole"]
   }
 }
-
-data "awsprofiler_list" "list_profiles" {}
 
 data "aws_region" "current" {}
 

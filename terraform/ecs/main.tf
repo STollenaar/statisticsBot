@@ -1,33 +1,3 @@
-terraform {
-  backend "s3" {
-    region  = "ca-central-1"
-    profile = "personal"
-    bucket  = "stollenaar-terraform-states"
-    key     = "discordbots/statisticsBot.tfstate"
-  }
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.13.1"
-    }
-    awsprofiler = {
-      version = "~> 0.0.1"
-      source  = "spices.dev/stollenaar/awsprofiler"
-    }
-  }
-  required_version = ">= 1.0.0"
-}
-
-locals {
-  name         = "statisticsbot"
-  used_profile = data.awsprofiler_list.list_profiles.profiles[try(index(data.awsprofiler_list.list_profiles.profiles.*.name, "personal"), 0)]
-}
-
-
-provider "aws" {
-  profile = local.used_profile.name
-}
-
 resource "aws_iam_role" "statisticsbot_role" {
   name               = "StatisticsbotRole"
   description        = "Role for the statisticsbot"
@@ -42,7 +12,7 @@ resource "aws_iam_role_policy" "statisticsbot_role_policy" {
 
 
 resource "aws_ecs_service" "statisticsbot_service" {
-  name            = local.name
+  name            = "statisticsbot"
   cluster         = data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_cluster.id
   task_definition = aws_ecs_task_definition.statisticsbot_service.arn
   desired_count   = 1
@@ -58,21 +28,9 @@ resource "aws_ecs_service" "statisticsbot_service" {
   }
 }
 
-resource "aws_sqs_queue" "markov_user_request" {
-  name                       = "user-request"
-  message_retention_seconds  = 60 * 10
-  receive_wait_time_seconds  = 10
-  visibility_timeout_seconds = 60 * 5
-}
-
-resource "aws_sqs_queue" "markov_user_response" {
-  name                       = "user-response"
-  message_retention_seconds  = 60 * 10
-  visibility_timeout_seconds = 60 * 5
-}
 
 resource "aws_ecs_task_definition" "statisticsbot_service" {
-  family                   = local.name
+  family                   = "statisticsbot"
   requires_compatibilities = ["EC2"]
   execution_role_arn       = aws_iam_role.statisticsbot_role.arn
   task_role_arn            = aws_iam_role.statisticsbot_role.arn
@@ -87,8 +45,8 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
   }
   container_definitions = jsonencode([
     {
-      name      = local.name
-      image     = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-latest-arm64"
+      name      = "statisticsbot"
+      image     = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${"statisticsbot"}-SNAPSHOT-6c26712-arm64"
       cpu       = 256
       memory    = 400
       essential = true
@@ -100,7 +58,7 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
         },
         {
           name  = "AWS_PARAMETER_NAME"
-          value = "/discord_tokens/${local.name}"
+          value = "/discord_tokens/${"statisticsbot"}"
         },
         {
           name  = "MONGO_HOST_PARAMETER"
@@ -116,11 +74,11 @@ resource "aws_ecs_task_definition" "statisticsbot_service" {
         },
         {
           name  = "SQS_REQUEST"
-          value = aws_sqs_queue.markov_user_request.url
+          value = data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_request.url
         },
         {
           name  = "SQS_RESPONSE"
-          value = aws_sqs_queue.markov_user_response.url
+          value = data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_response.url
         },
       ]
     }
