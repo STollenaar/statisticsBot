@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strings"
 
@@ -25,7 +26,10 @@ var (
 func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
 
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+	cfg, err := config.LoadDefaultConfig(
+		context.TODO(),
+		config.WithSharedCredentialsFiles([]string{os.Getenv("AWS_SHARED_CREDENTIALS_FILE")}),
+	)
 	if err != nil {
 		panic("configuration error, " + err.Error())
 	}
@@ -62,7 +66,7 @@ func pollSQS() {
 			QueueUrl:            &util.ConfigFile.SQS_REQUEST,
 			MaxNumberOfMessages: 1,
 			VisibilityTimeout:   int32(5),
-			WaitTimeSeconds:     60,
+			WaitTimeSeconds:     20,
 			AttributeNames:      []types.QueueAttributeName{types.QueueAttributeName(types.MessageSystemAttributeNameSentTimestamp)},
 		})
 		if err != nil {

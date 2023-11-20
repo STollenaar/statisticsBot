@@ -43,8 +43,8 @@ func init() {
 
 	// Create a config with the credentials provider.
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithSharedConfigProfile("personal"),
 		config.WithRegion(ConfigFile.AWS_REGION),
+		config.WithSharedCredentialsFiles([]string{os.Getenv("AWS_SHARED_CREDENTIALS_FILE")}),
 	)
 
 	if err != nil {
