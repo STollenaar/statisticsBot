@@ -56,8 +56,8 @@ generate "versions" {
             %{endif}
             %{if contains(local.providers, "hcp")}
             hcp = {
-            version = "~> 0.75.0"
-            source  = "`hashicorp/hcp"
+            version = "~> 0.76.0"
+            source  = "hashicorp/hcp"
             }
             %{endif}
             %{if contains(local.providers, "kubernetes")}

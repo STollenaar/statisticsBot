@@ -17,8 +17,18 @@ resource "kubernetes_deployment" "statisticsbot" {
     }
   }
   spec {
+    selector {
+      match_labels = {
+        app = local.name
+      }
+    }
     template {
       metadata {
+        annotations = {
+          "vault.hashicorp.com/agent-inject"        = "true"
+          "vault.hashicorp.com/agent-internal-role" = "internal-app"
+          "vault.hashicorp.com/agent-aws-role"      = aws_iam_role.statisticsbot_role.name
+        }
         labels = {
           app = local.name
         }

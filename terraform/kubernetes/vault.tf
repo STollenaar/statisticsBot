@@ -87,7 +87,7 @@ resource "kubernetes_manifest" "external_secret" {
     apiVersion = "external-secrets.io/v1beta1"
     kind       = "ExternalSecret"
     metadata = {
-      name      = data.terraform_remote_state.kubernetes_cluster.outputs.vault_ecr_role.name
+      name      = "ecr-auth"
       namespace = kubernetes_namespace.statisticsbot.metadata.0.name
     }
     spec = {
@@ -107,7 +107,7 @@ resource "kubernetes_manifest" "external_secret" {
         {
           secretKey = ".dockerconfigjson"
           remoteRef = {
-            key      = data.terraform_remote_state.kubernetes_cluster.outputs.vault_ecr_role.name
+            key      = "ecr-auth"
             property = ".dockerconfigjson"
           }
         }

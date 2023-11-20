@@ -8,6 +8,11 @@
             }
             
             
+            hcp = {
+            version = "~> 0.76.0"
+            source  = "hashicorp/hcp"
+            }
+            
             
             kubernetes = {
             version = "~> 2.23.0"
