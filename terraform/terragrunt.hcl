@@ -39,6 +39,12 @@ generate "provider" {
             client_secret = data.aws_ssm_parameter.vault_client_secret.value
         }
         %{endif}
+        %{if contains(local.providers, "vault")}
+        provider "vault" {
+            token   = data.hcp_vault_secrets_secret.vault_root.secret_value
+            address = "http://localhost:8200"
+        }
+        %{endif}
     EOF
 }
 
@@ -64,6 +70,12 @@ generate "versions" {
             kubernetes = {
             version = "~> 2.23.0"
             source  = "hashicorp/kubernetes"
+            }
+            %{endif}
+            %{if contains(local.providers, "vault")}
+            vault = {
+                source  = "hashicorp/vault"
+                version = "~> 3.21.0"
             }
             %{endif}
         }

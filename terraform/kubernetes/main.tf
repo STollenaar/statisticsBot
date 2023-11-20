@@ -38,11 +38,15 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-SNAPSHOT-6c26712-amd4"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.11-SNAPSHOT-81b0c20-amd64"
           name  = local.name
           env {
             name  = "AWS_REGION"
             value = data.aws_region.current.name
+          }
+          env {
+            name  = "AWS_SHARED_CREDENTIALS_FILE"
+            value = "/vault/secrets/aws/credentials"
           }
           env {
             name  = "AWS_PARAMETER_NAME"

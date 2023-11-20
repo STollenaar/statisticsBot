@@ -10,3 +10,9 @@
             client_secret = data.aws_ssm_parameter.vault_client_secret.value
         }
         
+        
+        provider "vault" {
+            token   = data.hcp_vault_secrets_secret.vault_root.secret_value
+            address = "http://localhost:8200"
+        }
+        
