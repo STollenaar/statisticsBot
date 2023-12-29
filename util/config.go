@@ -2,11 +2,12 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -41,24 +42,12 @@ func init() {
 
 func init() {
 
-	// Create a config with the credentials provider.
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(ConfigFile.AWS_REGION),
-		config.WithSharedCredentialsFiles([]string{os.Getenv("AWS_SHARED_CREDENTIALS_FILE")}),
-	)
+	provider := processcreds.NewProvider(fmt.Sprintf("cat %s", os.Getenv("AWS_SHARED_CREDENTIALS_FILE")))
 
-	if err != nil {
-		if _, isProfileNotExistError := err.(config.SharedConfigProfileNotExistError); isProfileNotExistError {
-			cfg, err = config.LoadDefaultConfig(context.TODO(),
-				config.WithRegion(ConfigFile.AWS_REGION),
-			)
-		}
-		if err != nil {
-			log.Fatal("Error loading AWS config:", err)
-		}
-	}
-
-	ssmClient = ssm.NewFromConfig(cfg)
+	ssmClient = ssm.New(ssm.Options{
+		Credentials: aws.NewCredentialsCache(provider),
+		Region:      os.Getenv("AWS_REGION"),
+	})
 }
 
 func init() {

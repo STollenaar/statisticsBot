@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	"github.com/stollenaar/statisticsbot/internal/routes"
@@ -26,15 +26,12 @@ var (
 func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
 
-	cfg, err := config.LoadDefaultConfig(
-		context.TODO(),
-		config.WithSharedCredentialsFiles([]string{os.Getenv("AWS_SHARED_CREDENTIALS_FILE")}),
-	)
-	if err != nil {
-		panic("configuration error, " + err.Error())
-	}
+	provider := processcreds.NewProvider(fmt.Sprintf("cat %s", os.Getenv("AWS_SHARED_CREDENTIALS_FILE")))
 
-	sqsClient = sqs.NewFromConfig(cfg)
+	sqsClient = sqs.New(sqs.Options{
+		Credentials: aws.NewCredentialsCache(provider),
+		Region: os.Getenv("AWS_REGION"),
+	})
 	sqsObjectChannel = make(chan util.SQSObject)
 
 	go pollSQS()
