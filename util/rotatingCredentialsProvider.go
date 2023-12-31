@@ -2,12 +2,11 @@ package util
 
 import (
 	"context"
-	"fmt"
-	"os"
+	"path"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/pelletier/go-toml/v2"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -15,10 +14,16 @@ const (
 	RotatingCredentialsName = "RotatingCredentials"
 )
 
+type DefaultCredentials struct {
+	Default Credentials `mapstructure:"default"`
+}
+
 type Credentials struct {
-	AccessKeyID     string `toml:"aws_access_key_id"`
-	SecretAccessKey string `toml:"aws_secret_access_key"`
-	SessionToken    string `toml:"aws_session_token"`
+	AccessKeyID     string `mapstructure:"aws_access_key_id"`
+	SecretAccessKey string `mapstructure:"aws_secret_access_key"`
+	SessionToken    string `mapstructure:"aws_session_token"`
+	Region          string `mapstructure:"region"`
+	Output          string `mapstructure:"output"`
 }
 
 // RotatingCredentialsEmptyError is emitted when static credentials are empty.
@@ -44,34 +49,37 @@ func NewRotatingCredentialsProvider(file string) RotatingCredentialsProvider {
 
 // Retrieve returns the credentials or error if the credentials are invalid.
 func (s RotatingCredentialsProvider) Retrieve(_ context.Context) (aws.Credentials, error) {
-	fmt.Println("Fetching Credentials")
+	// fmt.Println("Fetching Credentials")
 	if s.FilePath == "" {
 		return aws.Credentials{
 			Source: RotatingCredentialsName,
 		}, &RotatingCredentialsEmptyError{}
 	}
 
-	file, err := os.ReadFile(s.FilePath)
-	var creds Credentials
-
-	if err != nil {
-		return aws.Credentials{
-			Source: RotatingCredentialsName,
-		}, err
-	}
-	err = toml.Unmarshal(file, &creds)
+	var creds DefaultCredentials
+	viper.SetConfigName(path.Base(s.FilePath))
+	viper.AddConfigPath(path.Dir(s.FilePath))
+	viper.SetConfigType("ini")
+	err := viper.ReadInConfig()
 	if err != nil {
 		return aws.Credentials{
 			Source: RotatingCredentialsName,
 		}, err
 	}
 
-	newT := time.Now().Add(time.Duration(time.Hour))
-	fmt.Printf("Credentials will expire at: %v\n", newT.Format(time.RFC1123))
+	err = viper.Unmarshal(&creds)
+	if err != nil {
+		return aws.Credentials{
+			Source: RotatingCredentialsName,
+		}, err
+	}
+
+	newT := time.Now().Add(time.Duration(time.Minute*2))
+	// fmt.Printf("Credentials will expire at: %v\n", newT.Format(time.RFC1123))
 	return aws.Credentials{
-		AccessKeyID:     creds.AccessKeyID,
-		SecretAccessKey: creds.SecretAccessKey,
-		SessionToken:    creds.SessionToken,
+		AccessKeyID:     creds.Default.AccessKeyID,
+		SecretAccessKey: creds.Default.SecretAccessKey,
+		SessionToken:    creds.Default.SessionToken,
 		Source:          RotatingCredentialsName,
 
 		CanExpire: true,

@@ -7,6 +7,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -20,16 +21,18 @@ var (
 	sqsClient        *sqs.Client
 	sqsObjectChannel chan util.SQSObject
 
-	reTarget *regexp.Regexp
+	reTarget      *regexp.Regexp
+	expiredBuffer chan string
+	expiredHold   bool
 )
 
 func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
 
-	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") == "" {
+	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
 		provider := util.NewRotatingCredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
 		sqsClient = sqs.New(sqs.Options{
-			Credentials: aws.NewCredentialsCache(provider),
+			Credentials: provider,
 			Region:      os.Getenv("AWS_REGION"),
 		})
 	} else {
@@ -43,8 +46,19 @@ func init() {
 		sqsClient = sqs.NewFromConfig(cfg)
 	}
 	sqsObjectChannel = make(chan util.SQSObject)
+	expiredBuffer = make(chan string)
 
 	go pollSQS()
+	go pollExpiredBuffer()
+}
+
+func pollExpiredBuffer() {
+	for {
+		buff := <-expiredBuffer
+		fmt.Println(buff)
+		time.Sleep(time.Minute * 1)
+		expiredHold = false
+	}
 }
 
 func PollSQS() {
@@ -79,6 +93,9 @@ func pollSQS() {
 		if err != nil {
 			if !strings.Contains(err.Error(), "ExpiredToken") {
 				fmt.Printf("Got an error receiving messages: %s\n", err)
+			} else if !expiredHold {
+				expiredHold = true
+				expiredBuffer <- err.Error()
 			}
 		}
 		if msgResult == nil {

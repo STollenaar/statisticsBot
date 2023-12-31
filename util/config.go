@@ -41,10 +41,10 @@ func init() {
 
 func init() {
 
-	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") == "" {
+	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
 		provider := NewRotatingCredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
 		ssmClient = ssm.New(ssm.Options{
-			Credentials: aws.NewCredentialsCache(provider),
+			Credentials: provider,
 			Region:      ConfigFile.AWS_REGION,
 		})
 	} else {
