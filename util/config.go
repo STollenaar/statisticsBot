@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -42,30 +41,32 @@ func init() {
 
 func init() {
 
-	// Create a config with the credentials provider.
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithRegion(ConfigFile.AWS_REGION),
-		config.WithSharedCredentialsFiles([]string{os.Getenv("AWS_SHARED_CREDENTIALS_FILE")}),
-		func(lo *config.LoadOptions) error {
-			lo.CredentialsCacheOptions = func(cco *aws.CredentialsCacheOptions) {
-				cco.ExpiryWindow = time.Hour
-			}
-			return nil
-		},
-	)
+	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") == "" {
+		provider := NewRotatingCredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
+		ssmClient = ssm.New(ssm.Options{
+			Credentials: aws.NewCredentialsCache(provider),
+			Region:      ConfigFile.AWS_REGION,
+		})
+	} else {
 
-	if err != nil {
-		if _, isProfileNotExistError := err.(config.SharedConfigProfileNotExistError); isProfileNotExistError {
-			cfg, err = config.LoadDefaultConfig(context.TODO(),
-				config.WithRegion(ConfigFile.AWS_REGION),
-			)
-		}
+		// Create a config with the credentials provider.
+		cfg, err := config.LoadDefaultConfig(context.TODO(),
+			config.WithRegion(ConfigFile.AWS_REGION),
+		)
+
 		if err != nil {
-			log.Fatal("Error loading AWS config:", err)
+			if _, isProfileNotExistError := err.(config.SharedConfigProfileNotExistError); isProfileNotExistError {
+				cfg, err = config.LoadDefaultConfig(context.TODO(),
+					config.WithRegion(ConfigFile.AWS_REGION),
+				)
+			}
+			if err != nil {
+				log.Fatal("Error loading AWS config:", err)
+			}
 		}
-	}
 
-	ssmClient = ssm.NewFromConfig(cfg)
+		ssmClient = ssm.NewFromConfig(cfg)
+	}
 }
 
 func init() {

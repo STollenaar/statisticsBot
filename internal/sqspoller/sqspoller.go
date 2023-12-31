@@ -7,7 +7,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,22 +26,22 @@ var (
 func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
 
-	// Create a config with the credentials provider.
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithSharedCredentialsFiles([]string{os.Getenv("AWS_SHARED_CREDENTIALS_FILE")}),
-		func(lo *config.LoadOptions) error {
-			lo.CredentialsCacheOptions = func(cco *aws.CredentialsCacheOptions) {
-				cco.ExpiryWindow = time.Hour
-			}
-			return nil
-		},
-	)
+	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") == "" {
+		provider := util.NewRotatingCredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
+		sqsClient = sqs.New(sqs.Options{
+			Credentials: aws.NewCredentialsCache(provider),
+			Region:      os.Getenv("AWS_REGION"),
+		})
+	} else {
+		// Create a config with the credentials provider.
+		cfg, err := config.LoadDefaultConfig(context.TODO())
 
-	if err != nil {
-		panic("configuration error, " + err.Error())
+		if err != nil {
+			panic("configuration error, " + err.Error())
+		}
+
+		sqsClient = sqs.NewFromConfig(cfg)
 	}
-
-	sqsClient = sqs.NewFromConfig(cfg)
 	sqsObjectChannel = make(chan util.SQSObject)
 
 	go pollSQS()
@@ -78,8 +77,9 @@ func pollSQS() {
 			AttributeNames:      []types.QueueAttributeName{types.QueueAttributeName(types.MessageSystemAttributeNameSentTimestamp)},
 		})
 		if err != nil {
-			fmt.Println("Got an error receiving messages:")
-			fmt.Println(err)
+			if !strings.Contains(err.Error(), "ExpiredToken") {
+				fmt.Printf("Got an error receiving messages: %s\n", err)
+			}
 		}
 		if msgResult == nil {
 			continue
