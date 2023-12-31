@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
 	"github.com/joho/godotenv"
+	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -42,7 +43,7 @@ func init() {
 func init() {
 
 	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
-		provider := NewRotatingCredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
+		provider := filecreds.NewFilecredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
 		ssmClient = ssm.New(ssm.Options{
 			Credentials: provider,
 			Region:      ConfigFile.AWS_REGION,

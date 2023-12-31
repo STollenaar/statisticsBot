@@ -1,10 +1,10 @@
-go 1.20
+go 1.21.1
 
 use (
-	./internal/sqspoller
 	./cmd/statisticsbot
 	./internal/commands
 	./internal/database
 	./internal/routes
+	./internal/sqspoller
 	./util
 )

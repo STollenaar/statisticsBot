@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
+	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/util"
 )
@@ -30,7 +31,7 @@ func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
 
 	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
-		provider := util.NewRotatingCredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
+		provider := filecreds.NewFilecredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
 		sqsClient = sqs.New(sqs.Options{
 			Credentials: provider,
 			Region:      os.Getenv("AWS_REGION"),
