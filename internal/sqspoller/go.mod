@@ -6,7 +6,7 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.3
 	github.com/aws/aws-sdk-go-v2/service/sqs v1.29.7
-	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20231231162743-d96da7913739
+	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20240112205114-26346908241a
 	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20231231163108-d0a394e6bef4
 	github.com/stollenaar/statisticsbot/util v0.0.0-20231231163108-d0a394e6bef4
 )
