@@ -42,7 +42,7 @@ func MaxCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
-
+	fmt.Printf("Max Output: %s", response)
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 		Content: &response,
 	})
@@ -99,7 +99,7 @@ func getFilter(arguments *CommandParsed) (result bson.D, wordFilter string) {
 						primitive.E{
 							Key: "$regex",
 							Value: primitive.Regex{
-								Pattern: fmt.Sprintf("^%s$", word),
+								Pattern: word,
 								Options: "i",
 							},
 						},

@@ -86,7 +86,7 @@ func CreateCommandArguments(wordRequired, userRequired, channelRequired bool) (a
 	return args
 }
 
-func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (messageObject []util.CountGrouped,err error) {
+func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (messageObject []util.CountGrouped, err error) {
 	pipeline := mongo.Pipeline{
 		filter,
 	}
@@ -111,6 +111,27 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 	pipeline = append(pipeline,
 		bson.D{
 			bson.E{
+				Key: "$project",
+				Value: bson.M{
+					"_id": "$Author",
+					"Content": bson.M{
+						"$filter": bson.M{
+							"input":"$Content",
+							"as": "word",
+							"cond": bson.M{
+								"$regexMatch": bson.M{
+									"input": "$$word",
+									"regex": wordFilter,
+									"options": "i",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		bson.D{
+			bson.E{
 				Key:   "$unwind",
 				Value: "$Content",
 			},
@@ -120,7 +141,7 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 				Key: "$group",
 				Value: bson.M{
 					"_id": bson.M{
-						"Author": "$Author",
+						"Author": "$_id",
 						"Word":   "$Content",
 					},
 					"wordCount": bson.M{
@@ -128,6 +149,14 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 					},
 				},
 			},
+		},
+		bson.D{
+			bson.E{
+				Key:"$sort",
+				Value: bson.M{
+				"_id.Author": 1,
+				"wordCount": -1,
+			}},
 		},
 		bson.D{
 			bson.E{
@@ -147,7 +176,7 @@ func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (me
 			bson.E{
 				Key: "$project",
 				Value: bson.M{
-					"_id": 1,
+					"_id": "$_id",
 					"Word": bson.M{
 						"$arrayElemAt": []interface{}{
 							"$Words",
