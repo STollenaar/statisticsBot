@@ -22,9 +22,11 @@ var (
 	sqsClient        *sqs.Client
 	sqsObjectChannel chan util.SQSObject
 
-	reTarget      *regexp.Regexp
-	expiredBuffer chan string
-	expiredHold   bool
+	reTarget         *regexp.Regexp
+	expiredBuffer    chan string
+	expiredHold      bool
+	initialPollDelay = 20 * time.Second // Initial polling delay
+	maxPollDelay     = 5 * time.Minute  // Maximum polling delay
 )
 
 func init() {
@@ -79,7 +81,7 @@ func PollSQS() {
 }
 
 func pollSQS() {
-
+	pollDelay := initialPollDelay
 	for {
 		msgResult, err := sqsClient.ReceiveMessage(context.TODO(), &sqs.ReceiveMessageInput{
 			MessageAttributeNames: []string{
@@ -99,7 +101,13 @@ func pollSQS() {
 				expiredBuffer <- err.Error()
 			}
 		}
-		if msgResult == nil {
+		if msgResult == nil || len(msgResult.Messages) == 0 {
+			time.Sleep(pollDelay)
+			// Increase poll delay up to maxPollDelay
+			pollDelay *= 2
+			if pollDelay > maxPollDelay {
+				pollDelay = maxPollDelay
+			}
 			continue
 		}
 		for _, message := range msgResult.Messages {
