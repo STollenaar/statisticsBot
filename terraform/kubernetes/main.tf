@@ -25,10 +25,10 @@ resource "kubernetes_deployment" "statisticsbot" {
     template {
       metadata {
         annotations = {
-          "vault.hashicorp.com/agent-inject"        = "true"
-          "vault.hashicorp.com/agent-internal-role" = "internal-app"
-          "vault.hashicorp.com/agent-aws-role"      = aws_iam_role.statisticsbot_role.name
-          "cache.spices.dev/cmtemplate"             = "vault-aws-agent"
+          "vault.hashicorp.com/agent-inject" = "true"
+          "vault.hashicorp.com/role"         = "internal-app"
+          "vault.hashicorp.com/aws-role"     = aws_iam_role.statisticsbot_role.name
+          "cache.spicedelver.me/cmtemplate"  = "vault-aws-agent"
         }
         labels = {
           app = local.name

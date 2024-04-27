@@ -48,6 +48,8 @@ generate "provider" {
     EOF
 }
 
+terraform_binary = "/usr/local/bin/tofu"
+
 generate "versions" {
   path      = "grunt_versions.tf"
   if_exists = "overwrite_terragrunt"
