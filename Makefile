@@ -1,4 +1,4 @@
-PROFILE=$(shell aws configure list-profiles | grep personal || echo "default")
+PROFILE=$(shell aws configure list-profiles | grep default || echo "default")
 ACCOUNT=$(shell aws sts get-caller-identity --profile $(PROFILE) | jq -r '.Account')
 GITHUB_TOKEN=$(shell aws ssm get-parameter --profile $(PROFILE) --name /github_token --with-decryption | jq -r '.Parameter.Value')
 

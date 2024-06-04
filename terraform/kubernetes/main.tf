@@ -39,7 +39,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-amd64"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-2012825-amd64"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -72,6 +72,53 @@ resource "kubernetes_deployment" "statisticsbot" {
           env {
             name  = "SQS_RESPONSE"
             value = data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_response.url
+          }
+          port {
+            container_port = 8080
+            name           = "router"
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "statisticsbot" {
+  metadata {
+    name      = "statisticsbot"
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+  }
+  spec {
+    selector = {
+      "app" = local.name
+    }
+    port {
+      name        = "router"
+      target_port = 8080
+      port        = 80
+    }
+  }
+}
+
+resource "kubernetes_ingress_v1" "ingress" {
+  metadata {
+    name      = "statisticsbot"
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+  }
+  spec {
+    ingress_class_name = "tailscale"
+    rule {
+      http {
+        path {
+          path      = "/"
+          path_type = "Prefix"
+          backend {
+            service {
+              name = kubernetes_service_v1.statisticsbot.metadata.0.name
+              port {
+                number = 80
+              }
+            }
           }
         }
       }

@@ -10,7 +10,7 @@ import (
 
 	botcommand "github.com/stollenaar/statisticsbot/internal/commands"
 	"github.com/stollenaar/statisticsbot/internal/database"
-	"github.com/stollenaar/statisticsbot/internal/sqspoller"
+	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
@@ -87,9 +87,7 @@ func main() {
 
 	database.Init(bot, GuildID)
 	defer bot.Close()
-	if util.ConfigFile.SQS_REQUEST != "" && util.ConfigFile.SQS_RESPONSE != "" {
-		go sqspoller.PollSQS()
-	}
+	go routes.CreateRouter()
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)

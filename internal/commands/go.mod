@@ -42,7 +42,7 @@ require (
 	github.com/spf13/cast v1.6.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.18.2 // indirect
-	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20231231162743-d96da7913739 // indirect
+	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20240112205114-26346908241a // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
@@ -57,4 +57,9 @@ require (
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+)
+
+replace (
+	github.com/stollenaar/statisticsbot/internal/database => ../../internal/database
+	github.com/stollenaar/statisticsbot/util => ../../util
 )
