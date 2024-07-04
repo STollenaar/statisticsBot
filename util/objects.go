@@ -27,6 +27,7 @@ type SQSObject struct {
 	Type          string `json:"type"`
 	Command       string `json:"command"`
 	Data          string `json:"data"`
+	ChannelID     string `json:"channelID"`
 	GuildID       string `json:"guildID"`
 	Token         string `json:"token"`
 	ApplicationID string `json:"applicationID"`

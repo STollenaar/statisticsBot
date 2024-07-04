@@ -66,10 +66,9 @@ func init() {
 
 func main() {
 	fmt.Println("STARTING DEBUGGING ISSUE")
-	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages)
+	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers)
 
 	bot.AddHandler(database.MessageListener)
-
 	err := bot.Open()
 	if err != nil {
 		log.Fatal("Error starting bot ", err)

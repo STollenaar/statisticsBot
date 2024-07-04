@@ -1,7 +1,6 @@
 module github.com/stollenaar/statisticsbot/util
 
-go 1.21.1
-
+go 1.22.4
 require (
 	github.com/aws/aws-sdk-go-v2 v1.24.1
 	github.com/aws/aws-sdk-go-v2/config v1.26.3
