@@ -1,10 +1,13 @@
 package database
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -18,6 +21,9 @@ import (
 
 var (
 	sqsClient *sqs.Client
+
+	userCooldown map[string]time.Time
+	dunceChannel string
 )
 
 func init() {
@@ -37,11 +43,24 @@ func init() {
 
 		sqsClient = sqs.NewFromConfig(cfg)
 	}
+	userCooldown = make(map[string]time.Time)
+
+	dC, err := util.ConfigFile.GetDunceChannel()
+	if err != nil {
+		log.Fatal(err)
+	}
+	dunceChannel = dC
 }
 
 // MessageListener registers a simpler handler on a discordgo session to automatically parse incoming messages for you.
 func MessageListener(session *discordgo.Session, message *discordgo.MessageCreate) {
-	go duncePunish(message)
+	// if message.ChannelID == "544911814886948867" && util.Contains(message.Member.Roles, "1256012662370992219") {
+	if message.Member != nil && message.ChannelID == dunceChannel {
+		dunceRole, err := util.ConfigFile.GetDunceRole()
+		if err == nil && util.Contains(message.Member.Roles, dunceRole) {
+			go duncePunish(message)
+		}
+	}
 	collection := client.Database("statistics_bot").Collection(message.GuildID)
 	messageObject := constructMessageObject(message.Message, message.GuildID)
 
@@ -56,15 +75,24 @@ func MessageListener(session *discordgo.Session, message *discordgo.MessageCreat
 }
 
 func duncePunish(message *discordgo.MessageCreate) {
-	if util.Contains(message.Member.Roles, "1245330935725953044") {
+	if lastMessage, ok := userCooldown[message.Author.ID]; !ok || time.Now().After(lastMessage.Add(17*time.Hour)) {
+		userCooldown[message.Author.ID] = time.Now()
 		response := util.SQSObject{
-			Type:          "dunce",
-			Command:       "dunce",
-			GuildID:       message.GuildID,
-			Token:         "",
+			Type:      message.Author.ID,
+			Command:   "dunce",
+			GuildID:   message.GuildID,
+			ChannelID: message.ChannelID,
+			Token: fmt.Sprintf("%s;%s",
+				cmp.Or(
+					message.Member.Nick,
+					message.Author.Username,
+				),
+				message.Author.AvatarURL(""),
+			),
+			Data:          message.Content,
 			ApplicationID: "",
 		}
-		
+
 		data, err := json.Marshal(response)
 		if err != nil {
 			fmt.Printf("Error marshalling response object: %v", err)

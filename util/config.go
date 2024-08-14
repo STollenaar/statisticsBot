@@ -2,6 +2,8 @@ package util
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -27,6 +29,11 @@ type Config struct {
 
 	SQS_REQUEST  string
 	SQS_RESPONSE string
+
+	DUNCE_CHANNEL     string
+	AWS_DUNCE_CHANNEL string
+	DUNCE_ROLE        string
+	AWS_DUNCE_ROLE    string
 }
 
 var (
@@ -90,6 +97,10 @@ func init() {
 		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
 		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
 		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
+		DUNCE_CHANNEL:            os.Getenv("DUNCE_CHANNEL"),
+		AWS_DUNCE_ROLE:           os.Getenv("AWS_DUNCE_ROLE"),
+		DUNCE_ROLE:               os.Getenv("DUNCE_ROLE"),
+		AWS_DUNCE_CHANNEL:        os.Getenv("AWS_DUNCE_CHANNEL"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
@@ -151,4 +162,40 @@ func GetDiscordToken() string {
 		}
 		return *out.Parameter.Value
 	}
+}
+
+func (c *Config) GetDunceRole() (string, error) {
+	if ConfigFile.DUNCE_ROLE == "" && ConfigFile.AWS_DUNCE_ROLE == "" {
+		return "", errors.New("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
+	}
+
+	if ConfigFile.DUNCE_ROLE != "" {
+		return ConfigFile.DUNCE_ROLE, nil
+	} else {
+		return getAWSParameter(ConfigFile.AWS_DUNCE_ROLE)
+	}
+}
+
+func (c *Config) GetDunceChannel() (string, error) {
+	if ConfigFile.DUNCE_CHANNEL == "" && ConfigFile.AWS_DUNCE_CHANNEL == "" {
+		return "", errors.New("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
+	}
+
+	if ConfigFile.DUNCE_CHANNEL != "" {
+		return ConfigFile.DUNCE_CHANNEL, nil
+	} else {
+		return getAWSParameter(ConfigFile.AWS_DUNCE_CHANNEL)
+	}
+}
+
+func getAWSParameter(parameterName string) (string, error) {
+	out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+		Name:           aws.String(parameterName),
+		WithDecryption: aws.Bool(true),
+	})
+	if err != nil {
+		fmt.Println(fmt.Errorf("error from fetching parameter %s. With error: %w", parameterName, err))
+		return "", err
+	}
+	return *out.Parameter.Value, err
 }

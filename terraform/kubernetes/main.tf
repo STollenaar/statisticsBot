@@ -39,7 +39,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ac2daca-amd64"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-5a2b5d2-amd64"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -52,6 +52,22 @@ resource "kubernetes_deployment" "statisticsbot" {
           env {
             name  = "AWS_PARAMETER_NAME"
             value = "/discord_tokens/${local.name}"
+          }
+          env {
+            name  = "DUNCE_CHANNEL"
+            value = "1259968015974400085"
+          }
+          env {
+            name  = "DUNCE_ROLE"
+            value = "1256012662370992219"
+          }
+          env {
+            name  = "AWS_DUNCE_CHANNEL"
+            value = "/discord/dunce/channel"
+          }
+          env {
+            name  = "AWS_DUNCE_ROLE"
+            value = "/discord/dunce/role"
           }
           env {
             name  = "MONGO_HOST_PARAMETER"
@@ -100,28 +116,28 @@ resource "kubernetes_service_v1" "statisticsbot" {
   }
 }
 
-resource "kubernetes_ingress_v1" "ingress" {
-  metadata {
-    name      = "statisticsbot"
-    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
-  }
-  spec {
-    ingress_class_name = "tailscale"
-    rule {
-      http {
-        path {
-          path      = "/"
-          path_type = "Prefix"
-          backend {
-            service {
-              name = kubernetes_service_v1.statisticsbot.metadata.0.name
-              port {
-                number = 80
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-}
+# resource "kubernetes_ingress_v1" "ingress" {
+#   metadata {
+#     name      = "statisticsbot"
+#     namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+#   }
+#   spec {
+#     ingress_class_name = "tailscale"
+#     rule {
+#       http {
+#         path {
+#           path      = "/"
+#           path_type = "Prefix"
+#           backend {
+#             service {
+#               name = kubernetes_service_v1.statisticsbot.metadata.0.name
+#               port {
+#                 number = 80
+#               }
+#             }
+#           }
+#         }
+#       }
+#     }
+#   }
+# }
