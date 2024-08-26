@@ -25,7 +25,7 @@ var (
 func getClient() {
 	// Use the SetServerAPIOptions() method to set the Stable API version to 1
 	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	c, err := mongo.NewClient(options.Client().ApplyURI("mongodb+srv://" + util.GetMongoHost() + "/?retryWrites=true&w=majority").SetAuth(util.CreateMongoAuth()).SetServerAPIOptions(serverAPI))
+	c, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb+srv://"+util.GetMongoHost()+"/?retryWrites=true&w=majority").SetAuth(util.CreateMongoAuth()).SetServerAPIOptions(serverAPI))
 	client = c
 	if err != nil {
 		log.Fatal(err)
@@ -34,7 +34,6 @@ func getClient() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 // Init doing the initialization of all the messages
