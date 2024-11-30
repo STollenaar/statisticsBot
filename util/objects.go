@@ -4,23 +4,23 @@ import "time"
 
 // CountGrouped Basic count group for the max command
 type CountGrouped struct {
-	Author string      `bson:"_id" json:"Author"`
-	Word   wordCounted `bson:"Word" json:"Word"`
+	Author string      `json:"Author"`
+	Word   WordCounted `json:"Word"`
 }
 
 // MessageObject general messageobject for functions
 type MessageObject struct {
-	GuildID   string    `bson:"GuildID" json:"GuildID"`
-	ChannelID string    `bson:"ChannelID" json:"ChannelID"`
-	MessageID string    `bson:"_id" json:"MessageID"`
-	Author    string    `bson:"Author" json:"Author"`
-	Content   []string  `bson:"Content" json:"Content"`
-	Date      time.Time `bson:"Date" json:"Date"`
+	GuildID   string    `milvus:"name:guild_id" json:"guild_id"`
+	ChannelID string    `milvus:"name:channel_id" json:"channel_id"`
+	MessageID string    `milvus:"name:id" json:"id"`
+	Author    string    `milvus:"name:author_id" json:"author_id"`
+	Content   string    `milvus:"name:content" json:"content"`
+	Date      time.Time `milvus:"name:date" json:"date"`
 }
 
-type wordCounted struct {
-	Word  string `bson:"Word" json:"Word"`
-	Count int    `bson:"wordCount" json:"Count"`
+type WordCounted struct {
+	Word  string `json:"Word"`
+	Count int    `json:"Count"`
 }
 
 type SQSObject struct {

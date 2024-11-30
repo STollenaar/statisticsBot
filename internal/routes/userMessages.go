@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -16,16 +17,12 @@ import (
 	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
-
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var (
 	sqsClient *sqs.Client
 
-	reTarget      *regexp.Regexp
+	reTarget *regexp.Regexp
 )
 
 func init() {
@@ -76,38 +73,33 @@ func handleGetUserMessages(c *gin.Context) {
 	}
 }
 
-func getUserMessages(guildID, userID string) []util.MessageObject {
-	filter := bson.M{
-		"Author": userID,
-		"Content.10": bson.D{
-			primitive.E{
-				Key:   "$exists",
-				Value: true,
-			},
-		},
-	}
+func getUserMessages(guildID, userID string) (messageObject []*util.MessageObject) {
 
-	findOptions := options.Find()
-	findOptions.SetSort(bson.D{
-		primitive.E{
-			Key:   "Date",
-			Value: -1,
-		},
-	})
-	findOptions.SetLimit(1000)
-
-	var messageObject []util.MessageObject
-
-	resultCursor, err := database.GetFromFilter(guildID, filter, findOptions)
+	filterResult, err := database.GetFromFilter("guild_id==? AND author_id==?", []interface{}{guildID, userID})
 	if err != nil {
 		panic(err)
 	}
 
-	err = resultCursor.All(context.TODO(), &messageObject)
-	if err != nil {
-		panic(err)
+	for filterResult.Next() {
+		var guild_id, channel_id, id, author_id, content string
+		var date time.Time
+
+		err = filterResult.Scan(&guild_id, &channel_id, &id, &author_id, &content, &date)
+		if err != nil {
+			break
+		}
+		lastMessage := &util.MessageObject{
+			GuildID:   guild_id,
+			ChannelID: channel_id,
+			MessageID: id,
+			Author:    author_id,
+			Content:   content,
+			Date:      date,
+		}
+		messageObject = append(messageObject, lastMessage)
 	}
-	return messageObject
+
+	return
 }
 
 func handleURLObject(sqsObject util.SQSObject) {
@@ -138,7 +130,7 @@ func handleUserObject(sqsObject util.SQSObject) {
 
 	messageObjects := getUserMessages(sqsObject.GuildID, sqsObject.Data)
 
-	messages := mapToContent(&messageObjects)
+	messages := mapToContent(messageObjects)
 	messages = filterNonTexts(messages)
 
 	response.Data = strings.Join(messages, " ")
@@ -158,17 +150,9 @@ func handleUserObject(sqsObject util.SQSObject) {
 	}
 }
 
-func mapToContent(messages *[]util.MessageObject) (result []string) {
-	for _, message := range *messages {
-		if len(message.Content) == 0 {
-			continue
-		}
-		lastWord := message.Content[len(message.Content)-1]
-		if !isTerminalWord(lastWord) {
-			lastWord += "."
-			message.Content[len(message.Content)-1] = lastWord
-		}
-		result = append(result, message.Content...)
+func mapToContent(messages []*util.MessageObject) (result []string) {
+	for _, message := range messages {
+		result = append(result, message.Content)
 	}
 	return result
 }
@@ -180,12 +164,4 @@ func filterNonTexts(messages []string) (result []string) {
 		}
 	}
 	return result
-}
-
-func isTerminalWord(word string) bool {
-	compiled, err := regexp.MatchString(util.ConfigFile.TERMINAL_REGEX, word)
-	if err != nil {
-		fmt.Println(fmt.Errorf("error matching string with regex %s, on word %s. %w", util.ConfigFile.TERMINAL_REGEX, word, err))
-	}
-	return compiled
 }

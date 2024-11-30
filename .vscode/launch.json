@@ -10,7 +10,10 @@
             "request": "launch",
             "mode": "auto",
             "cwd": "cmd/statisticsbot",
-            "program": "cmd/statisticsbot/main.go"
+            "program": "cmd/statisticsbot/main.go",
+            "env": {
+                "CGO_ENABLED": "1"
+            }
         }
     ]
 }

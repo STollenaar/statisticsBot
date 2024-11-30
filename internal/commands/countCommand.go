@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/bwmarrin/discordgo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // CountCommand counts the amount of occurences of a certain word
@@ -37,44 +35,9 @@ func CountCommand(bot *discordgo.Session, interaction *discordgo.InteractionCrea
 // FindSpecificWordOccurences finding the occurences of a word in the database
 func FindSpecificWordOccurences(args *CommandParsed) int {
 
-	var channelFilter bson.D
+	filter, params := getFilter(args)
 
-	if args.ChannelTarget != nil {
-		channelFilter = bson.D{
-			primitive.E{
-				Key:   "$eq",
-				Value: args.ChannelTarget.ID,
-			},
-		}
-	} else {
-		channelFilter = bson.D{
-			primitive.E{
-				Key:   "$exists",
-				Value: true,
-			},
-		}
-	}
-
-	filter := bson.D{
-		primitive.E{
-			Key: "$match",
-			Value: bson.M{
-				"Content": bson.D{
-					primitive.E{
-						Key: "$regex",
-						Value: primitive.Regex{
-							Pattern: fmt.Sprintf("^%s$", args.Word),
-							Options: "i",
-						},
-					},
-				},
-				"Author":    args.UserTarget.ID,
-				"ChannelID": channelFilter,
-			},
-		},
-	}
-
-	messages, err := CountFilterOccurences(args.GuildID, filter, "")
+	messages, err := CountFilterOccurences(filter, args.Word, params)
 
 	if err != nil {
 		fmt.Println(err)

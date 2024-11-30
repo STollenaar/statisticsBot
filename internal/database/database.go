@@ -1,45 +1,182 @@
 package database
 
 import (
+	"bytes"
 	"context"
+	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
-	"regexp"
+	"net/http"
+	"strings"
 	"sync"
+	"time"
 
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"github.com/milvus-io/milvus-sdk-go/v2/client"
+	"github.com/milvus-io/milvus-sdk-go/v2/entity"
+
+	_ "github.com/marcboeker/go-duckdb" // DuckDB Go driver
+)
+
+const (
+	collectionName       = "statisticsbot"
+	sentenceTransformers = "localhost:8001"
 )
 
 var (
-	re     *regexp.Regexp
-	client *mongo.Client
+	milvusClient client.Client
+	duckdbClient *sql.DB
 )
 
-// getClient gets the mongo client on the first load
-func getClient() {
-	// Use the SetServerAPIOptions() method to set the Stable API version to 1
-	serverAPI := options.ServerAPI(options.ServerAPIVersion1)
-	c, err := mongo.Connect(context.TODO(), options.Client().ApplyURI("mongodb+srv://"+util.GetMongoHost()+"/?retryWrites=true&w=majority").SetAuth(util.CreateMongoAuth()).SetServerAPIOptions(serverAPI))
-	client = c
+// Define the request and response structures
+type TextRequest struct {
+	Text string `json:"text"`
+}
+
+type EmbeddingResponse struct {
+	Embedding []float32 `json:"embedding"`
+}
+
+func init() {
+	initMilvus()
+	initDuckDB()
+}
+
+func Exit() {
+	milvusClient.Close()
+	duckdbClient.Close()
+}
+
+func initMilvus() {
+	var err error
+	//...other snippet ...
+	milvusClient, err = client.NewGrpcClient(context.TODO(), "localhost:19530")
 	if err != nil {
+		// handle error
 		log.Fatal(err)
 	}
-	err = client.Connect(context.TODO())
+
+	has, err := milvusClient.HasCollection(context.TODO(), collectionName)
 	if err != nil {
+		log.Fatal("failed to check whether collection exists:", err.Error())
+	}
+	if !has {
+		// collection with same name exist, clean up mess
+		err := milvusClient.CreateCollection(context.TODO(), &entity.Schema{
+			CollectionName: collectionName,
+			Description:    "Discord messages with embeddings",
+			AutoID:         false,
+			Fields: []*entity.Field{
+				{
+					Name:       "id",
+					DataType:   entity.FieldTypeVarChar,
+					PrimaryKey: true,
+					AutoID:     false,
+					TypeParams: map[string]string{
+						entity.TypeParamMaxLength: "64",
+					},
+				},
+				{
+					Name:       "guild_id",
+					DataType:   entity.FieldTypeVarChar,
+					PrimaryKey: false,
+					AutoID:     false,
+					TypeParams: map[string]string{
+						entity.TypeParamMaxLength: "64",
+					},
+				},
+				{
+					Name:       "channel_id",
+					DataType:   entity.FieldTypeVarChar,
+					PrimaryKey: false,
+					AutoID:     false,
+					TypeParams: map[string]string{
+						entity.TypeParamMaxLength: "64",
+					},
+				},
+				{
+					Name:       "author_id",
+					DataType:   entity.FieldTypeVarChar,
+					PrimaryKey: false,
+					AutoID:     false,
+					TypeParams: map[string]string{
+						entity.TypeParamMaxLength: "64",
+					},
+				},
+				{
+					Name:     "embedding",
+					DataType: entity.FieldTypeFloatVector,
+					TypeParams: map[string]string{
+						entity.TypeParamDim: "384",
+					},
+				},
+			},
+		}, entity.DefaultShardNumber)
+
+		if err != nil {
+			log.Fatal("failed to create collection: ", err)
+		}
+
+	}
+
+	// Check if an index exists for the specified field
+	indexes, err := milvusClient.DescribeIndex(context.Background(), collectionName, "embedding")
+	if err != nil {
+		fmt.Println("No index'. Creating index...")
+		// Now add index
+		idx, err := entity.NewIndexIvfFlat(entity.L2, 2)
+		if err != nil {
+			log.Fatal("fail to create ivf flat index:", err.Error())
+		}
+		// Create the index
+		err = milvusClient.CreateIndex(context.Background(), collectionName, "embedding", idx, false)
+		if err != nil {
+			log.Fatalf("Failed to create index: %v", err)
+		}
+	} else {
+		fmt.Printf("Index already exists: %v\n", indexes)
+	}
+
+	err = milvusClient.LoadCollection(context.TODO(), collectionName, false)
+	if err != nil {
+		// handle error
 		log.Fatal(err)
 	}
 }
 
+func initDuckDB() {
+	var err error
+
+	duckdbClient, err = sql.Open("duckdb", "/home/stollenaar/Development/personal/statisticsBot/statsbot.db") // Create or connect to messages.db
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Create the messages table
+	_, err = duckdbClient.Exec(`
+		CREATE TABLE IF NOT EXISTS messages (
+			id VARCHAR,
+			guild_id VARCHAR,
+			channel_id VARCHAR,
+			author_id VARCHAR,
+			content VARCHAR,
+			date TIMESTAMP,
+		);
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
+
+}
+
 // Init doing the initialization of all the messages
 func Init(bot *discordgo.Session, GuildID *string) {
-	getClient()
-	re = regexp.MustCompile("\\s|\\.|\\\"")
 	guilds, err := bot.UserGuilds(100, "", "")
 	if err != nil {
 		fmt.Println(err)
@@ -96,47 +233,66 @@ func initChannels(bot *discordgo.Session, channels []*discordgo.Channel, waitGro
 }
 
 // getLastMessage gets the last message in provided channel from the database
-func getLastMessage(channel *discordgo.Channel) util.MessageObject {
+func getLastMessage(channel *discordgo.Channel) (lastMessage util.MessageObject) {
 
-	collection := client.Database("statistics_bot").Collection(channel.GuildID)
-	findOpts := options.FindOneOptions{
-		Sort: bson.D{
-			primitive.E{
-				Key:   "Date",
-				Value: -1,
-			},
-		},
-	}
+	// Query to find the most recent message per channel
+	query := `
+		WITH ranked_messages AS (
+			SELECT *,
+				   ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY date DESC) AS rank
+			FROM messages
+			WHERE channel_id = ?
+		)
+		SELECT 
+			id,
+			date,
+		FROM ranked_messages
+		WHERE rank = 1;
+	`
 
-	var lastMessage util.MessageObject
+	// Execute the query
+	row := duckdbClient.QueryRow(query, channel.ID)
 
-	if err := collection.FindOne(context.TODO(), bson.M{"ChannelID": channel.ID}, &findOpts).Decode(&lastMessage); err != nil {
-		if err != mongo.ErrNoDocuments {
-			fmt.Println("Error fetching last message: ", err)
+	var (
+		id   string
+		date time.Time
+	)
+
+	err := row.Scan(&id, &date)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			fmt.Printf("No messages found for channel_id: %s\n", channel.ID)
+		} else {
+			log.Fatalf("Query failed: %v", err)
 		}
+		return
 	}
-	return lastMessage
+	lastMessage.Date = date
+	lastMessage.MessageID = id
+
+	return
 }
 
 // loadMessages loading messages from the channel
 func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	fmt.Println("Loading ", channel.Name)
 	defer util.Elapsed(channel.Name)() // timing how long it took to collect the messages
-	collection := client.Database("statistics_bot").Collection(channel.GuildID)
-	var operations []mongo.WriteModel
+	// collection := client.Database("statistics_bot").Collection(channel.GuildID)
+	var operations int
 
 	// Getting last message and first 100
 	lastMessage := getLastMessage(channel)
 	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
 	messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
 		messageTime := message.Timestamp
-		lastMessageTime := lastMessage.Date
-		return messageTime.After(lastMessageTime)
+
+		return messageTime.After(lastMessage.Date)
 	})
 
 	// Constructing operations for first 100
 	for _, message := range messages {
-		operations = append(operations, constructMessageObject(message, channel.GuildID))
+		operations++
+		constructMessageObject(message, channel.GuildID)
 	}
 
 	// Loading more messages if got 100 message the first time
@@ -147,12 +303,13 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
 			moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
 				messageTime := message.Timestamp
-				lastMessageTime := lastMessage.Date
-				return messageTime.After(lastMessageTime)
+
+				return messageTime.After(lastMessage.Date)
 			})
 
 			for _, message := range moreMes {
-				operations = append(operations, constructMessageObject(message, channel.GuildID))
+				operations++
+				constructMessageObject(message, channel.GuildID)
 			}
 			if len(moreMes) != 0 {
 				lastMessageCollected = moreMes[len(moreMes)-1]
@@ -162,87 +319,72 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 		}
 	}
 
-	fmt.Printf("Done collecting messages for %s, found %d messages. Now inserting \n", channel.Name, len(operations))
-
-	// Doing actual insertion
-	if len(operations) > 0 {
-		bulkOption := options.BulkWriteOptions{}
-		bulkOption.SetOrdered(false)
-
-		_, err := collection.BulkWrite(context.TODO(), operations, &bulkOption)
-
-		if err != nil {
-			fmt.Println("Error doing bulk operation ", err)
-		}
-	}
+	fmt.Printf("Done collecting messages for %s, found %d messages\n", channel.Name, operations)
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
-func constructMessageObject(message *discordgo.Message, guildID string) mongo.WriteModel {
-	messageModel := mongo.NewUpdateOneModel()
+func constructMessageObject(message *discordgo.Message, guildID string) {
 
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
 		for _, embed := range message.Embeds {
-			if embed.Title != "" {
-				content = append(content, re.Split(embed.Title, -1)...)
-			}
-			if author := embed.Author; author != nil && author.Name != "" {
-				content = append(content, re.Split(author.Name, -1)...)
-			}
 			if embed.Description != "" {
-				content = append(content, re.Split(embed.Description, -1)...)
+				content = append(content, embed.Description)
 			}
 			if len(embed.Fields) > 0 {
 				for _, field := range embed.Fields {
-					content = append(content, re.Split(field.Name, -1)...)
-					content = append(content, re.Split(field.Value, -1)...)
+					content = append(content, field.Name)
+					content = append(content, field.Value)
 				}
 			}
 			if footer := embed.Footer; footer != nil && footer.Text != "" {
-				content = append(content, re.Split(footer.Text, -1)...)
+				content = append(content, footer.Text)
 			}
 		}
 	} else {
-		content = re.Split(message.Content, -1)
-	}
-	filter := bson.D{
-		primitive.E{
-			Key:   "_id",
-			Value: message.ID,
-		},
+		content = []string{message.Content}
 	}
 
-	// Actual message object
-	object := bson.D{
-		primitive.E{
-			Key: "$set",
-			Value: util.MessageObject{
-				GuildID:   guildID,
-				ChannelID: message.ChannelID,
-				MessageID: message.ID,
-				Author:    message.Author.ID,
-				Content:   util.DeleteEmpty(content),
-				Date:      message.Timestamp,
-			},
-		},
+	embedding, err := getEmbedding(strings.Join(content, "\n"))
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	messageModel.SetFilter(filter)
-	messageModel.SetUpdate(object)
-	messageModel.SetUpsert(true)
+	idC := entity.NewColumnVarChar("id", []string{message.ID})
+	guildC := entity.NewColumnVarChar("guild_id", []string{guildID})
+	channelC := entity.NewColumnVarChar("channel_id", []string{message.ChannelID})
+	authorC := entity.NewColumnVarChar("author_id", []string{message.Author.ID})
+	embedC := entity.NewColumnFloatVector("embedding", 384, [][]float32{embedding.Embedding})
 
-	return messageModel
+	_, err = milvusClient.Insert(context.TODO(), collectionName, "", idC, guildC, channelC, authorC, embedC)
+	if err != nil {
+		log.Fatalf("Error inserting into milvus: %s\n", err)
+	}
+	_, err = duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?)`, message.ID, message.GuildID, message.ChannelID, message.Author.ID, message.Timestamp, message.Content)
+	if err != nil {
+		log.Fatalf("Error inserting into duckdb: %s\n", err)
+	}
 }
 
 // Get a result from the database using a filter
-func GetFromFilter(guildID string, filter primitive.M, findOptions *options.FindOptions) (*mongo.Cursor, error) {
-	collection := client.Database("statistics_bot").Collection(guildID)
-	return collection.Find(context.TODO(), filter, findOptions)
+func GetFromFilter(query string, params []interface{}) (results *sql.Rows, err error) {
+
+	return duckdbClient.Query(query, params...)
 }
 
-// Get a result from the database using an aggregate
-func GetFromAggregate(guildID string, pipeline mongo.Pipeline) (*mongo.Cursor, error) {
-	collection := client.Database("statistics_bot").Collection(guildID)
-	return collection.Aggregate(context.TODO(), pipeline)
+func getEmbedding(in string) (EmbeddingResponse, error) {
+	requestBody, _ := json.Marshal(TextRequest{Text: in})
+
+	resp, err := http.Post("http://localhost:8001/embed", "application/json", bytes.NewBuffer(requestBody))
+	if err != nil {
+		fmt.Printf("Error making request: %v\n", err)
+		return EmbeddingResponse{}, err
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	var result EmbeddingResponse
+	json.Unmarshal(body, &result)
+
+	return result, nil
 }

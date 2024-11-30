@@ -1,17 +1,14 @@
 package commands
 
 import (
-	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // CommandParsed parsed struct for count command
@@ -86,124 +83,75 @@ func CreateCommandArguments(wordRequired, userRequired, channelRequired bool) (a
 	return args
 }
 
-func CountFilterOccurences(guildID string, filter bson.D, wordFilter string) (messageObject []util.CountGrouped, err error) {
-	pipeline := mongo.Pipeline{
-		filter,
+func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {
+	query := `
+		WITH tokenized_messages AS (
+			SELECT 
+				author_id,
+				guild_id,
+				LOWER(unnest(string_split(regexp_replace(content, '[^a-zA-Z0-9'' ]', '', 'g'), ' '))) AS word
+			FROM messages
+			%s
+		)
+		SELECT 
+            guild_id,
+			author_id,
+			word,
+			COUNT(*) AS word_count
+		FROM tokenized_messages
+		%s
+		GROUP BY author_id, guild_id, word
+		ORDER BY word_count DESC;
+	`
+
+	tokenFilter := `WHERE %s`
+	wordFilter := `WHERE word = LOWER(?)`
+	var q string
+	if word != "" {
+		q = fmt.Sprintf(query, fmt.Sprintf(tokenFilter, filter), wordFilter)
+	} else {
+		q = fmt.Sprintf(query, fmt.Sprintf(tokenFilter, filter), "")
 	}
 
-	if wordFilter != "" {
-		pipeline = append(pipeline, bson.D{
-			bson.E{
-				Key: "$match",
-				Value: bson.M{
-					"GuildID": guildID,
-					"Content": bson.M{
-						"$regex": primitive.Regex{
-							Pattern: fmt.Sprintf("^%s$", wordFilter),
-							Options: "i",
-						},
-					},
-				},
-			},
-		})
-	}
-
-	pipeline = append(pipeline,
-		bson.D{
-			bson.E{
-				Key: "$project",
-				Value: bson.M{
-					"_id": "$Author",
-					"Content": bson.M{
-						"$filter": bson.M{
-							"input":"$Content",
-							"as": "word",
-							"cond": bson.M{
-								"$regexMatch": bson.M{
-									"input": "$$word",
-									"regex": wordFilter,
-									"options": "i",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		bson.D{
-			bson.E{
-				Key:   "$unwind",
-				Value: "$Content",
-			},
-		},
-		bson.D{
-			bson.E{
-				Key: "$group",
-				Value: bson.M{
-					"_id": bson.M{
-						"Author": "$_id",
-						"Word":   "$Content",
-					},
-					"wordCount": bson.M{
-						"$sum": 1,
-					},
-				},
-			},
-		},
-		bson.D{
-			bson.E{
-				Key:"$sort",
-				Value: bson.M{
-				"_id.Author": 1,
-				"wordCount": -1,
-			}},
-		},
-		bson.D{
-			bson.E{
-				Key: "$group",
-				Value: bson.M{
-					"_id": "$_id.Author",
-					"Words": bson.M{
-						"$push": bson.M{
-							"Word":      "$_id.Word",
-							"wordCount": "$wordCount",
-						},
-					},
-				},
-			},
-		},
-		bson.D{
-			bson.E{
-				Key: "$project",
-				Value: bson.M{
-					"_id": "$_id",
-					"Word": bson.M{
-						"$arrayElemAt": []interface{}{
-							"$Words",
-							bson.M{
-								"$indexOfArray": []interface{}{
-									"$Words.wordCount",
-									bson.M{
-										"$max": "$Words.wordCount",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	)
-
-	cursor, err := database.GetFromAggregate(guildID, pipeline)
+	messages, err := database.GetFromFilter(q, append(params, word))
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.TODO())
 
-	if err := cursor.All(context.TODO(), &messageObject); err != nil {
-		return nil, err
+	for messages.Next() {
+		var guild_id, author_id, word string
+		var word_count int
+
+		err = messages.Scan(&guild_id, &author_id, &word, &word_count)
+		if err != nil {
+			break
+		}
+
+		messageObject := util.CountGrouped{
+			Author: author_id,
+			Word: util.WordCounted{
+				Word:  word,
+				Count: word_count,
+			},
+		}
+		messageObjects = append(messageObjects, messageObject)
+	}
+	return
+}
+
+func getFilter(arguments *CommandParsed) (string, []interface{}) {
+	filters := []string{"guild_id = ?"}
+	values := []interface{}{arguments.GuildID}
+
+	if arguments.ChannelTarget != nil {
+		filters = append(filters, "channel_id = ?")
+		values = append(values, arguments.ChannelTarget.ID)
 	}
 
-	return messageObject, nil
+	if arguments.UserTarget != nil {
+		filters = append(filters, "author_id = ?")
+		values = append(values, arguments.UserTarget.ID)
+	}
+
+	return strings.Join(filters, " AND "), values
 }

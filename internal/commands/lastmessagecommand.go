@@ -1,16 +1,13 @@
 package commands
 
 import (
-	"context"
 	"fmt"
+	"time"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/util"
 
 	"github.com/bwmarrin/discordgo"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // LastMessage find the last message of a person
@@ -24,61 +21,58 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 
 	parsedArguments := parseArguments(bot, interaction)
 
-	var channelFilter bson.D
+	filter, values := getFilter(parsedArguments)
 
-	if channel := parsedArguments.ChannelTarget; channel != nil {
-		channelFilter = bson.D{
-			primitive.E{
-				Key:   "$eq",
-				Value: channel.ID,
-			},
-		}
-	} else {
-		channelFilter = bson.D{
-			primitive.E{
-				Key:   "$exists",
-				Value: true,
-			},
-		}
-	}
-
-	filter := bson.M{
-		"Author":    parsedArguments.UserTarget.ID,
-		"ChannelID": channelFilter,
-	}
-
-	findOptions := options.Find()
-	findOptions.SetSort(bson.D{
-		primitive.E{
-			Key:   "Date",
-			Value: -1,
-		},
-	})
-	findOptions.SetLimit(1)
-
-	var messageObjects []util.MessageObject
 	response := "Something went wrong.. maybe try again with something else?"
-	filterResult, err := database.GetFromFilter(parsedArguments.GuildID, filter, findOptions)
+
+	// Query to find the most recent message for the specified channel_id
+	query := `
+		WITH ranked_messages AS (
+			SELECT *,
+				   ROW_NUMBER() OVER (ORDER BY date DESC) AS rank
+			FROM messages
+			WHERE %s
+		)
+		SELECT 
+			id AS message_id,
+			channel_id,
+			content,
+			date AS most_recent_date
+		FROM ranked_messages
+		WHERE rank = 1;
+	`
+
+	filterResult, err := database.GetFromFilter(fmt.Sprintf(query, filter), values)
 	if err != nil {
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 			Content: &response,
 		})
-
 		return
 	}
+	var messageObject []*util.MessageObject
 
-	err = filterResult.All(context.TODO(), &messageObjects)
+	for filterResult.Next() {
+		var channel_id, message_id, content string
+		var date time.Time
 
-	if err != nil {
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: &response,
-		})
-		return
+		err = filterResult.Scan(&message_id, &channel_id, &content, &date)
+		if err != nil {
+			break
+		}
+		lastMessage := &util.MessageObject{
+			GuildID:   parsedArguments.GuildID,
+			ChannelID: channel_id,
+			MessageID: message_id,
+			Author:    parsedArguments.UserTarget.ID,
+			Content:   content,
+			Date:      date,
+		}
+		messageObject = append(messageObject, lastMessage)
 	}
-	messageObject := messageObjects[0]
 
-	channel, _ := bot.Channel(messageObject.ChannelID)
-	messageLink := getMessageLink(messageObject.GuildID, messageObject.ChannelID, messageObject.MessageID)
+	lastMessage := messageObject[0]
+	channel, _ := bot.Channel(lastMessage.ChannelID)
+	messageLink := getMessageLink(lastMessage.GuildID, lastMessage.ChannelID, lastMessage.MessageID)
 	response = fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink)
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 		Content: &response,

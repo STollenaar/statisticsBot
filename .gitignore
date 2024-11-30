@@ -2,7 +2,10 @@ statsbotWork.code-workspace
 .env
 .vs/
 docker-compose.yml
-__debug_bin
+**/__debug_bin
 dist/
 config.json
 terraform/**/.terraform/
+volumes/
+**/*.db*
+*.csv
