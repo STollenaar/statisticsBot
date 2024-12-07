@@ -1,3 +1,4 @@
+version: 2
 env:
   - REPO={{ .Env.ACCOUNT }}.dkr.ecr.ca-central-1.amazonaws.com/discordbots
 builds:
@@ -5,12 +6,12 @@ builds:
     binary: statisticsbot
     dir: ./cmd/statisticsbot
     env:
-      - CGO_ENABLED=0
+      - CGO_ENABLED=1
     goos:
       - linux
     goarch:
       - amd64
-      - arm64
+      # - arm64
     hooks:
       pre:
         - dir: ./cmd/statisticsbot

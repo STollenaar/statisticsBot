@@ -11,4 +11,4 @@ release:
 
 pre-release:
 	aws ecr get-login-password  --profile $(PROFILE) --region ca-central-1 | docker login --username AWS --password-stdin $(ACCOUNT).dkr.ecr.ca-central-1.amazonaws.com
-	GITHUB_TOKEN=$(GITHUB_TOKEN) ACCOUNT=$(ACCOUNT) PROFILE=$(PROFILE) goreleaser release --clean --skip-publish --auto-snapshot
+	GITHUB_TOKEN=$(GITHUB_TOKEN) ACCOUNT=$(ACCOUNT) PROFILE=$(PROFILE) goreleaser release --clean --skip publish --auto-snapshot

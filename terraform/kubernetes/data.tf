@@ -104,6 +104,10 @@ data "aws_ssm_parameter" "vault_client_secret" {
   name = "/vault/serviceprincipals/talos/client_secret"
 }
 
+data "aws_ecr_repository" "sentence_transformers"{
+    name = "sentence-transformers"
+}
+
 data "hcp_vault_secrets_secret" "vault_root" {
   app_name    = "proxmox"
   secret_name = "root"

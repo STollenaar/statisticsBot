@@ -1,6 +1,6 @@
 module github.com/stollenaar/statisticsbot
 
-go 1.23.0
+go 1.23.4
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
