@@ -55,7 +55,7 @@ func Exit() {
 func initMilvus() {
 	var err error
 	//...other snippet ...
-	milvusClient, err = client.NewGrpcClient(context.TODO(), "localhost:19530")
+	milvusClient, err = client.NewGrpcClient(context.TODO(), util.ConfigFile.DATABASE_HOST)
 	if err != nil {
 		// handle error
 		log.Fatal(err)

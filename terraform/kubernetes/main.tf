@@ -39,7 +39,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-db25ef8-amd64"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-4011e7e-amd64"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -60,6 +60,10 @@ resource "kubernetes_deployment" "statisticsbot" {
           env {
             name  = "SQS_RESPONSE"
             value = data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_response.url
+          }
+          env {
+            name  = "DATABASE_HOST"
+            value = "${kubernetes_service_v1.database.metadata.0.name}:19530"
           }
           port {
             container_port = 8080
@@ -317,6 +321,40 @@ resource "kubernetes_service_v1" "database" {
     port {
       name = "minio-api"
       port = 9000
+    }
+  }
+}
+
+resource "kubernetes_deployment" "attu" {
+  metadata {
+    name      = "attu"
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+    labels = {
+      app = "attu"
+    }
+  }
+  spec {
+    selector {
+      match_labels = {
+        app = "attu"
+      }
+    }
+    template {
+      metadata {
+        labels = {
+          app = "attu"
+        }
+      }
+      spec {
+        container {
+          image = "zilliz/attu:latest"
+          name  = "attu"
+          env {
+            name  = "MILVUS_URL"
+            value = "http://${kubernetes_service_v1.database.metadata.0.name}:19530"
+          }
+        }
+      }
     }
   }
 }
