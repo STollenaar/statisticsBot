@@ -1,4 +1,4 @@
-FROM golang:1.18.0-alpine
+FROM golang:1.23.4
 
 ARG ARCH
 ARG KIND
