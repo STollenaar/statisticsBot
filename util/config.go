@@ -16,11 +16,11 @@ import (
 type Config struct {
 	DISCORD_TOKEN string
 	DATABASE_HOST string
+	DUCKDB_PATH   string
 
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
 	TERMINAL_REGEX     string
-
 
 	SQS_REQUEST  string
 	SQS_RESPONSE string
@@ -82,6 +82,7 @@ func init() {
 		DATABASE_HOST:      os.Getenv("DATABASE_HOST"),
 		AWS_PARAMETER_NAME: os.Getenv("AWS_PARAMETER_NAME"),
 		SQS_REQUEST:        os.Getenv("SQS_REQUEST"),
+		DUCKDB_PATH:        os.Getenv("DUCKDB_PATH"),
 		SQS_RESPONSE:       os.Getenv("SQS_RESPONSE"),
 		TERMINAL_REGEX:     os.Getenv("TERMINAL_REGEX"),
 	}

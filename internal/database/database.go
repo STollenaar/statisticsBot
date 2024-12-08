@@ -152,7 +152,7 @@ func initMilvus() {
 func initDuckDB() {
 	var err error
 
-	duckdbClient, err = sql.Open("duckdb", "/home/stollenaar/Development/personal/statisticsBot/statsbot.db") // Create or connect to messages.db
+	duckdbClient, err = sql.Open("duckdb", fmt.Sprintf("%s/statsbot.db", util.ConfigFile.DUCKDB_PATH)) // Create or connect to messages.db
 
 	if err != nil {
 		log.Fatal(err)

@@ -39,7 +39,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-10693df-amd64"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-f3adf0e-amd64"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -65,6 +65,10 @@ resource "kubernetes_deployment" "statisticsbot" {
             name  = "DATABASE_HOST"
             value = "${kubernetes_service_v1.database.metadata.0.name}:19530"
           }
+          env {
+            name  = "DUCKDB_PATH"
+            value = "/duckdb"
+          }
           port {
             container_port = 8080
             name           = "router"
@@ -76,11 +80,11 @@ resource "kubernetes_deployment" "statisticsbot" {
 
         }
         container {
-          name  = "sentence-transformers"
-          image = "${data.aws_ecr_repository.sentence_transformers.repository_url}:latest"
+          name              = "sentence-transformers"
+          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:latest"
           image_pull_policy = "IfNotPresent"
           port {
-            container_port = 8000
+            container_port = 8001
             name           = "transformer"
           }
         }
