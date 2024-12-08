@@ -25,7 +25,7 @@ import (
 
 const (
 	collectionName       = "statisticsbot"
-	sentenceTransformers = "localhost:8001"
+	sentenceTransformers = "localhost:8000"
 )
 
 var (
@@ -375,7 +375,7 @@ func GetFromFilter(query string, params []interface{}) (results *sql.Rows, err e
 func getEmbedding(in string) (EmbeddingResponse, error) {
 	requestBody, _ := json.Marshal(TextRequest{Text: in})
 
-	resp, err := http.Post("http://localhost:8001/embed", "application/json", bytes.NewBuffer(requestBody))
+	resp, err := http.Post(fmt.Sprintf("http://%s/embed", sentenceTransformers), "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		fmt.Printf("Error making request: %v\n", err)
 		return EmbeddingResponse{}, err
