@@ -5,5 +5,5 @@ use (
 	./internal/commands
 	./internal/database
 	./internal/routes
-	./util
+	./internal/util
 )

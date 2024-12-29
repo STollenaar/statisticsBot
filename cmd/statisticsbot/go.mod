@@ -4,10 +4,10 @@ go 1.23.4
 
 require (
 	github.com/bwmarrin/discordgo v0.27.1
-	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20231231163108-d0a394e6bef4
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20231231163108-d0a394e6bef4
-	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20240502221057-201282598d56
-	github.com/stollenaar/statisticsbot/util v0.0.0-20231231163108-d0a394e6bef4
+	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-00010101000000-000000000000
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-00010101000000-000000000000
+	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-00010101000000-000000000000
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -106,5 +106,5 @@ replace (
 	github.com/stollenaar/statisticsbot/internal/commands => ../../internal/commands
 	github.com/stollenaar/statisticsbot/internal/database => ../../internal/database
 	github.com/stollenaar/statisticsbot/internal/routes => ../../internal/routes
-	github.com/stollenaar/statisticsbot/util => ../../util
+	github.com/stollenaar/statisticsbot/internal/util => ../../internal/util
 )

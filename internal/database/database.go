@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/stollenaar/statisticsbot/util"
+	"github.com/stollenaar/statisticsbot/internal/util"
 
 	"github.com/bwmarrin/discordgo"
 

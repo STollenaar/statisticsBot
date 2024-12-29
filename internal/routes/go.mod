@@ -5,11 +5,11 @@ go 1.23.4
 require (
 	github.com/aws/aws-sdk-go-v2 v1.30.0
 	github.com/aws/aws-sdk-go-v2/config v1.26.3
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.32.3
+	github.com/aws/aws-sdk-go-v2/service/sqs v1.34.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20240112205114-26346908241a
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20230920142231-8bf05ab18d3e
-	github.com/stollenaar/statisticsbot/util v0.0.0-20231231163108-d0a394e6bef4
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-00010101000000-000000000000
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-00010101000000-000000000000
 )
 
 require (
@@ -44,7 +44,6 @@ require (
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
-	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/flatbuffers v24.3.25+incompatible // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
@@ -82,9 +81,7 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
-	github.com/youmark/pkcs8 v0.0.0-20201027041543-1326539a0a0a // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
-	go.mongodb.org/mongo-driver v1.13.1 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.28.0 // indirect
@@ -104,6 +101,6 @@ require (
 )
 
 replace (
-	github.com/stollenaar/statisticsbot/internal/database => ../../internal/database
-	github.com/stollenaar/statisticsbot/util => ../../util
+	github.com/stollenaar/statisticsbot/internal/database => ../database
+	github.com/stollenaar/statisticsbot/internal/util => ../util
 )

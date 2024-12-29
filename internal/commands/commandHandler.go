@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
-	"github.com/stollenaar/statisticsbot/util"
+	"github.com/stollenaar/statisticsbot/internal/util"
 
 	"github.com/bwmarrin/discordgo"
 )

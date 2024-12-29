@@ -16,7 +16,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 	"github.com/stollenaar/statisticsbot/internal/database"
-	"github.com/stollenaar/statisticsbot/util"
+	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 var (

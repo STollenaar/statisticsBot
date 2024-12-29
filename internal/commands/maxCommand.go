@@ -3,7 +3,7 @@ package commands
 import (
 	"fmt"
 
-	"github.com/stollenaar/statisticsbot/util"
+	"github.com/stollenaar/statisticsbot/internal/util"
 
 	"github.com/bwmarrin/discordgo"
 )
