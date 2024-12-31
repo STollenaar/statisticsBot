@@ -39,7 +39,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-26e1c53-amd64"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-f47e69c"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -52,14 +52,6 @@ resource "kubernetes_deployment" "statisticsbot" {
           env {
             name  = "AWS_PARAMETER_NAME"
             value = "/discord_tokens/${local.name}"
-          }
-          env {
-            name  = "SQS_REQUEST"
-            value = data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_request.url
-          }
-          env {
-            name  = "SQS_RESPONSE"
-            value = data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_response.url
           }
           env {
             name  = "DATABASE_HOST"
@@ -363,30 +355,3 @@ resource "kubernetes_deployment" "attu" {
     }
   }
 }
-
-
-# resource "kubernetes_ingress_v1" "ingress" {
-#   metadata {
-#     name      = "statisticsbot"
-#     namespace = kubernetes_namespace.statisticsbot.metadata.0.name
-#   }
-#   spec {
-#     ingress_class_name = "tailscale"
-#     rule {
-#       http {
-#         path {
-#           path      = "/"
-#           path_type = "Prefix"
-#           backend {
-#             service {
-#               name = kubernetes_service_v1.statisticsbot.metadata.0.name
-#               port {
-#                 number = 80
-#               }
-#             }
-#           }
-#         }
-#       }
-#     }
-#   }
-# }

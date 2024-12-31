@@ -2,7 +2,6 @@ package routes
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/gin-gonic/gin"
@@ -58,12 +56,9 @@ func handleGetUserMessages(c *gin.Context) {
 
 	if c.Bind(&json) == nil {
 		switch json.Value.Type {
-		case "url":
-			handleURLObject(json.Value)
-			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		case "user":
-			handleUserObject(json.Value)
-			c.JSON(http.StatusOK, gin.H{"status": "ok"})
+			resp := handleUserObject(json.Value)
+			c.JSON(http.StatusOK, resp)
 		default:
 			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", json.Value)
 			c.JSON(http.StatusBadRequest, gin.H{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", json.Value)})
@@ -102,24 +97,7 @@ func getUserMessages(guildID, userID string) (messageObject []*util.MessageObjec
 	return
 }
 
-func handleURLObject(sqsObject util.SQSObject) {
-
-	data, err := json.Marshal(sqsObject)
-	if err != nil {
-		fmt.Printf("Error marshalling response object: %v", err)
-		return
-	}
-	_, err = sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
-		MessageBody: aws.String(string(data)),
-		QueueUrl:    &util.ConfigFile.SQS_RESPONSE,
-	})
-	if err != nil {
-		fmt.Printf("Error sending message response object: %v", err)
-		return
-	}
-}
-
-func handleUserObject(sqsObject util.SQSObject) {
+func handleUserObject(sqsObject util.SQSObject) util.SQSObject {
 	response := util.SQSObject{
 		Type:          sqsObject.Type,
 		Command:       sqsObject.Command,
@@ -134,20 +112,7 @@ func handleUserObject(sqsObject util.SQSObject) {
 	messages = filterNonTexts(messages)
 
 	response.Data = strings.Join(messages, " ")
-
-	data, err := json.Marshal(response)
-	if err != nil {
-		fmt.Printf("Error marshalling response object: %v", err)
-		return
-	}
-	_, err = sqsClient.SendMessage(context.TODO(), &sqs.SendMessageInput{
-		MessageBody: aws.String(string(data)),
-		QueueUrl:    &util.ConfigFile.SQS_RESPONSE,
-	})
-	if err != nil {
-		fmt.Printf("Error sending message response object: %v", err)
-		return
-	}
+	return response
 }
 
 func mapToContent(messages []*util.MessageObject) (result []string) {

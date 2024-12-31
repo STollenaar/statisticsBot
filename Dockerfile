@@ -1,11 +1,9 @@
-FROM golang:1.23.4
+FROM alpine:3.21
 
-ARG ARCH
-ARG KIND
-
-# Create app directory
 WORKDIR /usr/src/app
 
 COPY ${KIND} app
+
+RUN chmod +x app
 
 CMD ./app

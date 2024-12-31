@@ -2,11 +2,6 @@ include "root" {
   path = find_in_parent_folders()
 }
 
-dependencies {
-  paths = ["../sqs"]
-}
-
-
 locals {
   parent_config = read_terragrunt_config("${get_parent_terragrunt_dir()}/terragrunt.hcl")
 }

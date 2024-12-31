@@ -12,3 +12,12 @@ release:
 pre-release:
 	aws ecr get-login-password  --profile $(PROFILE) --region ca-central-1 | docker login --username AWS --password-stdin $(ACCOUNT).dkr.ecr.ca-central-1.amazonaws.com
 	GITHUB_TOKEN=$(GITHUB_TOKEN) ACCOUNT=$(ACCOUNT) PROFILE=$(PROFILE) goreleaser release --clean --skip publish --auto-snapshot
+
+	
+.PHONY: tidy-modules
+tidy-modules:
+	@find . -type d \( -name build -prune \) -o -name go.mod -print | while read -r gomod_path; do \
+		dir_path=$$(dirname "$$gomod_path"); \
+		echo "Executing 'go mod tidy' in directory: $$dir_path"; \
+		(cd "$$dir_path"  && GOPROXY=$(GOPROXY) go get -u ./... && GOPROXY=$(GOPROXY) go mod tidy) || exit 1; \
+	done

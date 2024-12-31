@@ -25,15 +25,6 @@ data "terraform_remote_state" "kubernetes_cluster" {
   }
 }
 
-data "terraform_remote_state" "sqs_queues" {
-  backend = "s3"
-  config = {
-    region = "ca-central-1"
-    bucket = "stollenaar-terraform-states"
-    key    = "discordbots/statisticsbot/sqs/terraform.tfstate"
-  }
-}
-
 data "aws_iam_policy_document" "ssm_access_role_policy_document" {
   statement {
     sid    = "KMSDecryption"
@@ -58,26 +49,6 @@ data "aws_iam_policy_document" "ssm_access_role_policy_document" {
       "ssm:DescribeParameters",
     ]
     resources = ["*"]
-  }
-  source_policy_documents = [
-    data.aws_iam_policy_document.sqs_role_policy_document.json,
-  ]
-}
-
-# IAM policy document for the container to access the sqs queue
-data "aws_iam_policy_document" "sqs_role_policy_document" {
-  statement {
-    sid    = "SQSSendMessage"
-    effect = "Allow"
-    actions = [
-      "sqs:DeleteMessage",
-      "sqs:ReceiveMessage",
-      "sqs:SendMessage",
-    ]
-    resources = [
-      data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_request.arn,
-      data.terraform_remote_state.sqs_queues.outputs.sqs_queue.markov_user_response.arn,
-    ]
   }
 }
 

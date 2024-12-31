@@ -11,7 +11,6 @@ builds:
       - linux
     goarch:
       - amd64
-      # - arm64
     hooks:
       pre:
         - dir: ./cmd/statisticsbot
@@ -19,37 +18,20 @@ builds:
 checksum:
   name_template: "checksums.txt"
 dockers:
-  - id: statisticsbot-amd-build
+  - id: statisticsbot-build
     ids:
       - statisticsbot
     goarch: amd64
-    use: buildx
     build_flag_templates:
-      - "--platform=linux/amd64"
-      - "--build-arg=ARCH=amd64"
       - "--build-arg=KIND=statisticsbot"
     image_templates:
-      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-amd64"
-      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest-amd64"
-    dockerfile: Dockerfile
-  - id: statisticsbot-arm-build
-    ids:
-      - statisticsbot
-    goarch: arm64
-    use: buildx
-    build_flag_templates:
-      - "--platform=linux/arm64"
-      - "--build-arg=ARCH=arm64"
-      - "--build-arg=KIND=statisticsbot"
-    image_templates:
-      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-arm64"
-      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest-arm64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-latest"
     dockerfile: Dockerfile
 docker_manifests:
   - name_template: "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}"
     image_templates:
-      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-amd64"
-      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}-arm64"
+      - "{{ .Env.REPO }}:{{ tolower .ProjectName }}-{{ .Version }}"
 changelog:
   sort: asc
   filters:
