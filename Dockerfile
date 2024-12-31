@@ -1,6 +1,6 @@
 FROM alpine:3.21
 
-WORKDIR /usr/src/app
+ARG KIND
 
 COPY ${KIND} app
 
