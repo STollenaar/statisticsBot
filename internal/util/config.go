@@ -14,9 +14,10 @@ import (
 )
 
 type Config struct {
-	DISCORD_TOKEN string
-	DATABASE_HOST string
-	DUCKDB_PATH   string
+	DISCORD_TOKEN         string
+	DATABASE_HOST         string
+	DUCKDB_PATH           string
+	SENTENCE_TRANSFORMERS string
 
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
@@ -78,13 +79,14 @@ func init() {
 	}
 
 	ConfigFile = &Config{
-		DISCORD_TOKEN:      os.Getenv("DISCORD_TOKEN"),
-		DATABASE_HOST:      os.Getenv("DATABASE_HOST"),
-		AWS_PARAMETER_NAME: os.Getenv("AWS_PARAMETER_NAME"),
-		SQS_REQUEST:        os.Getenv("SQS_REQUEST"),
-		DUCKDB_PATH:        os.Getenv("DUCKDB_PATH"),
-		SQS_RESPONSE:       os.Getenv("SQS_RESPONSE"),
-		TERMINAL_REGEX:     os.Getenv("TERMINAL_REGEX"),
+		DISCORD_TOKEN:         os.Getenv("DISCORD_TOKEN"),
+		DATABASE_HOST:         os.Getenv("DATABASE_HOST"),
+		AWS_PARAMETER_NAME:    os.Getenv("AWS_PARAMETER_NAME"),
+		SQS_REQUEST:           os.Getenv("SQS_REQUEST"),
+		DUCKDB_PATH:           os.Getenv("DUCKDB_PATH"),
+		SQS_RESPONSE:          os.Getenv("SQS_RESPONSE"),
+		TERMINAL_REGEX:        os.Getenv("TERMINAL_REGEX"),
+		SENTENCE_TRANSFORMERS: os.Getenv("SENTENCE_TRANSFORMERS"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`

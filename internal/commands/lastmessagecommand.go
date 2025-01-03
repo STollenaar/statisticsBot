@@ -42,7 +42,7 @@ func LastMessage(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 		WHERE rank = 1;
 	`
 
-	filterResult, err := database.GetFromFilter(fmt.Sprintf(query, filter), values)
+	filterResult, err := database.QueryDuckDB(fmt.Sprintf(query, filter), values)
 	if err != nil {
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 			Content: &response,

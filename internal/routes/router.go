@@ -3,16 +3,23 @@ package routes
 import (
 	"net/http"
 
+	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 )
-  
-func CreateRouter() {
+
+var (
+	bot *discordgo.Session
+)
+
+func CreateRouter(b *discordgo.Session) {
+	bot = b
 	r := gin.Default()
 	r.GET("/ping", func(c *gin.Context) {
-	  c.JSON(http.StatusOK, gin.H{
-		"message": "pong",
-	  })
+		c.JSON(http.StatusOK, gin.H{
+			"message": "pong",
+		})
 	})
 	addGetUserMessages(r)
-	r.Run() 
+	addFixDatabase(r)
+	r.Run()
 }

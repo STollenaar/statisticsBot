@@ -113,7 +113,7 @@ func CountFilterOccurences(filter, word string, params []interface{}) (messageOb
 		q = fmt.Sprintf(query, fmt.Sprintf(tokenFilter, filter), "")
 	}
 
-	messages, err := database.GetFromFilter(q, append(params, word))
+	messages, err := database.QueryDuckDB(q, append(params, word))
 	if err != nil {
 		return nil, err
 	}

@@ -12,7 +12,8 @@
             "cwd": "cmd/statisticsbot",
             "program": "cmd/statisticsbot/main.go",
             "env": {
-                "CGO_ENABLED": "1"
+                "CGO_ENABLED": "1",
+                "DUCKDB_PATH": "/home/stollenaar/NAS/statisticsbot/duckdb",
             }
         }
     ]

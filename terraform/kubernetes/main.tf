@@ -17,12 +17,16 @@ resource "kubernetes_deployment" "statisticsbot" {
     }
   }
   spec {
+    strategy {
+      type = "Recreate"
+    }
     selector {
       match_labels = {
         app = local.name
       }
     }
     template {
+
       metadata {
         annotations = {
           "vault.hashicorp.com/agent-inject" = "true"
@@ -35,11 +39,12 @@ resource "kubernetes_deployment" "statisticsbot" {
         }
       }
       spec {
+
         image_pull_secrets {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab5c125"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-c2ba344"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -60,6 +65,10 @@ resource "kubernetes_deployment" "statisticsbot" {
           env {
             name  = "DUCKDB_PATH"
             value = "/duckdb"
+          }
+          env {
+            name  = "SENTENCE_TRANSFORMERS"
+            value = "localhost:8000"
           }
           port {
             container_port = 8080
@@ -350,8 +359,29 @@ resource "kubernetes_deployment" "attu" {
             name  = "MILVUS_URL"
             value = "http://${kubernetes_service_v1.database.metadata.0.name}:19530"
           }
+          port {
+            container_port = 3000
+            name           = "attu"
+          }
         }
       }
+    }
+  }
+}
+
+resource "kubernetes_service" "attu" {
+  metadata {
+    name      = "attu"
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+  }
+  spec {
+    selector = {
+      app = "attu"
+    }
+    port {
+      name        = "attu"
+      port        = 3000
+      target_port = 3000
     }
   }
 }

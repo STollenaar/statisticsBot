@@ -24,8 +24,7 @@ import (
 )
 
 const (
-	collectionName       = "statisticsbot"
-	sentenceTransformers = "localhost:8000"
+	collectionName = "statisticsbot"
 )
 
 var (
@@ -177,7 +176,7 @@ func initDuckDB() {
 
 // Init doing the initialization of all the messages
 func Init(bot *discordgo.Session, GuildID *string) {
-	guilds, err := bot.UserGuilds(100, "", "")
+	guilds, err := bot.UserGuilds(100, "", "", false)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -367,15 +366,34 @@ func constructMessageObject(message *discordgo.Message, guildID string) {
 }
 
 // Get a result from the database using a filter
-func GetFromFilter(query string, params []interface{}) (results *sql.Rows, err error) {
+func QueryDuckDB(query string, params []interface{}) (results *sql.Rows, err error) {
 
 	return duckdbClient.Query(query, params...)
+}
+
+// Execute a query on the database
+func ExecDuckDB(query string, params []interface{}) (results sql.Result, err error) {
+
+	return duckdbClient.Exec(query, params...)
+}
+
+func DeleteMilvus(query string) error {
+	
+	err := milvusClient.Delete(context.TODO(), collectionName, "", query)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func StartTX() (*sql.Tx, error) {
+	return duckdbClient.Begin()
 }
 
 func getEmbedding(in string) (EmbeddingResponse, error) {
 	requestBody, _ := json.Marshal(TextRequest{Text: in})
 
-	resp, err := http.Post(fmt.Sprintf("http://%s/embed", sentenceTransformers), "application/json", bytes.NewBuffer(requestBody))
+	resp, err := http.Post(fmt.Sprintf("http://%s/embed", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		fmt.Printf("Error making request: %v\n", err)
 		return EmbeddingResponse{}, err

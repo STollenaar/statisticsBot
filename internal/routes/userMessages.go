@@ -70,7 +70,7 @@ func handleGetUserMessages(c *gin.Context) {
 
 func getUserMessages(guildID, userID string) (messageObject []*util.MessageObject) {
 
-	filterResult, err := database.GetFromFilter("guild_id==? AND author_id==?", []interface{}{guildID, userID})
+	filterResult, err := database.QueryDuckDB("guild_id==? AND author_id==?", []interface{}{guildID, userID})
 	if err != nil {
 		panic(err)
 	}
