@@ -42,6 +42,10 @@ var (
 			Description: "Returns the last time someone used a certain word somewhere or someone.",
 			Options:     botcommand.CreateCommandArguments(false, true, false),
 		},
+		{
+			Name:        "db",
+			Description: "Uploads the database to the server.",
+		},
 	}
 
 	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
@@ -49,6 +53,7 @@ var (
 		"count": botcommand.CountCommand,
 		"max":   botcommand.MaxCommand,
 		"last":  botcommand.LastMessage,
+		"db":    botcommand.DBCommand,
 	}
 )
 

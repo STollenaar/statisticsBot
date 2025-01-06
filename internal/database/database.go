@@ -31,6 +31,7 @@ const (
 var (
 	milvusClient client.Client
 	duckdbClient *sql.DB
+	dbPath       string
 )
 
 // Define the request and response structures
@@ -152,7 +153,9 @@ func initMilvus() {
 func initDuckDB() {
 	var err error
 
-	duckdbClient, err = sql.Open("duckdb", fmt.Sprintf("%s/statsbot.db", util.ConfigFile.DUCKDB_PATH)) // Create or connect to messages.db
+	dbPath = fmt.Sprintf("%s/statsbot.db", util.ConfigFile.DUCKDB_PATH)
+
+	duckdbClient, err = sql.Open("duckdb", dbPath) // Create or connect to messages.db
 
 	if err != nil {
 		log.Fatal(err)
@@ -387,4 +390,9 @@ func getEmbedding(in string) (EmbeddingResponse, error) {
 	json.Unmarshal(body, &result)
 
 	return result, nil
+}
+
+// GetDBPath returns the path to the DuckDB database file
+func GetDBPath() string {
+	return dbPath
 }
