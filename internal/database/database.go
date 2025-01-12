@@ -291,7 +291,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	// Constructing operations for first 100
 	for _, message := range messages {
 		operations++
-		constructMessageObject(message, channel.GuildID)
+		ConstructMessageObject(message, channel.GuildID)
 	}
 
 	// Loading more messages if got 100 message the first time
@@ -308,7 +308,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 
 			for _, message := range moreMes {
 				operations++
-				constructMessageObject(message, channel.GuildID)
+				ConstructMessageObject(message, channel.GuildID)
 			}
 			if len(moreMes) != 0 {
 				lastMessageCollected = moreMes[len(moreMes)-1]
@@ -322,7 +322,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
-func constructMessageObject(message *discordgo.Message, guildID string) {
+func ConstructMessageObject(message *discordgo.Message, guildID string) {
 
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {

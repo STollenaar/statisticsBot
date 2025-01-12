@@ -33,6 +33,6 @@ func MessageListener(session *discordgo.Session, message *discordgo.MessageCreat
 		if len(message.Attachments) > 0 {
 			return
 		}
-		constructMessageObject(message.Message, message.GuildID)
+		ConstructMessageObject(message.Message, message.GuildID)
 	}
 }
