@@ -32,3 +32,4 @@ type SQSObject struct {
 	Token         string `json:"token"`
 	ApplicationID string `json:"applicationID"`
 }
+

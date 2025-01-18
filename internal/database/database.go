@@ -378,12 +378,21 @@ func ExecDuckDB(query string, params []interface{}) (results sql.Result, err err
 }
 
 func DeleteMilvus(query string) error {
-	
+
 	err := milvusClient.Delete(context.TODO(), collectionName, "", query)
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func QueryMilvus(query string, outputFields []string) (*client.QueryIterator, error) {
+	
+	rs, err := milvusClient.QueryIterator(context.TODO(), client.NewQueryIteratorOption(collectionName).WithExpr(query).WithOutputFields(outputFields...))
+	if err != nil {
+		return nil, err
+	}
+	return rs, nil
 }
 
 func StartTX() (*sql.Tx, error) {
@@ -405,4 +414,61 @@ func getEmbedding(in string) (EmbeddingResponse, error) {
 	json.Unmarshal(body, &result)
 
 	return result, nil
+}
+
+
+func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {
+	query := `
+		WITH tokenized_messages AS (
+			SELECT 
+				author_id,
+				guild_id,
+				LOWER(unnest(string_split(regexp_replace(content, '[^a-zA-Z0-9'' ]', '', 'g'), ' '))) AS word
+			FROM messages
+			%s
+		)
+		SELECT 
+            guild_id,
+			author_id,
+			word,
+			COUNT(*) AS word_count
+		FROM tokenized_messages
+		%s
+		GROUP BY author_id, guild_id, word
+		ORDER BY word_count DESC;
+	`
+
+	tokenFilter := `WHERE %s`
+	wordFilter := `WHERE word = LOWER(?)`
+	var q string
+	if word != "" {
+		q = fmt.Sprintf(query, fmt.Sprintf(tokenFilter, filter), wordFilter)
+	} else {
+		q = fmt.Sprintf(query, fmt.Sprintf(tokenFilter, filter), "")
+	}
+
+	messages, err := QueryDuckDB(q, append(params, word))
+	if err != nil {
+		return nil, err
+	}
+
+	for messages.Next() {
+		var guild_id, author_id, word string
+		var word_count int
+
+		err = messages.Scan(&guild_id, &author_id, &word, &word_count)
+		if err != nil {
+			break
+		}
+
+		messageObject := util.CountGrouped{
+			Author: author_id,
+			Word: util.WordCounted{
+				Word:  word,
+				Count: word_count,
+			},
+		}
+		messageObjects = append(messageObjects, messageObject)
+	}
+	return
 }

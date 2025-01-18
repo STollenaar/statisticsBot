@@ -2,3 +2,7 @@ Dockerfile
 .dockerignore
 .gitignore
 volumes/
+sentence_transformers/
+insert.py
+prepdta.py
+Makefile

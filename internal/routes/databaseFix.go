@@ -251,7 +251,8 @@ func addMissingEntries(c *gin.Context) {
 	}
 	// Waiting for all async calls to complete
 	waitGroup.Wait()
-
+	fmt.Printf("DatabaseFix: done collecting messages found %d messages\n", len(missedMessages))
+	var missed int
 	for _, message := range missedMessages {
 		if !slices.Contains(ids, message.ID) {
 			if message.Flags != discordgo.MessageFlagsLoading &&
@@ -275,11 +276,12 @@ func addMissingEntries(c *gin.Context) {
 					continue
 				}
 				database.ConstructMessageObject(message, message.GuildID)
+				missed++
 			}
 		}
 	}
 	c.JSON(200, gin.H{
-		"message": "done",
+		"message": fmt.Sprintf("done, added %d messages", missed),
 	})
 }
 func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []string, waitGroup *sync.WaitGroup) (result []*discordgo.Message) {
@@ -305,6 +307,7 @@ func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []str
 
 // loadMessages loading messages from the channel
 func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) (result []*discordgo.Message) {
+	fmt.Printf("DatabaseFix: loading %s", channel.Name)
 
 	// Getting last message and first 100
 	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
@@ -327,5 +330,6 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) (result []
 			}
 		}
 	}
+	fmt.Printf("DatabaseFix: done collecting messages for %s\n", channel.Name)
 	return
 }

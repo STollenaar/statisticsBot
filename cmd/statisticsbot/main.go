@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	botcommand "github.com/stollenaar/statisticsbot/internal/commands"
+	"github.com/stollenaar/statisticsbot/internal/commands"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/internal/util"
@@ -21,35 +21,6 @@ var (
 
 	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
-
-	commands = []*discordgo.ApplicationCommand{
-		{
-			Name:        "ping",
-			Description: "pong",
-		},
-		{
-			Name:        "count",
-			Description: "Returns the amount of times a word is used.",
-			Options:     botcommand.CreateCommandArguments(true, false, false),
-		},
-		{
-			Name:        "max",
-			Description: "Returns who used a certain word the most. In a certain channel, or of a user",
-			Options:     botcommand.CreateCommandArguments(false, false, false),
-		},
-		{
-			Name:        "last",
-			Description: "Returns the last time someone used a certain word somewhere or someone.",
-			Options:     botcommand.CreateCommandArguments(false, true, false),
-		},
-	}
-
-	commandHandlers = map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate){
-		"ping":  PingCommand,
-		"count": botcommand.CountCommand,
-		"max":   botcommand.MaxCommand,
-		"last":  botcommand.LastMessage,
-	}
 )
 
 func init() {
@@ -58,7 +29,7 @@ func init() {
 	bot, _ = discordgo.New("Bot " + util.GetDiscordToken())
 
 	bot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
-		if h, ok := commandHandlers[i.ApplicationCommandData().Name]; ok {
+		if h, ok := commands.CommandHandlers[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 		}
 	})
@@ -75,8 +46,8 @@ func main() {
 	}
 
 	log.Println("Adding commands...")
-	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands))
-	for i, v := range commands {
+	registeredCommands := make([]*discordgo.ApplicationCommand, len(commands.ApplicationCommands))
+	for i, v := range commands.ApplicationCommands {
 		cmd, err := bot.ApplicationCommandCreate(bot.State.User.ID, *GuildID, v)
 		if err != nil {
 			log.Panicf("Cannot create '%v' command: %v", v.Name, err)
@@ -110,14 +81,4 @@ func main() {
 			}
 		}
 	}
-}
-
-// PingCommand sends back the pong
-func PingCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Pong",
-		},
-	})
 }

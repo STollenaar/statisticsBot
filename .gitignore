@@ -9,3 +9,6 @@ terraform/**/.terraform/
 volumes/
 **/*.db*
 *.csv
+cmd/statisticsbot/__debug_*
+__pycache__/
+venv/

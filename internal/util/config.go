@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -25,6 +26,9 @@ type Config struct {
 
 	SQS_REQUEST  string
 	SQS_RESPONSE string
+
+	EPS         float32
+	MIN_SAMPLES int
 }
 
 var (
@@ -87,10 +91,22 @@ func init() {
 		SQS_RESPONSE:          os.Getenv("SQS_RESPONSE"),
 		TERMINAL_REGEX:        os.Getenv("TERMINAL_REGEX"),
 		SENTENCE_TRANSFORMERS: os.Getenv("SENTENCE_TRANSFORMERS"),
+		EPS: 0.3,
+		MIN_SAMPLES: 6,
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
 	}
+
+	if t := os.Getenv("SUMMARIZE_EPS"); t != "" {
+		temp, _ := strconv.ParseFloat(t, 32)
+		ConfigFile.EPS = float32(temp)
+	} 
+
+	if t := os.Getenv("SUMMARIZE_CLUSTER_MIN_SAMPLES"); t != "" {
+		temp, _ := strconv.Atoi(t)
+		ConfigFile.MIN_SAMPLES = temp
+	} 
 }
 
 func GetDiscordToken() string {
