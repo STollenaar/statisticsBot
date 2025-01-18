@@ -52,11 +52,11 @@ resource "kubernetes_deployment" "statisticsbot" {
           }
           command = [
             "sh", "-c",
-            "until curl -sf http://$SENTENCE_TRANSFORMERS/healthz; do echo 'Waiting for sentence-transformers /healthz endpoint...'; sleep 5; done"
+            "until wget -q --spider http://$SENTENCE_TRANSFORMERS/healthz; do echo 'Waiting for sentence-transformers /healthz endpoint...'; sleep 5; done"
           ]
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-4ff0d3e"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-8329a2b"
           name  = local.name
           env {
             name  = "AWS_REGION"

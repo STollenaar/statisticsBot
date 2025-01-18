@@ -2,7 +2,7 @@
 resource "kubernetes_deployment" "sentence_transformers" {
   metadata {
     name      = "sentence-transformers"
-    namespace = kubernetes_namespace.sentence_transformers.metadata.0.name
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
     labels = {
       app = "sentence-transformers"
     }
@@ -30,7 +30,7 @@ resource "kubernetes_deployment" "sentence_transformers" {
         }
         container {
           name              = "sentence-transformers"
-          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:0.0.2"
+          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:0.0.3"
           image_pull_policy = "IfNotPresent"
           port {
             container_port = 8000
@@ -45,7 +45,7 @@ resource "kubernetes_deployment" "sentence_transformers" {
 resource "kubernetes_service_v1" "sentence_transformers" {
   metadata {
     name      = "sentence-transformers"
-    namespace = kubernetes_namespace.sentence_transformers.metadata.0.name
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
   }
   spec {
     selector = {

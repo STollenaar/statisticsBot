@@ -23,7 +23,7 @@ async def embed(request: TextRequest):
     return {"embedding": embedding}
 
 # Health check endpoint
-@app.post("/healthz")
+@app.get("/healthz")
 async def health_check() -> Dict[str, str]:
     # Return a simple message indicating that the service is healthy
     return {"status": "ok"}
