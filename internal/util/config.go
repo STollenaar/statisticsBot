@@ -29,6 +29,7 @@ type Config struct {
 
 	EPS         float32
 	MIN_SAMPLES int
+	TOP_N       int
 }
 
 var (
@@ -91,8 +92,9 @@ func init() {
 		SQS_RESPONSE:          os.Getenv("SQS_RESPONSE"),
 		TERMINAL_REGEX:        os.Getenv("TERMINAL_REGEX"),
 		SENTENCE_TRANSFORMERS: os.Getenv("SENTENCE_TRANSFORMERS"),
-		EPS: 0.3,
-		MIN_SAMPLES: 6,
+		EPS:                   0.3,
+		MIN_SAMPLES:           6,
+		TOP_N:                 3,
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
@@ -101,12 +103,16 @@ func init() {
 	if t := os.Getenv("SUMMARIZE_EPS"); t != "" {
 		temp, _ := strconv.ParseFloat(t, 32)
 		ConfigFile.EPS = float32(temp)
-	} 
+	}
 
 	if t := os.Getenv("SUMMARIZE_CLUSTER_MIN_SAMPLES"); t != "" {
 		temp, _ := strconv.Atoi(t)
 		ConfigFile.MIN_SAMPLES = temp
-	} 
+	}
+	if t := os.Getenv("SUMMARIZE_TOP_N"); t != "" {
+		temp, _ := strconv.Atoi(t)
+		ConfigFile.TOP_N = temp
+	}
 }
 
 func GetDiscordToken() string {

@@ -8,6 +8,7 @@ WORKDIR /app
 COPY . /app
 
 # Install dependencies
+RUN pip install torch --no-cache-dir --index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose the port that FastAPI will run on

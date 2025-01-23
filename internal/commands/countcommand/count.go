@@ -56,19 +56,19 @@ func (c CountCommand) Handler(bot *discordgo.Session, interaction *discordgo.Int
 
 func (c CountCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "word",
 			Description: "Word to count",
 			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    true,
 		},
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "user",
 			Description: "User to filter with",
 			Type:        discordgo.ApplicationCommandOptionUser,
 			Required:    false,
 		},
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "channel",
 			Description: "Channel to filter with",
 			Type:        discordgo.ApplicationCommandOptionChannel,

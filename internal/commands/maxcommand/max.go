@@ -40,13 +40,26 @@ func (m MaxCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inter
 	})
 
 	parsedArguments := m.ParseArguments(bot, interaction).(*CommandParsed)
-	if !parsedArguments.IsNotEmpty() {
-		parsedArguments.UserTarget = interaction.Member.User
+	if parsedArguments.UserTarget != nil && parsedArguments.Word != "" {
+		response := "Usage of both \"user\" and \"word\" at the same time is not correct. Please only specify either."
+		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			Content: &response,
+		})
+		return
 	}
 
 	maxWord := parsedArguments.FindAllWordOccurences()
 
 	var response string
+
+	targetUser, _ := bot.GuildMember(interaction.GuildID, maxWord.Author)
+
+	if parsedArguments.UserTarget != nil {
+		response = fmt.Sprintf("\"%s\" is the most common word used by %s.", maxWord.Word.Word, targetUser.Mention())
+	} else {
+		response = fmt.Sprintf("%s has used the word \"%s\" more than anyone else, a total of %d time(s)", targetUser.Mention(), maxWord.Word.Word, maxWord.Word.Count)
+	}
+
 	if (parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID) || maxWord.Author != interaction.Member.User.ID {
 		targetUser := parsedArguments.UserTarget
 		if targetUser == nil {
@@ -65,24 +78,27 @@ func (m MaxCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inter
 	fmt.Printf("Max Output: %s", response)
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 		Content: &response,
+		AllowedMentions: &discordgo.MessageAllowedMentions{
+			Users: []string{interaction.Member.User.ID},
+		},
 	})
 }
 
 func (m MaxCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "user",
 			Description: "User to filter with",
 			Type:        discordgo.ApplicationCommandOptionUser,
-			Required:    true,
+			Required:    false,
 		},
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "word",
 			Description: "Word to count",
 			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    false,
 		},
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "channel",
 			Description: "Channel to filter with",
 			Type:        discordgo.ApplicationCommandOptionChannel,

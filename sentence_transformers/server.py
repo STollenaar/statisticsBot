@@ -7,6 +7,7 @@ from sentence_transformers import SentenceTransformer
 # Initialize the app and model
 app = FastAPI()
 model = SentenceTransformer('all-MiniLM-L6-v2')  # Use any SentenceTransformers model
+mood_model = SentenceTransformer('j-hartmann/emotion-english-distilroberta-base')
 
 app.include_router(router)
 
@@ -16,11 +17,13 @@ class TextRequest(BaseModel):
 
 class EmbeddingResponse(BaseModel):
     embedding: list
+    moodEmbedding: list
 
 @app.post("/embed", response_model=EmbeddingResponse)
 async def embed(request: TextRequest):
     embedding = model.encode(request.text).tolist()
-    return {"embedding": embedding}
+    mood_embedding = mood_model.encode(request.text).tolist()
+    return {"embedding": embedding, "moodEmbedding":mood_embedding}
 
 # Health check endpoint
 @app.get("/healthz")

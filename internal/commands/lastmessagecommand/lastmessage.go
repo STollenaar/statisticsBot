@@ -102,19 +102,19 @@ func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discord
 
 func (l LastMessageCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "user",
 			Description: "User to filter with",
 			Type:        discordgo.ApplicationCommandOptionUser,
 			Required:    true,
 		},
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "word",
 			Description: "Word to count",
 			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    false,
 		},
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "channel",
 			Description: "Channel to filter with",
 			Type:        discordgo.ApplicationCommandOptionChannel,

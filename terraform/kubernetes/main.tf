@@ -56,7 +56,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           ]
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-aff2c1e"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-1ba4754"
           name  = local.name
           env {
             name  = "AWS_REGION"

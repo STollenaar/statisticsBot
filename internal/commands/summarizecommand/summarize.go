@@ -20,7 +20,7 @@ import (
 
 var (
 	SummarizeCmd = SummarizeCommand{
-		Name: "summarize",
+		Name:        "summarize",
 		Description: "summarize past messages from a period of time",
 	}
 	pastMessages = `
@@ -56,6 +56,7 @@ type SummaryRequest struct {
 	SummaryBodies []SummaryBody `json:"messages"`
 	Eps           float32       `json:"eps"`
 	MinSamples    int           `json:"minSamples"`
+	TopN          int           `json:"topN"`
 }
 
 type SummaryBody struct {
@@ -114,6 +115,14 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		messageIds = append(messageIds, id)
 	}
 
+	if len(messageIds) <= util.ConfigFile.MIN_SAMPLES+1 {
+		eString := "Not enough messages to summarize. Try increasing the timeframe"
+		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			Content: &eString,
+		})
+		return
+	}
+
 	// Get the Milvus vectors
 	mvResult, err := database.QueryMilvus(fmt.Sprintf(milvusQuery, fmt.Sprintf(`["%s"]`, strings.Join(messageIds, `", "`))), []string{"id", "embedding"})
 	if err != nil {
@@ -130,15 +139,15 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		if err != nil {
 			break
 		}
-        for i:=0;i < rs.GetColumn("id").Len(); i++ {
-            var id string
-            var vector []float32
-    
-            id, _ = rs.GetColumn("id").GetAsString(i)
-            v, _ := rs.GetColumn("embedding").Get(i)
-            vector = v.([]float32)
-            messages = append(messages, SummaryBody{vector, messagMap[id]})
-        }
+		for i := 0; i < rs.GetColumn("id").Len(); i++ {
+			var id string
+			var vector []float32
+
+			id, _ = rs.GetColumn("id").GetAsString(i)
+			v, _ := rs.GetColumn("embedding").Get(i)
+			vector = v.([]float32)
+			messages = append(messages, SummaryBody{vector, messagMap[id]})
+		}
 	}
 
 	// Get and create the summary
@@ -158,9 +167,8 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 
 	for topic, summary := range summaries.Summaries {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:   topic,
-			Value:  summary,
-			Inline: true,
+			Name:  topic,
+			Value: summary,
 		})
 	}
 
@@ -190,7 +198,7 @@ func (s SummarizeCommand) ParseArguments(bot *discordgo.Session, interaction *di
 
 func (s SummarizeCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
-		&discordgo.ApplicationCommandOption{
+		{
 			Name:        "unit",
 			Description: "How far back to summarize the messages",
 			Type:        discordgo.ApplicationCommandOptionString,
@@ -244,9 +252,10 @@ func getSummary(messages []SummaryBody) (SummaryResponse, error) {
 		SummaryBodies: messages,
 		Eps:           util.ConfigFile.EPS,
 		MinSamples:    util.ConfigFile.MIN_SAMPLES,
+		TopN:          util.ConfigFile.TOP_N,
 	})
 
-    os.WriteFile("req.json", requestBody, 0644)
+	os.WriteFile("req.json", requestBody, 0644)
 
 	resp, err := http.Post(fmt.Sprintf("http://%s/summarize", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
@@ -256,9 +265,9 @@ func getSummary(messages []SummaryBody) (SummaryResponse, error) {
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-    result := SummaryResponse{
-        Summaries: map[string]string{},
-    }
+	result := SummaryResponse{
+		Summaries: map[string]string{},
+	}
 	json.Unmarshal(body, &result)
 	return result, nil
 }

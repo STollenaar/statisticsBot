@@ -39,6 +39,7 @@ type TextRequest struct {
 
 type EmbeddingResponse struct {
 	Embedding []float32 `json:"embedding"`
+	MoodEmbedding []float32 `json:"moodEmbedding"`
 }
 
 func init() {
@@ -114,6 +115,13 @@ func initMilvus() {
 						entity.TypeParamDim: "384",
 					},
 				},
+				{
+					Name:     "mood_embedding",
+					DataType: entity.FieldTypeFloatVector,
+					TypeParams: map[string]string{
+						entity.TypeParamDim: "768",
+					},
+				},
 			},
 		}, entity.DefaultShardNumber)
 
@@ -134,6 +142,24 @@ func initMilvus() {
 		}
 		// Create the index
 		err = milvusClient.CreateIndex(context.Background(), collectionName, "embedding", idx, false)
+		if err != nil {
+			log.Fatalf("Failed to create index: %v", err)
+		}
+	} else {
+		fmt.Printf("Index already exists: %v\n", indexes)
+	}
+
+	// Check if an index exists for the specified field
+	indexes, err = milvusClient.DescribeIndex(context.Background(), collectionName, "mood_embedding")
+	if err != nil {
+		fmt.Println("No index'. Creating index...")
+		// Now add index
+		idx, err := entity.NewIndexIvfFlat(entity.L2, 2)
+		if err != nil {
+			log.Fatal("fail to create ivf flat index:", err.Error())
+		}
+		// Create the index
+		err = milvusClient.CreateIndex(context.Background(), collectionName, "mood_embedding", idx, false)
 		if err != nil {
 			log.Fatalf("Failed to create index: %v", err)
 		}
@@ -354,8 +380,9 @@ func ConstructMessageObject(message *discordgo.Message, guildID string) {
 	channelC := entity.NewColumnVarChar("channel_id", []string{message.ChannelID})
 	authorC := entity.NewColumnVarChar("author_id", []string{message.Author.ID})
 	embedC := entity.NewColumnFloatVector("embedding", 384, [][]float32{embedding.Embedding})
+	moodEmbedC := entity.NewColumnFloatVector("mood_embedding", 768, [][]float32{embedding.MoodEmbedding})
 
-	_, err = milvusClient.Insert(context.TODO(), collectionName, "", idC, guildC, channelC, authorC, embedC)
+	_, err = milvusClient.Insert(context.TODO(), collectionName, "", idC, guildC, channelC, authorC, embedC, moodEmbedC)
 	if err != nil {
 		log.Fatalf("Error inserting into milvus: %s\n", err)
 	}
@@ -438,8 +465,8 @@ func CountFilterOccurences(filter, word string, params []interface{}) (messageOb
 		ORDER BY word_count DESC;
 	`
 
-	tokenFilter := `WHERE %s`
-	wordFilter := `WHERE word = LOWER(?)`
+	tokenFilter := `WHERE word != '' AND %s`
+	wordFilter := `WHERE word != '' AND word = LOWER(?)`
 	var q string
 	if word != "" {
 		q = fmt.Sprintf(query, fmt.Sprintf(tokenFilter, filter), wordFilter)
