@@ -465,7 +465,7 @@ func CountFilterOccurences(filter, word string, params []interface{}) (messageOb
 		ORDER BY word_count DESC;
 	`
 
-	tokenFilter := `WHERE word != '' AND %s`
+	tokenFilter := `WHERE %s`
 	wordFilter := `WHERE word != '' AND word = LOWER(?)`
 	var q string
 	if word != "" {
