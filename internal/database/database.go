@@ -38,7 +38,7 @@ type TextRequest struct {
 }
 
 type EmbeddingResponse struct {
-	Embedding []float32 `json:"embedding"`
+	Embedding     []float32 `json:"embedding"`
 	MoodEmbedding []float32 `json:"moodEmbedding"`
 }
 
@@ -370,7 +370,7 @@ func ConstructMessageObject(message *discordgo.Message, guildID string) {
 		content = []string{message.Content}
 	}
 
-	embedding, err := getEmbedding(strings.Join(content, "\n"))
+	embedding, err := GetEmbedding(strings.Join(content, "\n"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -405,7 +405,6 @@ func ExecDuckDB(query string, params []interface{}) (results sql.Result, err err
 }
 
 func DeleteMilvus(query string) error {
-
 	err := milvusClient.Delete(context.TODO(), collectionName, "", query)
 	if err != nil {
 		return err
@@ -413,8 +412,13 @@ func DeleteMilvus(query string) error {
 	return nil
 }
 
+func UpsertMilvus(columns []entity.Column) error {
+	_, err := milvusClient.Upsert(context.TODO(), collectionName, "", columns...)
+	return err
+}
+
 func QueryMilvus(query string, outputFields []string) (*client.QueryIterator, error) {
-	
+
 	rs, err := milvusClient.QueryIterator(context.TODO(), client.NewQueryIteratorOption(collectionName).WithExpr(query).WithOutputFields(outputFields...))
 	if err != nil {
 		return nil, err
@@ -426,7 +430,7 @@ func StartTX() (*sql.Tx, error) {
 	return duckdbClient.Begin()
 }
 
-func getEmbedding(in string) (EmbeddingResponse, error) {
+func GetEmbedding(in string) (EmbeddingResponse, error) {
 	requestBody, _ := json.Marshal(TextRequest{Text: in})
 
 	resp, err := http.Post(fmt.Sprintf("http://%s/embed", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
@@ -442,7 +446,6 @@ func getEmbedding(in string) (EmbeddingResponse, error) {
 
 	return result, nil
 }
-
 
 func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {
 	query := `
