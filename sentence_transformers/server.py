@@ -6,7 +6,7 @@ from sentence_transformers import SentenceTransformer
 
 # Initialize the app and model
 app = FastAPI()
-model = SentenceTransformer('all-MiniLM-L6-v2')  # Use any SentenceTransformers model
+model = SentenceTransformer('all-MiniLM-L12-v2')  # Use any SentenceTransformers model
 mood_model = SentenceTransformer('j-hartmann/emotion-english-distilroberta-base')
 
 app.include_router(router)

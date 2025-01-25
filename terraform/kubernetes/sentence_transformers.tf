@@ -24,13 +24,29 @@ resource "kubernetes_deployment" "sentence_transformers" {
         }
       }
       spec {
+        affinity {
+          node_affinity {
+            required_during_scheduling_ignored_during_execution {
+              node_selector_term {
+                match_expressions {
+                  key      = "node-role.kubernetes.io/worker"
+                  operator = "In"
+                  values = [
+                    "hard-worker"
+                  ]
+                }
+              }
+            }
+          }
+        }
 
         image_pull_secrets {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
+        
         container {
           name              = "sentence-transformers"
-          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:0.0.7"
+          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:0.0.8"
           image_pull_policy = "IfNotPresent"
           port {
             container_port = 8000
