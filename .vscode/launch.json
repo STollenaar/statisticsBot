@@ -36,6 +36,9 @@
             "program": "${workspaceFolder}/cmd/statisticsbot/main.go",
             "env": {
                 "CGO_ENABLED": "1",
+                "CC": "gcc",
+                "CGO_CFLAGS": "-g -O2",
+                "CGO_LDFLAGS": "-v"
             }
         }
     ]

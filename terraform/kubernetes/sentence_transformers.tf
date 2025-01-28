@@ -46,7 +46,7 @@ resource "kubernetes_deployment" "sentence_transformers" {
         
         container {
           name              = "sentence-transformers"
-          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:0.0.8"
+          image             = "${data.aws_ecr_repository.sentence_transformers.repository_url}:0.0.9"
           image_pull_policy = "IfNotPresent"
           port {
             container_port = 8000

@@ -1,4 +1,4 @@
-package summarizecommand
+package moodcommand
 
 import (
 	"bytes"
@@ -18,9 +18,9 @@ import (
 )
 
 var (
-	SummarizeCmd = SummarizeCommand{
-		Name:        "summarize",
-		Description: "summarize past messages from a period of time",
+	MoodCmd = MoodCommand{
+		Name:        "mood",
+		Description: "get the mood of messages from a period of time",
 	}
 	pastMessages = `
 		SELECT id, content
@@ -35,43 +35,42 @@ var (
 	`
 )
 
-type SummarizeCommand struct {
+type MoodCommand struct {
 	Name        string
 	Description string
 }
 
-// CommandParsed parsed struct for count command
 type CommandParsed struct {
 	Unit string
 }
 
-type SummaryResponse struct {
-	// TopicTitle is the key, and the summary is the value.
-	// The key can be a string (e.g., a topic title), and the value is the summary of that topic.
-	Summaries map[string]string `json:"summaries"`
+type MoodResponse struct {
+	// The key can be a string (e.g., a topic title), and the value is the Mood of that topic.
+	Mood map[string]string `json:"mood"`
 }
 
-type SummaryRequest struct {
-	SummaryBodies []SummaryBody `json:"messages"`
-	Eps           float32       `json:"eps"`
-	MinSamples    int           `json:"minSamples"`
-	TopN          int           `json:"topN"`
+type MoodRequest struct {
+	MoodBodies []MoodBody `json:"messages"`
+	Eps        float32    `json:"eps"`
+	MinSamples int        `json:"minSamples"`
+	TopN       int        `json:"topN"`
 }
 
-type SummaryBody struct {
+type MoodBody struct {
 	Vector  []float32 `json:"vector"`
 	Message string    `json:"message"`
 }
 
-func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (m MoodCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
-			Content: "Summarizing Data...",
+			Content: "Calculating Mood...",
+			Flags: discordgo.MessageFlagsEphemeral,
 		},
 	})
 
-	parsedArguments := s.ParseArguments(bot, interaction).(*CommandParsed)
+	parsedArguments := m.ParseArguments(bot, interaction).(*CommandParsed)
 
 	unit, err := parsedArguments.parseTimeArg()
 	if err != nil {
@@ -88,14 +87,14 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	rs, err := database.QueryDuckDB(pastMessages, []interface{}{interaction.GuildID, interaction.ChannelID, now.Add(-unit), now})
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
-		fmt.Printf("summarize duckDB error: %e\n", err)
+		fmt.Printf("mood duckDB error: %e\n", err)
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 			Content: &eString,
 		})
 		return
 	}
 
-	var messages []SummaryBody
+	var messages []MoodBody
 	messagMap := make(map[string]string)
 	var messageIds []string
 
@@ -103,8 +102,8 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		var id, content string
 		err := rs.Scan(&id, &content)
 		if err != nil {
-			eString := "error happened while trying to build summary body"
-			fmt.Printf("summarize duckDB error: %e\n", err)
+			eString := "error happened while trying to build Mood body"
+			fmt.Printf("mood duckDB error: %e\n", err)
 			bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 				Content: &eString,
 			})
@@ -115,7 +114,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	}
 
 	if len(messageIds) <= util.ConfigFile.MIN_SAMPLES+1 {
-		eString := "Not enough messages to summarize. Try increasing the timeframe"
+		eString := "Not enough messages to mood. Try increasing the timeframe"
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 			Content: &eString,
 		})
@@ -123,7 +122,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	}
 
 	// Get the Milvus vectors
-	mvResult, err := database.QueryMilvus(fmt.Sprintf(milvusQuery, fmt.Sprintf(`["%s"]`, strings.Join(messageIds, `", "`))), []string{"id", "embedding"})
+	mvResult, err := database.QueryMilvus(fmt.Sprintf(milvusQuery, fmt.Sprintf(`["%s"]`, strings.Join(messageIds, `", "`))), []string{"id", "mood_embedding"})
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
 		fmt.Printf("query milvus error: %e\n", err)
@@ -143,17 +142,17 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 			var vector []float32
 
 			id, _ = rs.GetColumn("id").GetAsString(i)
-			v, _ := rs.GetColumn("embedding").Get(i)
+			v, _ := rs.GetColumn("mood_embedding").Get(i)
 			vector = v.([]float32)
-			messages = append(messages, SummaryBody{vector, messagMap[id]})
+			messages = append(messages, MoodBody{vector, messagMap[id]})
 		}
 	}
 
-	// Get and create the summary
-	summaries, err := getSummary(messages)
+	// Get and create the Mood
+	mood, err := getMood(messages)
 	if err != nil {
-		eString := "error happened while trying to generate the summaries"
-		fmt.Printf("summarize error: %e\n", err)
+		eString := "error happened while trying to generate the mood"
+		fmt.Printf("mood error: %e\n", err)
 		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 			Content: &eString,
 		})
@@ -161,13 +160,13 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	}
 
 	embed := &discordgo.MessageEmbed{
-		Title: fmt.Sprintf("Summary of the past %s", parsedArguments.Unit),
+		Title: fmt.Sprintf("Mood of the past %s", parsedArguments.Unit),
 	}
 
-	for topic, summary := range summaries.Summaries {
+	for topic, Mood := range mood.Mood {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
 			Name:  topic,
-			Value: summary,
+			Value: Mood,
 		})
 	}
 
@@ -176,7 +175,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	})
 }
 
-func (s SummarizeCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
+func (m MoodCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
 	parsedArguments := new(CommandParsed)
 
 	// Access options in the order provided by the user.
@@ -195,11 +194,11 @@ func (s SummarizeCommand) ParseArguments(bot *discordgo.Session, interaction *di
 	return parsedArguments
 }
 
-func (s SummarizeCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
+func (m MoodCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
 	return []*discordgo.ApplicationCommandOption{
 		{
 			Name:        "unit",
-			Description: "How far back to summarize the messages",
+			Description: "How far back to get the mood of a conversation",
 			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    true,
 		},
@@ -245,25 +244,27 @@ func (c *CommandParsed) parseTimeArg() (time.Duration, error) {
 	return duration, nil
 }
 
-func getSummary(messages []SummaryBody) (SummaryResponse, error) {
+func getMood(messages []MoodBody) (MoodResponse, error) {
 
-	requestBody, _ := json.Marshal(SummaryRequest{
-		SummaryBodies: messages,
+	requestBody, _ := json.Marshal(MoodRequest{
+		MoodBodies: messages,
 		Eps:           util.ConfigFile.EPS,
 		MinSamples:    util.ConfigFile.MIN_SAMPLES,
 		TopN:          util.ConfigFile.TOP_N,
 	})
 
-	resp, err := http.Post(fmt.Sprintf("http://%s/summarize", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
+	// os.WriteFile("req.json", requestBody, 0644)
+
+	resp, err := http.Post(fmt.Sprintf("http://%s/mood", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
 	if err != nil {
 		fmt.Printf("Error making request: %v\n", err)
-		return SummaryResponse{}, err
+		return MoodResponse{}, err
 	}
 	defer resp.Body.Close()
 
 	body, _ := io.ReadAll(resp.Body)
-	result := SummaryResponse{
-		Summaries: map[string]string{},
+	result := MoodResponse{
+		Mood: map[string]string{},
 	}
 	json.Unmarshal(body, &result)
 	return result, nil

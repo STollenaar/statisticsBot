@@ -1,14 +1,11 @@
-module github.com/stollenaar/statisticsbot/internal/commands
+module github.com/stollenaar/statisticsbot/internal/commands/moodcommand
 
 go 1.23.4
 
 require (
 	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-00010101000000-000000000000
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-00010101000000-000000000000
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-00010101000000-000000000000
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-00010101000000-000000000000
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-00010101000000-000000000000
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20241231233536-c9bf243da6ce
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20241231233536-c9bf243da6ce
 )
 
 require (
@@ -62,8 +59,6 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20240112205114-26346908241a // indirect
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20241231233536-c9bf243da6ce // indirect
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20241231233536-c9bf243da6ce // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -87,11 +82,6 @@ require (
 )
 
 replace (
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand => ./countcommand
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand => ./lastmessagecommand
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand => ./maxcommand
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand => ./moodcommand
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand => ./summarizecommand
-	github.com/stollenaar/statisticsbot/internal/database => ../database
-	github.com/stollenaar/statisticsbot/internal/util => ../util
+	github.com/stollenaar/statisticsbot/internal/database => ../../database
+	github.com/stollenaar/statisticsbot/internal/util => ../../util
 )
