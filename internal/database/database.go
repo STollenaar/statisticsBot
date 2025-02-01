@@ -1,24 +1,15 @@
 package database
 
 import (
-	"bytes"
-	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/stollenaar/statisticsbot/internal/util"
 
 	"github.com/bwmarrin/discordgo"
-
-	"github.com/milvus-io/milvus-sdk-go/v2/client"
-	"github.com/milvus-io/milvus-sdk-go/v2/entity"
 
 	_ "github.com/marcboeker/go-duckdb" // DuckDB Go driver
 )
@@ -28,7 +19,6 @@ const (
 )
 
 var (
-	milvusClient client.Client
 	duckdbClient *sql.DB
 )
 
@@ -37,141 +27,12 @@ type TextRequest struct {
 	Text string `json:"text"`
 }
 
-type EmbeddingResponse struct {
-	Embedding     []float32 `json:"embedding"`
-	MoodEmbedding []float32 `json:"moodEmbedding"`
-}
-
 func init() {
-	initMilvus()
 	initDuckDB()
 }
 
 func Exit() {
-	milvusClient.Close()
 	duckdbClient.Close()
-}
-
-func initMilvus() {
-	var err error
-	//...other snippet ...
-	milvusClient, err = client.NewGrpcClient(context.TODO(), util.ConfigFile.DATABASE_HOST)
-	if err != nil {
-		// handle error
-		log.Fatal(err)
-	}
-
-	has, err := milvusClient.HasCollection(context.TODO(), collectionName)
-	if err != nil {
-		log.Fatal("failed to check whether collection exists:", err.Error())
-	}
-	if !has {
-		// collection with same name exist, clean up mess
-		err := milvusClient.CreateCollection(context.TODO(), &entity.Schema{
-			CollectionName: collectionName,
-			Description:    "Discord messages with embeddings",
-			AutoID:         false,
-			Fields: []*entity.Field{
-				{
-					Name:       "id",
-					DataType:   entity.FieldTypeVarChar,
-					PrimaryKey: true,
-					AutoID:     false,
-					TypeParams: map[string]string{
-						entity.TypeParamMaxLength: "64",
-					},
-				},
-				{
-					Name:       "guild_id",
-					DataType:   entity.FieldTypeVarChar,
-					PrimaryKey: false,
-					AutoID:     false,
-					TypeParams: map[string]string{
-						entity.TypeParamMaxLength: "64",
-					},
-				},
-				{
-					Name:       "channel_id",
-					DataType:   entity.FieldTypeVarChar,
-					PrimaryKey: false,
-					AutoID:     false,
-					TypeParams: map[string]string{
-						entity.TypeParamMaxLength: "64",
-					},
-				},
-				{
-					Name:       "author_id",
-					DataType:   entity.FieldTypeVarChar,
-					PrimaryKey: false,
-					AutoID:     false,
-					TypeParams: map[string]string{
-						entity.TypeParamMaxLength: "64",
-					},
-				},
-				{
-					Name:     "embedding",
-					DataType: entity.FieldTypeFloatVector,
-					TypeParams: map[string]string{
-						entity.TypeParamDim: "384",
-					},
-				},
-				{
-					Name:     "mood_embedding",
-					DataType: entity.FieldTypeFloatVector,
-					TypeParams: map[string]string{
-						entity.TypeParamDim: "768",
-					},
-				},
-			},
-		}, entity.DefaultShardNumber)
-
-		if err != nil {
-			log.Fatal("failed to create collection: ", err)
-		}
-
-	}
-
-	// Check if an index exists for the specified field
-	indexes, err := milvusClient.DescribeIndex(context.Background(), collectionName, "embedding")
-	if err != nil {
-		fmt.Println("No index'. Creating index...")
-		// Now add index
-		idx, err := entity.NewIndexIvfFlat(entity.L2, 2)
-		if err != nil {
-			log.Fatal("fail to create ivf flat index:", err.Error())
-		}
-		// Create the index
-		err = milvusClient.CreateIndex(context.Background(), collectionName, "embedding", idx, false)
-		if err != nil {
-			log.Fatalf("Failed to create index: %v", err)
-		}
-	} else {
-		fmt.Printf("Index already exists: %v\n", indexes)
-	}
-
-	// Check if an index exists for the specified field
-	indexes, err = milvusClient.DescribeIndex(context.Background(), collectionName, "mood_embedding")
-	if err != nil {
-		fmt.Println("No index'. Creating index...")
-		// Now add index
-		idx, err := entity.NewIndexIvfFlat(entity.L2, 2)
-		if err != nil {
-			log.Fatal("fail to create ivf flat index:", err.Error())
-		}
-		// Create the index
-		err = milvusClient.CreateIndex(context.Background(), collectionName, "mood_embedding", idx, false)
-		if err != nil {
-			log.Fatalf("Failed to create index: %v", err)
-		}
-	} else {
-		fmt.Printf("Index already exists: %v\n", indexes)
-	}
-
-	err = milvusClient.LoadCollection(context.TODO(), collectionName, false)
-	if err != nil {
-		// handle error
-		log.Fatal(err)
-	}
 }
 
 func initDuckDB() {
@@ -370,23 +231,7 @@ func ConstructMessageObject(message *discordgo.Message, guildID string) {
 		content = []string{message.Content}
 	}
 
-	embedding, err := GetEmbedding(strings.Join(content, "\n"))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	idC := entity.NewColumnVarChar("id", []string{message.ID})
-	guildC := entity.NewColumnVarChar("guild_id", []string{guildID})
-	channelC := entity.NewColumnVarChar("channel_id", []string{message.ChannelID})
-	authorC := entity.NewColumnVarChar("author_id", []string{message.Author.ID})
-	embedC := entity.NewColumnFloatVector("embedding", 384, [][]float32{embedding.Embedding})
-	moodEmbedC := entity.NewColumnFloatVector("mood_embedding", 768, [][]float32{embedding.MoodEmbedding})
-
-	_, err = milvusClient.Insert(context.TODO(), collectionName, "", idC, guildC, channelC, authorC, embedC, moodEmbedC)
-	if err != nil {
-		log.Fatalf("Error inserting into milvus: %s\n", err)
-	}
-	_, err = duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?)`, message.ID, message.GuildID, message.ChannelID, message.Author.ID, message.Timestamp, message.Content)
+	_, err := duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?)`, message.ID, message.GuildID, message.ChannelID, message.Author.ID, message.Timestamp, message.Content)
 	if err != nil {
 		log.Fatalf("Error inserting into duckdb: %s\n", err)
 	}
@@ -404,47 +249,8 @@ func ExecDuckDB(query string, params []interface{}) (results sql.Result, err err
 	return duckdbClient.Exec(query, params...)
 }
 
-func DeleteMilvus(query string) error {
-	err := milvusClient.Delete(context.TODO(), collectionName, "", query)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func UpsertMilvus(columns []entity.Column) error {
-	_, err := milvusClient.Upsert(context.TODO(), collectionName, "", columns...)
-	return err
-}
-
-func QueryMilvus(query string, outputFields []string) (*client.QueryIterator, error) {
-
-	rs, err := milvusClient.QueryIterator(context.TODO(), client.NewQueryIteratorOption(collectionName).WithExpr(query).WithOutputFields(outputFields...))
-	if err != nil {
-		return nil, err
-	}
-	return rs, nil
-}
-
 func StartTX() (*sql.Tx, error) {
 	return duckdbClient.Begin()
-}
-
-func GetEmbedding(in string) (EmbeddingResponse, error) {
-	requestBody, _ := json.Marshal(TextRequest{Text: in})
-
-	resp, err := http.Post(fmt.Sprintf("http://%s/embed", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
-	if err != nil {
-		fmt.Printf("Error making request: %v\n", err)
-		return EmbeddingResponse{}, err
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	var result EmbeddingResponse
-	json.Unmarshal(body, &result)
-
-	return result, nil
 }
 
 func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {

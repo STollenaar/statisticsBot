@@ -31,7 +31,7 @@ resource "kubernetes_deployment" "statisticsbot" {
         annotations = {
           "vault.hashicorp.com/agent-inject" = "true"
           "vault.hashicorp.com/role"         = "internal-app"
-          "vault.hashicorp.com/aws-role"     = aws_iam_role.statisticsbot_role.name
+          "vault.hashicorp.com/aws-role"     = data.terraform_remote_state.iam_role.outputs.iam.statisticsbot_role.name
           "cache.spicedelver.me/cmtemplate"  = "vault-aws-agent"
         }
         labels = {
@@ -43,20 +43,8 @@ resource "kubernetes_deployment" "statisticsbot" {
         image_pull_secrets {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
-        init_container {
-          name  = "wait-for-pod"
-          image = "busybox"
-          env {
-            name  = "SENTENCE_TRANSFORMERS"
-            value = "${kubernetes_service_v1.sentence_transformers.metadata.0.name}.${kubernetes_namespace.statisticsbot.metadata.0.name}:8000"
-          }
-          command = [
-            "sh", "-c",
-            "until wget -q --spider http://$SENTENCE_TRANSFORMERS/healthz; do echo 'Waiting for sentence-transformers /healthz endpoint...'; sleep 5; done"
-          ]
-        }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-1e1a3e0"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-dd46fbd"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -71,16 +59,12 @@ resource "kubernetes_deployment" "statisticsbot" {
             value = "/discord_tokens/${local.name}"
           }
           env {
-            name  = "DATABASE_HOST"
-            value = "${kubernetes_service_v1.database.metadata.0.name}:19530"
-          }
-          env {
             name  = "DUCKDB_PATH"
             value = "/duckdb"
           }
           env {
-            name  = "SENTENCE_TRANSFORMERS"
-            value = "${kubernetes_service_v1.sentence_transformers.metadata.0.name}.${kubernetes_namespace.statisticsbot.metadata.0.name}:8000"
+            name  = "OLLAMA_URL"
+            value = "${data.terraform_remote_state.kubernetes_cluster.outputs.ollama.namespace.metadata.0.name}.${data.terraform_remote_state.kubernetes_cluster.outputs.ollama.service.metadata.0.name}:11434"
           }
           port {
             container_port = 8080
@@ -116,6 +100,21 @@ resource "kubernetes_service_v1" "statisticsbot" {
       name        = "router"
       target_port = 8080
       port        = 80
+    }
+  }
+}
+
+resource "kubernetes_persistent_volume_claim_v1" "duckdb" {
+  metadata {
+    name      = "duckdb"
+    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+  }
+  spec {
+    access_modes = ["ReadWriteOnce"]
+    resources {
+      requests = {
+        "storage" = "3Gi"
+      }
     }
   }
 }

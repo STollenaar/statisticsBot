@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -36,7 +35,6 @@ func init() {
 }
 
 func main() {
-	fmt.Println("STARTING DEBUGGING ISSUE")
 	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers)
 
 	bot.AddHandler(database.MessageListener)

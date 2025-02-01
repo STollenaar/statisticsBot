@@ -1,15 +1,10 @@
 package summarizecommand
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -23,15 +18,11 @@ var (
 		Description: "summarize past messages from a period of time",
 	}
 	pastMessages = `
-		SELECT id, content
+		SELECT author_id, content
 		FROM messages
 		WHERE guild_id = ? 
 		AND channel_id = ?
 		AND date BETWEEN ? and ?;
-	`
-
-	milvusQuery = `
-		id in %s
 	`
 )
 
@@ -46,21 +37,21 @@ type CommandParsed struct {
 }
 
 type SummaryResponse struct {
-	// TopicTitle is the key, and the summary is the value.
-	// The key can be a string (e.g., a topic title), and the value is the summary of that topic.
-	Summaries map[string]string `json:"summaries"`
+	Summaries []SummaryResponseBody `json:"messages"`
+}
+
+type SummaryResponseBody struct {
+	Topic   string `json:"topic"`
+	Summary string `json:"summary"`
 }
 
 type SummaryRequest struct {
 	SummaryBodies []SummaryBody `json:"messages"`
-	Eps           float32       `json:"eps"`
-	MinSamples    int           `json:"minSamples"`
-	TopN          int           `json:"topN"`
 }
 
 type SummaryBody struct {
-	Vector  []float32 `json:"vector"`
-	Message string    `json:"message"`
+	Author  string `json:"author"`
+	Message string `json:"message"`
 }
 
 func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
@@ -68,6 +59,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Summarizing Data...",
+			Flags:   discordgo.MessageFlagsEphemeral,
 		},
 	})
 
@@ -96,12 +88,10 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	}
 
 	var messages []SummaryBody
-	messagMap := make(map[string]string)
-	var messageIds []string
 
 	for rs.Next() {
-		var id, content string
-		err := rs.Scan(&id, &content)
+		var author_id, content string
+		err := rs.Scan(&author_id, &content)
 		if err != nil {
 			eString := "error happened while trying to build summary body"
 			fmt.Printf("summarize duckDB error: %e\n", err)
@@ -110,43 +100,10 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 			})
 			return
 		}
-		messagMap[id] = content
-		messageIds = append(messageIds, id)
-	}
-
-	if len(messageIds) <= util.ConfigFile.MIN_SAMPLES+1 {
-		eString := "Not enough messages to summarize. Try increasing the timeframe"
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: &eString,
+		messages = append(messages, SummaryBody{
+			Author:  author_id,
+			Message: content,
 		})
-		return
-	}
-
-	// Get the Milvus vectors
-	mvResult, err := database.QueryMilvus(fmt.Sprintf(milvusQuery, fmt.Sprintf(`["%s"]`, strings.Join(messageIds, `", "`))), []string{"id", "embedding"})
-	if err != nil {
-		eString := "error happened while trying to fetch the messages"
-		fmt.Printf("query milvus error: %e\n", err)
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: &eString,
-		})
-		return
-	}
-
-	for {
-		rs, err := mvResult.Next(context.TODO())
-		if err != nil {
-			break
-		}
-		for i := 0; i < rs.GetColumn("id").Len(); i++ {
-			var id string
-			var vector []float32
-
-			id, _ = rs.GetColumn("id").GetAsString(i)
-			v, _ := rs.GetColumn("embedding").Get(i)
-			vector = v.([]float32)
-			messages = append(messages, SummaryBody{vector, messagMap[id]})
-		}
 	}
 
 	// Get and create the summary
@@ -164,10 +121,10 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		Title: fmt.Sprintf("Summary of the past %s", parsedArguments.Unit),
 	}
 
-	for topic, summary := range summaries.Summaries {
+	for _, summary := range summaries.Summaries {
 		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
-			Name:  topic,
-			Value: summary,
+			Name:  summary.Topic,
+			Value: summary.Summary,
 		})
 	}
 
@@ -245,26 +202,42 @@ func (c *CommandParsed) parseTimeArg() (time.Duration, error) {
 	return duration, nil
 }
 
-func getSummary(messages []SummaryBody) (SummaryResponse, error) {
-
-	requestBody, _ := json.Marshal(SummaryRequest{
-		SummaryBodies: messages,
-		Eps:           util.ConfigFile.EPS,
-		MinSamples:    util.ConfigFile.MIN_SAMPLES,
-		TopN:          util.ConfigFile.TOP_N,
-	})
-
-	resp, err := http.Post(fmt.Sprintf("http://%s/summarize", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
+func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
+	data, err := json.Marshal(messages)
 	if err != nil {
-		fmt.Printf("Error making request: %v\n", err)
 		return SummaryResponse{}, err
 	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	result := SummaryResponse{
-		Summaries: map[string]string{},
+	resp, err := util.CreateOllamaGenaration(util.OllamaGenerateRequest{
+		Model:  "mistral:7b",
+		Prompt: fmt.Sprintf("group the following messages together and summarize. Make sure to return both the topic of the grouped messages, and summary. Return it as a json string of this format {\"messages\":[{\"topic\", \"summary\"}]}: %s", string(data)),
+		Format: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"messages": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"topic": map[string]interface{}{
+								"type": "string",
+							},
+							"summary": map[string]interface{}{
+								"type": "string",
+							},
+						},
+					},
+				},
+			},
+			"required": []string{
+				"messages",
+			},
+		},
+		Stream: false,
+	})
+	if err != nil {
+		return SummaryResponse{}, nil
 	}
-	json.Unmarshal(body, &result)
-	return result, nil
+
+	err = json.Unmarshal([]byte(resp.Response), &out)
+	return
 }

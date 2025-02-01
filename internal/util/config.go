@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -15,10 +14,8 @@ import (
 )
 
 type Config struct {
-	DISCORD_TOKEN         string
-	DATABASE_HOST         string
-	DUCKDB_PATH           string
-	SENTENCE_TRANSFORMERS string
+	DISCORD_TOKEN string
+	DUCKDB_PATH   string
 
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
@@ -27,9 +24,7 @@ type Config struct {
 	SQS_REQUEST  string
 	SQS_RESPONSE string
 
-	EPS         float32
-	MIN_SAMPLES int
-	TOP_N       int
+	OLLAMA_URL string
 }
 
 var (
@@ -84,35 +79,18 @@ func init() {
 	}
 
 	ConfigFile = &Config{
-		DISCORD_TOKEN:         os.Getenv("DISCORD_TOKEN"),
-		DATABASE_HOST:         os.Getenv("DATABASE_HOST"),
-		AWS_PARAMETER_NAME:    os.Getenv("AWS_PARAMETER_NAME"),
-		SQS_REQUEST:           os.Getenv("SQS_REQUEST"),
-		DUCKDB_PATH:           os.Getenv("DUCKDB_PATH"),
-		SQS_RESPONSE:          os.Getenv("SQS_RESPONSE"),
-		TERMINAL_REGEX:        os.Getenv("TERMINAL_REGEX"),
-		SENTENCE_TRANSFORMERS: os.Getenv("SENTENCE_TRANSFORMERS"),
-		EPS:                   0.3,
-		MIN_SAMPLES:           6,
-		TOP_N:                 3,
+		DISCORD_TOKEN:      os.Getenv("DISCORD_TOKEN"),
+		AWS_PARAMETER_NAME: os.Getenv("AWS_PARAMETER_NAME"),
+		SQS_REQUEST:        os.Getenv("SQS_REQUEST"),
+		DUCKDB_PATH:        os.Getenv("DUCKDB_PATH"),
+		SQS_RESPONSE:       os.Getenv("SQS_RESPONSE"),
+		TERMINAL_REGEX:     os.Getenv("TERMINAL_REGEX"),
+		OLLAMA_URL:         os.Getenv("OLLAMA_URL"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
 	}
 
-	if t := os.Getenv("SUMMARIZE_EPS"); t != "" {
-		temp, _ := strconv.ParseFloat(t, 32)
-		ConfigFile.EPS = float32(temp)
-	}
-
-	if t := os.Getenv("SUMMARIZE_CLUSTER_MIN_SAMPLES"); t != "" {
-		temp, _ := strconv.Atoi(t)
-		ConfigFile.MIN_SAMPLES = temp
-	}
-	if t := os.Getenv("SUMMARIZE_TOP_N"); t != "" {
-		temp, _ := strconv.Atoi(t)
-		ConfigFile.TOP_N = temp
-	}
 }
 
 func GetDiscordToken() string {

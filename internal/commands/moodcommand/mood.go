@@ -1,15 +1,10 @@
 package moodcommand
 
 import (
-	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"regexp"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -113,41 +108,6 @@ func (m MoodCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inte
 		messageIds = append(messageIds, id)
 	}
 
-	if len(messageIds) <= util.ConfigFile.MIN_SAMPLES+1 {
-		eString := "Not enough messages to mood. Try increasing the timeframe"
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: &eString,
-		})
-		return
-	}
-
-	// Get the Milvus vectors
-	mvResult, err := database.QueryMilvus(fmt.Sprintf(milvusQuery, fmt.Sprintf(`["%s"]`, strings.Join(messageIds, `", "`))), []string{"id", "mood_embedding"})
-	if err != nil {
-		eString := "error happened while trying to fetch the messages"
-		fmt.Printf("query milvus error: %e\n", err)
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: &eString,
-		})
-		return
-	}
-
-	for {
-		rs, err := mvResult.Next(context.TODO())
-		if err != nil {
-			break
-		}
-		for i := 0; i < rs.GetColumn("id").Len(); i++ {
-			var id string
-			var vector []float32
-
-			id, _ = rs.GetColumn("id").GetAsString(i)
-			v, _ := rs.GetColumn("mood_embedding").Get(i)
-			vector = v.([]float32)
-			messages = append(messages, MoodBody{vector, messagMap[id]})
-		}
-	}
-
 	// Get and create the Mood
 	mood, err := getMood(messages)
 	if err != nil {
@@ -244,28 +204,44 @@ func (c *CommandParsed) parseTimeArg() (time.Duration, error) {
 	return duration, nil
 }
 
-func getMood(messages []MoodBody) (MoodResponse, error) {
-
-	requestBody, _ := json.Marshal(MoodRequest{
-		MoodBodies: messages,
-		Eps:           util.ConfigFile.EPS,
-		MinSamples:    util.ConfigFile.MIN_SAMPLES,
-		TopN:          util.ConfigFile.TOP_N,
-	})
-
-	// os.WriteFile("req.json", requestBody, 0644)
-
-	resp, err := http.Post(fmt.Sprintf("http://%s/mood", util.ConfigFile.SENTENCE_TRANSFORMERS), "application/json", bytes.NewBuffer(requestBody))
+func getMood(messages []MoodBody) (out MoodResponse, err error) {
+	data, err := json.Marshal(messages)
 	if err != nil {
-		fmt.Printf("Error making request: %v\n", err)
 		return MoodResponse{}, err
 	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-	result := MoodResponse{
-		Mood: map[string]string{},
+	resp, err := util.CreateOllamaGenaration(util.OllamaGenerateRequest{
+		Model:  "mistral:7b",
+		Prompt: fmt.Sprintf("group the following messages together and analyze the mood. Make sure to return both the topic of the grouped messages, and mood analysis. Return it as a json string of this format {\"messages\":[{\"topic\", \"mood\"}]}: %s", string(data)),
+		Format: map[string]interface{}{
+			"type": "object",
+			"properties": map[string]interface{}{
+				"messages": map[string]interface{}{
+					"type": "array",
+					"items": map[string]interface{}{
+						"type": "object",
+						"properties": map[string]interface{}{
+							"topic": map[string]interface{}{
+								"type": "string",
+							},
+							"mood": map[string]interface{}{
+								"type": "string",
+							},
+						},
+					},
+				},
+			},
+			"required": []string{
+				"messages",
+				"topic",
+				"mood",
+			},
+		},
+		Stream: false,
+	})
+	if err != nil {
+		return MoodResponse{}, nil
 	}
-	json.Unmarshal(body, &result)
-	return result, nil
+
+	err = json.Unmarshal([]byte(resp.Response), &out)
+	return
 }

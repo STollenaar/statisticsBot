@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
-	"github.com/milvus-io/milvus-sdk-go/v2/entity"
 	"github.com/stollenaar/statisticsbot/internal/database"
 )
 
@@ -30,7 +28,6 @@ const DiscordEpoch int64 = 1420070400000
 
 func addFixDatabase(r *gin.Engine) {
 	r.DELETE("/fixDatabase", deleteBadEntries)
-	r.PATCH("/fixDatabase", ensureParity)
 	r.PUT("/fixDatabase", addMissingEntries)
 }
 
@@ -164,7 +161,7 @@ func deleteBadEntries(c *gin.Context) {
 			fmt.Println(message.Flags == discordgo.MessageFlagsIsCrossPosted)
 		}
 	}
-	database.DeleteMilvus("id in " + fmt.Sprintf("%v", deletedIDs))
+
 	data, err := json.Marshal(messages)
 	os.WriteFile("messages.json", []byte(data), 0644)
 	err = tx.Commit()
@@ -177,92 +174,6 @@ func deleteBadEntries(c *gin.Context) {
 			"message": "done",
 		})
 	}
-}
-
-func ensureParity(c *gin.Context) {
-	query := `
-	SELECT id, content FROM messages;`
-
-	var ids []string
-	milvusMessage := make(map[string]MessageBody)
-	messagMap := make(map[string]string)
-
-	rs, err := database.QueryDuckDB(query, nil)
-	if err != nil {
-		c.JSON(500, gin.H{
-			"error": err.Error(),
-		})
-		return
-	}
-	for rs.Next() {
-		var id string
-		var content string
-		err = rs.Scan(&id, &content)
-		if err != nil {
-			break
-		}
-		ids = append(ids, id)
-		messagMap[id] = content
-	}
-	database.DeleteMilvus("id not in " + fmt.Sprintf("%v", ids))
-
-	// Get the Milvus vectors
-	mvResult, err := database.QueryMilvus("", []string{"id", "guild_id", "channel_id", "author_id", "embedding", "mood_embedding"})
-	if err != nil {
-		c.JSON(500, gin.H{
-			"error": fmt.Errorf("query milvus error: %e", err),
-		})
-		return
-	}
-
-	for {
-		rs, err := mvResult.Next(context.TODO())
-		if err != nil {
-			break
-		}
-		for i := 0; i < rs.GetColumn("id").Len(); i++ {
-			var id, gId, cId, aId string
-			var embedding, mood_embedding []float32
-
-			id, _ = rs.GetColumn("id").GetAsString(i)
-			gId, _ = rs.GetColumn("guild_id").GetAsString(i)
-			cId, _ = rs.GetColumn("channel_id").GetAsString(i)
-			aId, _ = rs.GetColumn("author_id").GetAsString(i)
-			e, _ := rs.GetColumn("embedding").Get(i)
-			embedding = e.([]float32)
-			me, _ := rs.GetColumn("mood_embedding").Get(i)
-			mood_embedding = me.([]float32)
-			milvusMessage[id] = MessageBody{embedding, mood_embedding, messagMap[id], gId, cId, aId}
-		}
-	}
-
-	for _, id := range ids {
-		if milvus, ok := milvusMessage[id]; !ok {
-			// Need to insert into milv
-		} else if slices.Equal(milvus.MoodEmbedding, make([]float32, 768)) {
-			// Get mood embedding and upsert
-			embedding, err := database.GetEmbedding(milvus.Message)
-			if err != nil {
-				fmt.Println(err)
-				continue
-			}
-			err = database.UpsertMilvus([]entity.Column{
-				entity.NewColumnVarChar("id", []string{id}),
-				entity.NewColumnVarChar("guild_id", []string{milvus.GuildID}),
-				entity.NewColumnVarChar("channel_id", []string{milvus.ChannelID}),
-				entity.NewColumnVarChar("author_id", []string{milvus.AuthorID}),
-				entity.NewColumnFloatVector("embedding", 384, [][]float32{embedding.Embedding}),
-				entity.NewColumnFloatVector("mood_embedding", 768, [][]float32{embedding.MoodEmbedding}),
-			})
-			if err != nil {
-				fmt.Println(err)
-			}
-		}
-	}
-
-	c.JSON(200, gin.H{
-		"message": "done",
-	})
 }
 
 // SnowflakeToTimestamp converts a Discord snowflake ID to a timestamp

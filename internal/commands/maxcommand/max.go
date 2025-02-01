@@ -75,7 +75,6 @@ func (m MaxCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inter
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
-	fmt.Printf("Max Output: %s", response)
 	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
 		Content: &response,
 		AllowedMentions: &discordgo.MessageAllowedMentions{

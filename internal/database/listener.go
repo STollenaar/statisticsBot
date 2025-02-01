@@ -1,18 +1,11 @@
 package database
 
 import (
-	"encoding/json"
-	"fmt"
-
 	"github.com/bwmarrin/discordgo"
 )
 
 // MessageListener registers a simpler handler on a discordgo session to automatically parse incoming messages for you.
 func MessageListener(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.GuildID == "544911814886948865" {
-		data, _ := json.Marshal(message)
-		fmt.Println(string(data))
-	}
 	if message.Flags != discordgo.MessageFlagsLoading &&
 		message.Type != discordgo.MessageTypeGuildMemberJoin &&
 		message.Type != discordgo.MessageTypeChannelPinnedMessage &&
