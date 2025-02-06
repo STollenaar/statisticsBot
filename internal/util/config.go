@@ -24,7 +24,13 @@ type Config struct {
 	SQS_REQUEST  string
 	SQS_RESPONSE string
 
-	OLLAMA_URL string
+	OLLAMA_URL       string
+	OLLAMA_AUTH_TYPE string
+
+	AWS_OLLAMA_AUTH_USERNAME string
+	OLLAMA_AUTH_USERNAME     string
+	AWS_OLLAMA_AUTH_PASSWORD string
+	OLLAMA_AUTH_PASSWORD     string
 }
 
 var (
@@ -79,13 +85,18 @@ func init() {
 	}
 
 	ConfigFile = &Config{
-		DISCORD_TOKEN:      os.Getenv("DISCORD_TOKEN"),
-		AWS_PARAMETER_NAME: os.Getenv("AWS_PARAMETER_NAME"),
-		SQS_REQUEST:        os.Getenv("SQS_REQUEST"),
-		DUCKDB_PATH:        os.Getenv("DUCKDB_PATH"),
-		SQS_RESPONSE:       os.Getenv("SQS_RESPONSE"),
-		TERMINAL_REGEX:     os.Getenv("TERMINAL_REGEX"),
-		OLLAMA_URL:         os.Getenv("OLLAMA_URL"),
+		DISCORD_TOKEN:            os.Getenv("DISCORD_TOKEN"),
+		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
+		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
+		DUCKDB_PATH:              os.Getenv("DUCKDB_PATH"),
+		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
+		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
+		OLLAMA_URL:               os.Getenv("OLLAMA_URL"),
+		OLLAMA_AUTH_TYPE:         os.Getenv("OLLAMA_AUTH_TYPE"),
+		OLLAMA_AUTH_USERNAME:     os.Getenv("OLLAMA_AUTH_USERNAME"),
+		OLLAMA_AUTH_PASSWORD:     os.Getenv("OLLAMA_AUTH_PASSWORD"),
+		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
+		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
@@ -109,6 +120,44 @@ func GetDiscordToken() string {
 			log.Fatal(err)
 		}
 		return *out.Parameter.Value
+	}
+}
+
+func GetOllamaUsername() (string, error) {
+	if ConfigFile.OLLAMA_AUTH_USERNAME == "" && ConfigFile.AWS_OLLAMA_AUTH_USERNAME == "" {
+		log.Fatal("OLLAMA_AUTH_USERNAME or AWS_OLLAMA_AUTH_USERNAME is not set")
+	}
+
+	if ConfigFile.OLLAMA_AUTH_USERNAME != "" {
+		return ConfigFile.OLLAMA_AUTH_USERNAME, nil
+	} else {
+		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+			Name:           &ConfigFile.AWS_OLLAMA_AUTH_USERNAME,
+			WithDecryption: aws.Bool(true),
+		})
+		if err != nil {
+			return "", err
+		}
+		return *out.Parameter.Value, nil
+	}
+}
+
+func GetOllamaPassword() (string, error) {
+	if ConfigFile.OLLAMA_AUTH_PASSWORD == "" && ConfigFile.AWS_OLLAMA_AUTH_PASSWORD == "" {
+		log.Fatal("OLLAMA_AUTH_PASSWORD or AWS_OLLAMA_AUTH_PASSWORD is not set")
+	}
+
+	if ConfigFile.OLLAMA_AUTH_PASSWORD != "" {
+		return ConfigFile.OLLAMA_AUTH_PASSWORD, nil
+	} else {
+		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
+			Name:           &ConfigFile.AWS_OLLAMA_AUTH_PASSWORD,
+			WithDecryption: aws.Bool(true),
+		})
+		if err != nil {
+			return "", err
+		}
+		return *out.Parameter.Value, nil
 	}
 }
 
