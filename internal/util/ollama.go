@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 )
 
 func CreateOllamaGenaration(prompt OllamaGenerateRequest) (OllamaGenerateResponse, error) {
@@ -16,7 +15,7 @@ func CreateOllamaGenaration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	if err != nil {
 		return OllamaGenerateResponse{}, err
 	}
-	os.WriteFile("req.json", data, 0644)
+	// os.WriteFile("req.json", data, 0644)
 
 	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s/api/generate", ConfigFile.OLLAMA_URL), bytes.NewBuffer(data))
 

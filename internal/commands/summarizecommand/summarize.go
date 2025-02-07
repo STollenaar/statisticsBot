@@ -59,7 +59,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Summarizing Data...",
-			Flags:   discordgo.MessageFlagsEphemeral,
+			// Flags:   discordgo.MessageFlagsEphemeral,
 		},
 	})
 
@@ -100,8 +100,15 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 			})
 			return
 		}
+		var nickname string
+		member, err := bot.GuildMember(interaction.GuildID, author_id)
+		if err != nil {
+			nickname = author_id
+		}else{
+			nickname = member.Nick
+		}
 		messages = append(messages, SummaryBody{
-			Author:  author_id,
+			Author:  nickname,
 			Message: content,
 		})
 	}

@@ -61,7 +61,7 @@ func (m MoodCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inte
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Calculating Mood...",
-			Flags: discordgo.MessageFlagsEphemeral,
+			// Flags: discordgo.MessageFlagsEphemeral,
 		},
 	})
 
