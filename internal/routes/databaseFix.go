@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"os"
 	"slices"
-	"strconv"
 	"sync"
-	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 type MessageBody struct {
@@ -23,8 +22,6 @@ type MessageBody struct {
 	ChannelID     string
 	AuthorID      string
 }
-
-const DiscordEpoch int64 = 1420070400000
 
 func addFixDatabase(r *gin.Engine) {
 	r.DELETE("/fixDatabase", deleteBadEntries)
@@ -78,7 +75,7 @@ func deleteBadEntries(c *gin.Context) {
 		}
 
 		if date == nil {
-			snflk, err := snowflakeToTimestamp(message_id)
+			snflk, err := util.SnowflakeToTimestamp(message_id)
 			if err != nil {
 				fmt.Println(err)
 				continue
@@ -176,16 +173,6 @@ func deleteBadEntries(c *gin.Context) {
 	}
 }
 
-// SnowflakeToTimestamp converts a Discord snowflake ID to a timestamp
-func snowflakeToTimestamp(snowflakeID string) (time.Time, error) {
-	id, err := strconv.ParseInt(snowflakeID, 10, 64)
-	if err != nil {
-		return time.Time{}, err
-	}
-	timestamp := (id >> 22) + DiscordEpoch
-	return time.Unix(0, timestamp*int64(time.Millisecond)), nil
-}
-
 func addMissingEntries(c *gin.Context) {
 	query := `
 	SELECT id FROM messages`
@@ -257,7 +244,7 @@ func addMissingEntries(c *gin.Context) {
 				if len(message.Attachments) > 0 {
 					continue
 				}
-				database.ConstructMessageObject(message, message.GuildID)
+				database.ConstructCreateMessageObject(message, message.GuildID)
 				missed++
 			}
 		}

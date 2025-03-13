@@ -2,10 +2,13 @@ package util
 
 import (
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
+
+const DiscordEpoch int64 = 1420070400000
 
 // Contains check slice contains want string
 func Contains(slice []string, want string) bool {
@@ -66,4 +69,14 @@ func FindMaxIndexElement(slice []CountGrouped) int {
 		}
 	}
 	return max
+}
+
+// SnowflakeToTimestamp converts a Discord snowflake ID to a timestamp
+func SnowflakeToTimestamp(snowflakeID string) (time.Time, error) {
+	id, err := strconv.ParseInt(snowflakeID, 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	timestamp := (id >> 22) + DiscordEpoch
+	return time.Unix(0, timestamp*int64(time.Millisecond)), nil
 }

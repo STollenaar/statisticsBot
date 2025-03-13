@@ -246,5 +246,6 @@ func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
 	}
 
 	err = json.Unmarshal([]byte(resp.Response), &out)
+	fmt.Printf("Raw response for summarize: %s\n", resp.Response)
 	return
 }

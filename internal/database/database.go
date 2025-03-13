@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -53,6 +55,8 @@ func initDuckDB() {
 			author_id VARCHAR,
 			content VARCHAR,
 			date TIMESTAMP,
+			version INTEGER DEFAULT 1,
+    		PRIMARY KEY (id, version)
 		);
 	`)
 	if err != nil {
@@ -123,20 +127,14 @@ func getLastMessage(channel *discordgo.Channel) (lastMessage util.MessageObject)
 
 	// Query to find the most recent message per channel
 	query := `
-		WITH ranked_messages AS (
-			SELECT *,
-				   ROW_NUMBER() OVER (PARTITION BY channel_id ORDER BY date DESC) AS rank
-			FROM messages
-			WHERE channel_id = ?
-		)
-		SELECT 
-			id,
-			date,
-		FROM ranked_messages
-		WHERE rank = 1;
+		SELECT id, date
+          FROM messages
+          WHERE channel_id = ?
+          ORDER BY date DESC
+          LIMIT 1;
 	`
 
-	// Execute the query
+	// Execute the query'
 	row := duckdbClient.QueryRow(query, channel.ID)
 
 	var (
@@ -168,17 +166,22 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 
 	// Getting last message and first 100
 	lastMessage := getLastMessage(channel)
-	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
-	messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
-		messageTime := message.Timestamp
-
-		return messageTime.After(lastMessage.Date)
+	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", lastMessage.MessageID, "")
+	// Sort messages by their Timestamp field in ascending order (oldest to newest)
+	sort.Slice(messages, func(i, j int) bool {
+		// Compare the timestamps of the messages
+		return messages[i].Timestamp.Before((*messages[j]).Timestamp)
 	})
+	// messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
+	// 	messageTime := message.Timestamp
+
+	// 	return messageTime.After(lastMessage.Date)
+	// })
 
 	// Constructing operations for first 100
 	for _, message := range messages {
 		operations++
-		ConstructMessageObject(message, channel.GuildID)
+		ConstructCreateMessageObject(message, channel.GuildID)
 	}
 
 	// Loading more messages if got 100 message the first time
@@ -186,16 +189,21 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 		lastMessageCollected := messages[len(messages)-1]
 		// Loading more messages, 100 at a time
 		for lastMessageCollected != nil {
-			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
-			moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
-				messageTime := message.Timestamp
-
-				return messageTime.After(lastMessage.Date)
+			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), "", lastMessageCollected.ID, "")
+			sort.Slice(moreMes, func(i, j int) bool {
+				// Compare the timestamps of the messages
+				return moreMes[i].Timestamp.Before((*moreMes[j]).Timestamp)
 			})
+		
+			// moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
+			// 	messageTime := message.Timestamp
+
+			// 	return messageTime.After(lastMessage.Date)
+			// })
 
 			for _, message := range moreMes {
 				operations++
-				ConstructMessageObject(message, channel.GuildID)
+				ConstructCreateMessageObject(message, channel.GuildID)
 			}
 			if len(moreMes) != 0 {
 				lastMessageCollected = moreMes[len(moreMes)-1]
@@ -209,7 +217,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
-func ConstructMessageObject(message *discordgo.Message, guildID string) {
+func ConstructCreateMessageObject(message *discordgo.Message, guildID string) {
 
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
@@ -230,10 +238,48 @@ func ConstructMessageObject(message *discordgo.Message, guildID string) {
 	} else {
 		content = []string{message.Content}
 	}
-
-	_, err := duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?)`, message.ID, message.GuildID, message.ChannelID, message.Author.ID, message.Timestamp, message.Content)
+	timestamp, err := util.SnowflakeToTimestamp(message.ID)
 	if err != nil {
-		log.Fatalf("Error inserting into duckdb: %s\n", err)
+		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
+	}
+
+	_, err = duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?,1)`, message.ID, message.GuildID, message.ChannelID, message.Author.ID, strings.Join(content, "\n"), timestamp)
+	if err != nil {
+		fmt.Printf("Error inserting into duckdb: %s\n", err)
+	}
+}
+
+func constructUpdateMessageObject(message *discordgo.Message, guildID string) {
+	var content []string
+	if message.Content == "" && len(message.Embeds) > 0 {
+		for _, embed := range message.Embeds {
+			if embed.Description != "" {
+				content = append(content, embed.Description)
+			}
+			if len(embed.Fields) > 0 {
+				for _, field := range embed.Fields {
+					content = append(content, field.Name)
+					content = append(content, field.Value)
+				}
+			}
+			if footer := embed.Footer; footer != nil && footer.Text != "" {
+				content = append(content, footer.Text)
+			}
+		}
+	} else {
+		content = []string{message.Content}
+	}
+
+	// Prepare the content as a single string (for simplicity, we join it)
+	contentStr := strings.Join(content, " ")
+
+	// Increment the version and insert the updated message
+	_, err := duckdbClient.Exec(`INSERT INTO messages (id, guild_id, channel_id, author_id, content, date, version) 
+                                SELECT ?, ?, ?, ?, ?, ?, MAX(version) + 1 FROM messages WHERE id = ? AND guild_id = ?`,
+		message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, message.Timestamp, message.ID, guildID)
+
+	if err != nil {
+		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)
 	}
 }
 

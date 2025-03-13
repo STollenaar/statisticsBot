@@ -44,7 +44,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-794842c"
+          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ac19091"
           name  = local.name
           env {
             name  = "AWS_REGION"
@@ -64,12 +64,16 @@ resource "kubernetes_deployment" "statisticsbot" {
           }
           env {
             name  = "OLLAMA_URL"
-            value = "ollama.danielpower.ca"
+            value = "ollama.ollama.svc.cluster.local:11434"
           }
-          env {
-            name  = "OLLAMA_AUTH_TYPE"
-            value = "basic"
-          }
+        #   env {
+        #     name  = "OLLAMA_URL"
+        #     value = "ollama.danielpower.ca"
+        #   }
+        #   env {
+        #     name  = "OLLAMA_AUTH_TYPE"
+        #     value = "basic"
+        #   }
           env {
             name  = "AWS_OLLAMA_AUTH_USERNAME"
             value = "/ollama/dan_username"

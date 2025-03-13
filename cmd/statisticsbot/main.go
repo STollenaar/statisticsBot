@@ -37,7 +37,9 @@ func init() {
 func main() {
 	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers)
 
-	bot.AddHandler(database.MessageListener)
+	bot.AddHandler(database.MessageCreateListener)
+	bot.AddHandler(database.MessageUpdateListener)
+
 	err := bot.Open()
 	if err != nil {
 		log.Fatal("Error starting bot ", err)
