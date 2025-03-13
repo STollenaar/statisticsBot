@@ -172,11 +172,6 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 		// Compare the timestamps of the messages
 		return messages[i].Timestamp.Before((*messages[j]).Timestamp)
 	})
-	// messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
-	// 	messageTime := message.Timestamp
-
-	// 	return messageTime.After(lastMessage.Date)
-	// })
 
 	// Constructing operations for first 100
 	for _, message := range messages {
@@ -195,12 +190,6 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 				return moreMes[i].Timestamp.Before((*moreMes[j]).Timestamp)
 			})
 		
-			// moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
-			// 	messageTime := message.Timestamp
-
-			// 	return messageTime.After(lastMessage.Date)
-			// })
-
 			for _, message := range moreMes {
 				operations++
 				ConstructCreateMessageObject(message, channel.GuildID)
@@ -301,16 +290,25 @@ func StartTX() (*sql.Tx, error) {
 
 func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {
 	query := `
-		WITH tokenized_messages AS (
+		WITH latest_versions AS (
+			SELECT *
+			FROM messages
+			WHERE (id, version) IN (
+				SELECT id, MAX(version)
+				FROM messages
+				GROUP BY id
+			)
+		),
+		tokenized_messages AS (
 			SELECT 
 				author_id,
 				guild_id,
 				LOWER(unnest(string_split(regexp_replace(content, '[^a-zA-Z0-9'' ]', '', 'g'), ' '))) AS word
-			FROM messages
+			FROM latest_versions
 			%s
 		)
 		SELECT 
-            guild_id,
+			guild_id,
 			author_id,
 			word,
 			COUNT(*) AS word_count

@@ -48,10 +48,19 @@ func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discord
 
 	// Query to find the most recent message for the specified channel_id
 	query := `
-		WITH ranked_messages AS (
-			SELECT *,
-				   ROW_NUMBER() OVER (ORDER BY date DESC) AS rank
+		WITH latest_versions AS (
+			SELECT *
 			FROM messages
+			WHERE (id, version) IN (
+				SELECT id, MAX(version)
+				FROM messages
+				GROUP BY id
+			)
+		),
+		ranked_messages AS (
+			SELECT *,
+				ROW_NUMBER() OVER (ORDER BY date DESC) AS rank
+			FROM latest_versions
 			WHERE %s
 		)
 		SELECT 
