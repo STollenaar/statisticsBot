@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -166,11 +165,11 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 
 	// Getting last message and first 100
 	lastMessage := getLastMessage(channel)
-	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", lastMessage.MessageID, "")
-	// Sort messages by their Timestamp field in ascending order (oldest to newest)
-	sort.Slice(messages, func(i, j int) bool {
-		// Compare the timestamps of the messages
-		return messages[i].Timestamp.Before((*messages[j]).Timestamp)
+	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
+	messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
+		messageTime := message.Timestamp
+
+		return messageTime.After(lastMessage.Date)
 	})
 
 	// Constructing operations for first 100
@@ -184,12 +183,13 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 		lastMessageCollected := messages[len(messages)-1]
 		// Loading more messages, 100 at a time
 		for lastMessageCollected != nil {
-			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), "", lastMessageCollected.ID, "")
-			sort.Slice(moreMes, func(i, j int) bool {
-				// Compare the timestamps of the messages
-				return moreMes[i].Timestamp.Before((*moreMes[j]).Timestamp)
+			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
+			moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
+				messageTime := message.Timestamp
+
+				return messageTime.After(lastMessage.Date)
 			})
-		
+
 			for _, message := range moreMes {
 				operations++
 				ConstructCreateMessageObject(message, channel.GuildID)
@@ -274,6 +274,26 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string) {
 
 // Get a result from the database using a filter
 func QueryDuckDB(query string, params []interface{}) (results *sql.Rows, err error) {
+	if util.ConfigFile.DEBUG {
+		// Prepare the query with the parameters replaced (for debugging)
+		interpolatedQuery := query
+		for _, param := range params {
+			// Handle specific types (e.g., string, time.Time, etc.) appropriately
+			var paramStr string
+			switch v := param.(type) {
+			case string:
+				paramStr = fmt.Sprintf("'%s'", v) // Surround strings with quotes
+			case time.Time:
+				paramStr = fmt.Sprintf("'%s'", v.Format("2006-01-02 15:04:05")) // Format time
+			default:
+				paramStr = fmt.Sprintf("%v", v) // Default to using %v for other types
+			}
+			// Replace the first `?` with the actual value
+			interpolatedQuery = strings.Replace(interpolatedQuery, "?", paramStr, 1)
+		}
+
+		fmt.Println("Executing query:", interpolatedQuery)
+	}
 
 	return duckdbClient.Query(query, params...)
 }

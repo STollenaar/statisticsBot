@@ -9,11 +9,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
+	"github.com/bwmarrin/discordgo"
 	"github.com/joho/godotenv"
 	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 )
 
 type Config struct {
+	DEBUG         bool
 	DISCORD_TOKEN string
 	DUCKDB_PATH   string
 
@@ -171,4 +173,12 @@ func getAWSParameter(parameterName string) (string, error) {
 		return "", err
 	}
 	return *out.Parameter.Value, err
+}
+
+func (c *Config) SetEphemeral() discordgo.MessageFlags {
+	if c.DEBUG {
+		return discordgo.MessageFlagsEphemeral
+	} else {
+		return 0
+	}
 }

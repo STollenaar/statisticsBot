@@ -26,7 +26,12 @@ func MessageCreateListener(session *discordgo.Session, message *discordgo.Messag
 		if len(message.Attachments) > 0 {
 			return
 		}
-		ConstructCreateMessageObject(message.Message, message.GuildID)
+		guildID := message.GuildID
+		if guildID == "" {
+			channel, _ := session.Channel(message.ChannelID)
+			guildID = channel.GuildID
+		}
+		ConstructCreateMessageObject(message.Message, guildID)
 	}
 }
 
@@ -52,6 +57,12 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 		if len(message.Attachments) > 0 {
 			return
 		}
-		constructUpdateMessageObject(message.Message, message.GuildID)
+		guildID := message.GuildID
+		if guildID == "" {
+			channel, _ := session.Channel(message.ChannelID)
+			guildID = channel.GuildID
+		}
+
+		constructUpdateMessageObject(message.Message, guildID)
 	}
 }

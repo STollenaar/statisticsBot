@@ -6,6 +6,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 var (
@@ -34,6 +35,7 @@ func (c CountCommand) Handler(bot *discordgo.Session, interaction *discordgo.Int
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Loading Data...",
+			Flags:   util.ConfigFile.SetEphemeral(),
 		},
 	})
 

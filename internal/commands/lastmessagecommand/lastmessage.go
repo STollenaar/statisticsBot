@@ -37,6 +37,7 @@ func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discord
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Loading Data...",
+			Flags:   util.ConfigFile.SetEphemeral(),
 		},
 	})
 

@@ -36,6 +36,7 @@ func (m MaxCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inter
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Loading Data...",
+			Flags:   util.ConfigFile.SetEphemeral(),
 		},
 	})
 

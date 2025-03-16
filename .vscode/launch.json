@@ -39,7 +39,12 @@
                 "CC": "gcc",
                 "CGO_CFLAGS": "-g -O2",
                 "CGO_LDFLAGS": "-v"
-            }
+            },
+            "args": [
+                "--guild=497544520695808000",
+                "--debug",
+                "--rmcmd"
+            ]
         }
     ]
 }

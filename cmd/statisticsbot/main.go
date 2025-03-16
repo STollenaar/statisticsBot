@@ -19,6 +19,7 @@ var (
 	bot *discordgo.Session
 
 	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
+	Debug          = flag.Bool("debug", false, "Run in debug mode")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
 )
 
@@ -32,10 +33,11 @@ func init() {
 			h(s, i)
 		}
 	})
+	util.ConfigFile.DEBUG = *Debug
 }
 
 func main() {
-	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers)
+	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers | discordgo.IntentsMessageContent)
 
 	bot.AddHandler(database.MessageCreateListener)
 	bot.AddHandler(database.MessageUpdateListener)

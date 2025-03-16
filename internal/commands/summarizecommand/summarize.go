@@ -3,6 +3,7 @@ package summarizecommand
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 	"regexp"
 	"strconv"
 	"time"
@@ -18,11 +19,16 @@ var (
 		Description: "summarize past messages from a period of time",
 	}
 	pastMessages = `
-		SELECT author_id, content
+	SELECT m.author_id, m.content
+	FROM messages m
+	JOIN (
+		SELECT id, MAX(version) AS latest_version
 		FROM messages
-		WHERE guild_id = ? 
+		WHERE guild_id = ?
 		AND channel_id = ?
-		AND date BETWEEN ? and ?;
+		AND date BETWEEN ? AND ?
+		GROUP BY id
+	) sub ON m.id = sub.id AND m.version = sub.latest_version;
 	`
 )
 
@@ -59,7 +65,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Summarizing Data...",
-			// Flags:   discordgo.MessageFlagsEphemeral,
+			Flags:   util.ConfigFile.SetEphemeral(),
 		},
 	})
 
@@ -104,7 +110,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		member, err := bot.GuildMember(interaction.GuildID, author_id)
 		if err != nil {
 			nickname = author_id
-		}else{
+		} else {
 			nickname = member.Nick
 		}
 		messages = append(messages, SummaryBody{
@@ -213,6 +219,10 @@ func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
 	data, err := json.Marshal(messages)
 	if err != nil {
 		return SummaryResponse{}, err
+	}
+	if util.ConfigFile.DEBUG {
+		d, _ := json.MarshalIndent(messages, "", "    ")
+		os.WriteFile("summary.json", d, 0644)
 	}
 	resp, err := util.CreateOllamaGenaration(util.OllamaGenerateRequest{
 		Model:  "mistral:7b",

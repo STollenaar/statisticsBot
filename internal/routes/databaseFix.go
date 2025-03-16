@@ -45,6 +45,12 @@ func deleteBadEntries(c *gin.Context) {
 	WHERE id = ?;
 	`
 
+	updateGuild := `
+	UPDATE messages
+	SET guild_id = ?
+	WHERE id = ?;
+	`
+
 	deleteMessage := `
 	DELETE FROM messages
 	WHERE id = ?;
@@ -81,6 +87,37 @@ func deleteBadEntries(c *gin.Context) {
 				continue
 			}
 			_, err = tx.Exec(updateDate, snflk, message_id)
+			if err != nil {
+				fmt.Println(err)
+				c.JSON(500, gin.H{
+					"error": err.Error(),
+				})
+				tx.Rollback()
+				return
+			}
+		}
+		if guild_id == "" {
+			channel, err := bot.Channel(channel_id)
+			if err != nil {
+				var apiErr *discordgo.RESTError
+				if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
+					fmt.Println(err)
+					c.JSON(500, gin.H{
+						"error": err.Error(),
+					})
+					tx.Rollback()
+					return
+				} else {
+					deletedIDs = append(deletedIDs, message_id)
+					_, err := tx.Exec(deleteMessage, message_id)
+					if err != nil {
+						fmt.Println(err)
+					}
+					continue
+				}
+			}
+
+			_, err = tx.Exec(updateGuild, channel.GuildID, message_id)
 			if err != nil {
 				fmt.Println(err)
 				c.JSON(500, gin.H{
@@ -212,7 +249,7 @@ func addMissingEntries(c *gin.Context) {
 		waitGroup.Add(1)
 		go func(bot *discordgo.Session, channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
-			messages := doChannels(bot, channels, ids, waitGroup)
+			messages := doChannels(bot, channels, ids)
 			mu.Lock()
 			missedMessages = append(missedMessages, messages...)
 			mu.Unlock()
@@ -244,7 +281,12 @@ func addMissingEntries(c *gin.Context) {
 				if len(message.Attachments) > 0 {
 					continue
 				}
-				database.ConstructCreateMessageObject(message, message.GuildID)
+				guildId := message.GuildID
+				if guildId == "" {
+					channnel, _ := bot.Channel(message.ChannelID)
+					guildId = channnel.GuildID
+				}
+				database.ConstructCreateMessageObject(message, guildId)
 				missed++
 			}
 		}
@@ -253,8 +295,9 @@ func addMissingEntries(c *gin.Context) {
 		"message": fmt.Sprintf("done, added %d messages", missed),
 	})
 }
-func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []string, waitGroup *sync.WaitGroup) (result []*discordgo.Message) {
+func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []string) (result []*discordgo.Message) {
 	var mu sync.Mutex
+	var waitGroup sync.WaitGroup
 	for _, channel := range channels {
 		// Check if channel is a guild text channel and not a voice or DM channel
 		if channel.Type != discordgo.ChannelTypeGuildText {
@@ -263,21 +306,23 @@ func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []str
 
 		// Async loading of the messages in that channnel
 		waitGroup.Add(1)
-		go func(bot *discordgo.Session, channel *discordgo.Channel) {
+		go func(bot *discordgo.Session, channel *discordgo.Channel, IDs []string, waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
-			messages := loadMessages(bot, channel)
+			messages := loadMessages(bot, channel, IDs)
 			mu.Lock()
 			result = append(result, messages...)
 			mu.Unlock()
-		}(bot, channel)
+		}(bot, channel, IDs, &waitGroup)
 	}
+	waitGroup.Wait()
 	return
 }
 
 // loadMessages loading messages from the channel
-func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) (result []*discordgo.Message) {
+func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel, IDs []string) []*discordgo.Message {
 	fmt.Printf("DatabaseFix: loading %s", channel.Name)
 
+	var result []*discordgo.Message
 	// Getting last message and first 100
 	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
 
@@ -299,6 +344,23 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) (result []
 			}
 		}
 	}
-	fmt.Printf("DatabaseFix: done collecting messages for %s\n", channel.Name)
-	return
+	fmt.Printf("DatabaseFix: done collecting messages for %s, found: %d messages\n", channel.Name, len(result))
+	return filterSlice(result, IDs)
+}
+
+// Remove items from A if their ID exists in B
+func filterSlice(A []*discordgo.Message, B []string) []*discordgo.Message {
+	idMap := make(map[string]struct{}, len(B))
+	for _, id := range B {
+		idMap[id] = struct{}{}
+	}
+
+	var filtered []*discordgo.Message
+	for _, item := range A {
+		if _, exists := idMap[item.ID]; !exists {
+			filtered = append(filtered, item)
+		}
+	}
+
+	return filtered
 }
