@@ -1,6 +1,8 @@
 module github.com/stollenaar/statisticsbot/internal/commands
 
-go 1.23.4
+go 1.24.0
+
+toolchain go1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
@@ -9,6 +11,7 @@ require (
 	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250128232055-2063367f0bf6
 	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250128232055-2063367f0bf6
 	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250128232055-2063367f0bf6
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250128232055-2063367f0bf6
 )
 
 require (
@@ -49,17 +52,16 @@ require (
 	github.com/spf13/viper v1.19.0 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20240112205114-26346908241a // indirect
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250128232055-2063367f0bf6 // indirect
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250128232055-2063367f0bf6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.32.0 // indirect
-	golang.org/x/exp v0.0.0-20250128182459-e0ece0dbea4c // indirect
-	golang.org/x/mod v0.22.0 // indirect
-	golang.org/x/sync v0.10.0 // indirect
-	golang.org/x/sys v0.29.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.29.0 // indirect
+	golang.org/x/crypto v0.33.0 // indirect
+	golang.org/x/exp v0.0.0-20250218142911-aa4b98e5adaa // indirect
+	golang.org/x/mod v0.23.0 // indirect
+	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/tools v0.30.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

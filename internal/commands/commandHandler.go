@@ -9,6 +9,7 @@ import (
 	"github.com/stollenaar/statisticsbot/internal/commands/maxcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/moodcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/summarizecommand"
+	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 type CommandI interface {
@@ -56,6 +57,7 @@ func PingCommand(bot *discordgo.Session, interaction *discordgo.InteractionCreat
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Pong",
+			Flags:   util.ConfigFile.SetEphemeral(),
 		},
 	})
 }

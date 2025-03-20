@@ -232,7 +232,7 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string) {
 		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
 	}
 
-	_, err = duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?,1)`, message.ID, message.GuildID, message.ChannelID, message.Author.ID, strings.Join(content, "\n"), timestamp)
+	_, err = duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?,1)`, message.ID, guildID, message.ChannelID, message.Author.ID, strings.Join(content, "\n"), timestamp)
 	if err != nil {
 		fmt.Printf("Error inserting into duckdb: %s\n", err)
 	}

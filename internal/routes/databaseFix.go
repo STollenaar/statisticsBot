@@ -36,24 +36,24 @@ func deleteBadEntries(c *gin.Context) {
 	content,
 	date
 	FROM messages 
-	WHERE date IS NULL OR content == '';
+	WHERE date IS NULL OR content == '' or guild_id == '';
 	`
 
 	updateDate := `
 	UPDATE messages
 	SET date = ?
-	WHERE id = ?;
+	WHERE id == ?;
 	`
 
 	updateGuild := `
 	UPDATE messages
 	SET guild_id = ?
-	WHERE id = ?;
+	WHERE id == ?;
 	`
 
 	deleteMessage := `
 	DELETE FROM messages
-	WHERE id = ?;
+	WHERE id == ?;
 	`
 	rs, err := database.QueryDuckDB(query, []interface{}{})
 	if err != nil {
@@ -71,6 +71,8 @@ func deleteBadEntries(c *gin.Context) {
 
 	var deletedIDs []string
 	var messages []*discordgo.Message
+	cachedGuilds := make(map[string]string)
+
 	for rs.Next() {
 		var channel_id, message_id, guild_id string
 		var content, date any
@@ -97,27 +99,34 @@ func deleteBadEntries(c *gin.Context) {
 			}
 		}
 		if guild_id == "" {
-			channel, err := bot.Channel(channel_id)
-			if err != nil {
-				var apiErr *discordgo.RESTError
-				if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
-					fmt.Println(err)
-					c.JSON(500, gin.H{
-						"error": err.Error(),
-					})
-					tx.Rollback()
-					return
-				} else {
-					deletedIDs = append(deletedIDs, message_id)
-					_, err := tx.Exec(deleteMessage, message_id)
-					if err != nil {
+			var guild string
+			if guild, ok := cachedGuilds[channel_id]; !ok {
+				channel, err := bot.Channel(channel_id)
+				
+				if err != nil {
+					var apiErr *discordgo.RESTError
+					if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
 						fmt.Println(err)
+						c.JSON(500, gin.H{
+							"error": err.Error(),
+						})
+						tx.Rollback()
+						return
+					} else {
+						deletedIDs = append(deletedIDs, message_id)
+						_, err := tx.Exec(deleteMessage, message_id)
+						if err != nil {
+							fmt.Println(err)
+						}
+						continue
 					}
-					continue
 				}
+
+				guild = channel.GuildID
+				cachedGuilds[channel_id] = guild
 			}
 
-			_, err = tx.Exec(updateGuild, channel.GuildID, message_id)
+			_, err = tx.Exec(updateGuild, guild, message_id)
 			if err != nil {
 				fmt.Println(err)
 				c.JSON(500, gin.H{
@@ -196,7 +205,7 @@ func deleteBadEntries(c *gin.Context) {
 		}
 	}
 
-	data, err := json.Marshal(messages)
+	data, err := json.MarshalIndent(messages, "", "    ")
 	os.WriteFile("messages.json", []byte(data), 0644)
 	err = tx.Commit()
 	if err != nil {

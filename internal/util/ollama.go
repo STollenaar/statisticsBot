@@ -9,7 +9,8 @@ import (
 	"net/http"
 )
 
-func CreateOllamaGenaration(prompt OllamaGenerateRequest) (OllamaGenerateResponse, error) {
+
+func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateResponse, error) {
 
 	data, err := json.Marshal(prompt)
 	if err != nil {

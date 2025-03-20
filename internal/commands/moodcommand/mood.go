@@ -209,7 +209,7 @@ func getMood(messages []MoodBody) (out MoodResponse, err error) {
 	if err != nil {
 		return MoodResponse{}, err
 	}
-	resp, err := util.CreateOllamaGenaration(util.OllamaGenerateRequest{
+	resp, err := util.CreateOllamaGeneration(util.OllamaGenerateRequest{
 		Model:  "mistral:7b",
 		Prompt: fmt.Sprintf("group the following messages together and analyze the mood. Make sure to return both the topic of the grouped messages, and mood analysis. Return it as a json string of this format {\"messages\":[{\"topic\", \"mood\"}]}: %s", string(data)),
 		Format: map[string]interface{}{

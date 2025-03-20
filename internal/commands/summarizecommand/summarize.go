@@ -108,7 +108,7 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		}
 		var nickname string
 		member, err := bot.GuildMember(interaction.GuildID, author_id)
-		if err != nil {
+		if err != nil || member.Nick == "" {
 			nickname = author_id
 		} else {
 			nickname = member.Nick
@@ -224,9 +224,27 @@ func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
 		d, _ := json.MarshalIndent(messages, "", "    ")
 		os.WriteFile("summary.json", d, 0644)
 	}
-	resp, err := util.CreateOllamaGenaration(util.OllamaGenerateRequest{
-		Model:  "mistral:7b",
-		Prompt: fmt.Sprintf("group the following messages together and summarize. Make sure to return both the topic of the grouped messages, and summary. Return it as a json string of this format {\"messages\":[{\"topic\", \"summary\"}]}: %s", string(data)),
+	resp, err := util.CreateOllamaGeneration(util.OllamaGenerateRequest{
+		Model: "mistral:7b",
+		Prompt: fmt.Sprintf(
+			`You are an AI that outputs valid JSON only. 
+			Do not anonymize or replace author IDs.
+				Use the exact author ID provided in the input.
+			Summarize and group the following messages by topic. 
+
+			Return a JSON array of objects in this exact format:
+			{
+			"messages": [
+				{
+				"topic": "string",
+				"summary": "string"
+				}
+			]
+			}
+
+			Here is the input: 
+			%s`,
+			string(data)),
 		Format: map[string]interface{}{
 			"type": "object",
 			"properties": map[string]interface{}{
