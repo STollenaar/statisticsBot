@@ -8,6 +8,7 @@ import (
 	"github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/maxcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/moodcommand"
+	"github.com/stollenaar/statisticsbot/internal/commands/plotcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/summarizecommand"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -25,6 +26,7 @@ var (
 		maxcommand.MaxCmd,
 		summarizecommand.SummarizeCmd,
 		moodcommand.MoodCmd,
+		plotcommand.PlotCmd,
 	}
 	ApplicationCommands []*discordgo.ApplicationCommand
 	CommandHandlers     = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))

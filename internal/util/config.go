@@ -41,10 +41,36 @@ var (
 )
 
 func init() {
-	ConfigFile = &Config{
-		AWS_REGION: os.Getenv("AWS_REGION"),
+	ConfigFile = new(Config)
+	_, err := os.Stat(".env")
+	if err == nil {
+		err = godotenv.Load(".env")
+		if err != nil {
+			log.Fatal("Error loading environment variables")
+		}
 	}
+
+	ConfigFile = &Config{
+		AWS_REGION:               os.Getenv("AWS_REGION"),
+		DISCORD_TOKEN:            os.Getenv("DISCORD_TOKEN"),
+		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
+		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
+		DUCKDB_PATH:              os.Getenv("DUCKDB_PATH"),
+		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
+		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
+		OLLAMA_URL:               os.Getenv("OLLAMA_URL"),
+		OLLAMA_AUTH_TYPE:         os.Getenv("OLLAMA_AUTH_TYPE"),
+		OLLAMA_AUTH_USERNAME:     os.Getenv("OLLAMA_AUTH_USERNAME"),
+		OLLAMA_AUTH_PASSWORD:     os.Getenv("OLLAMA_AUTH_PASSWORD"),
+		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
+		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
+	}
+	if ConfigFile.TERMINAL_REGEX == "" {
+		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
+	}
+
 }
+
 
 func init() {
 
@@ -76,36 +102,6 @@ func init() {
 	}
 }
 
-func init() {
-	ConfigFile = new(Config)
-	_, err := os.Stat(".env")
-	if err == nil {
-		err = godotenv.Load(".env")
-		if err != nil {
-			log.Fatal("Error loading environment variables")
-		}
-	}
-
-	ConfigFile = &Config{
-		DISCORD_TOKEN:            os.Getenv("DISCORD_TOKEN"),
-		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
-		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
-		DUCKDB_PATH:              os.Getenv("DUCKDB_PATH"),
-		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
-		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
-		OLLAMA_URL:               os.Getenv("OLLAMA_URL"),
-		OLLAMA_AUTH_TYPE:         os.Getenv("OLLAMA_AUTH_TYPE"),
-		OLLAMA_AUTH_USERNAME:     os.Getenv("OLLAMA_AUTH_USERNAME"),
-		OLLAMA_AUTH_PASSWORD:     os.Getenv("OLLAMA_AUTH_PASSWORD"),
-		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
-		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
-	}
-	if ConfigFile.TERMINAL_REGEX == "" {
-		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
-	}
-
-}
-
 func GetDiscordToken() string {
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
 		log.Fatal("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
@@ -113,16 +109,12 @@ func GetDiscordToken() string {
 
 	if ConfigFile.DISCORD_TOKEN != "" {
 		return ConfigFile.DISCORD_TOKEN
-	} else {
-		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
-			Name:           &ConfigFile.AWS_PARAMETER_NAME,
-			WithDecryption: aws.Bool(true),
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-		return *out.Parameter.Value
 	}
+	out, err := getAWSParameter(ConfigFile.AWS_PARAMETER_NAME)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return out
 }
 
 func GetOllamaUsername() (string, error) {
@@ -132,16 +124,8 @@ func GetOllamaUsername() (string, error) {
 
 	if ConfigFile.OLLAMA_AUTH_USERNAME != "" {
 		return ConfigFile.OLLAMA_AUTH_USERNAME, nil
-	} else {
-		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
-			Name:           &ConfigFile.AWS_OLLAMA_AUTH_USERNAME,
-			WithDecryption: aws.Bool(true),
-		})
-		if err != nil {
-			return "", err
-		}
-		return *out.Parameter.Value, nil
 	}
+	return getAWSParameter(ConfigFile.AWS_OLLAMA_AUTH_USERNAME)
 }
 
 func GetOllamaPassword() (string, error) {
@@ -151,16 +135,9 @@ func GetOllamaPassword() (string, error) {
 
 	if ConfigFile.OLLAMA_AUTH_PASSWORD != "" {
 		return ConfigFile.OLLAMA_AUTH_PASSWORD, nil
-	} else {
-		out, err := ssmClient.GetParameter(context.TODO(), &ssm.GetParameterInput{
-			Name:           &ConfigFile.AWS_OLLAMA_AUTH_PASSWORD,
-			WithDecryption: aws.Bool(true),
-		})
-		if err != nil {
-			return "", err
-		}
-		return *out.Parameter.Value, nil
 	}
+
+	return getAWSParameter(ConfigFile.AWS_OLLAMA_AUTH_PASSWORD)
 }
 
 func getAWSParameter(parameterName string) (string, error) {

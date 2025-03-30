@@ -1,11 +1,13 @@
-module github.com/stollenaar/statisticsbot/internal/commands/maxcommand
+module github.com/stollenaar/statisticsbot/internal/util/charts
 
 go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
+	github.com/go-echarts/go-echarts/v2 v2.5.2
+	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250320232739-1e4fd2205923
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250320232739-1e4fd2205923
+	golang.org/x/text v0.23.0
 )
 
 require (
@@ -24,9 +26,15 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.33.17 // indirect
 	github.com/aws/smithy-go v1.22.3 // indirect
+	github.com/chromedp/cdproto v0.0.0-20250319231242-a755498943c8 // indirect
+	github.com/chromedp/chromedp v0.13.3 // indirect
+	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
-	github.com/go-viper/encoding/ini v0.1.1 // indirect
+	github.com/go-json-experiment/json v0.0.0-20250223041408-d3c622f1b874 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -43,7 +51,8 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
-	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
+	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330190920-cf9393549915 // indirect
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250320232739-1e4fd2205923 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
@@ -52,14 +61,7 @@ require (
 	golang.org/x/mod v0.24.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
 	golang.org/x/tools v0.31.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
-
-replace (
-	github.com/stollenaar/statisticsbot/internal/database => ../../database
-	github.com/stollenaar/statisticsbot/internal/util => ../../util
 )
