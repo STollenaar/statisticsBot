@@ -20,7 +20,7 @@ func MessageCreateListener(session *discordgo.Session, message *discordgo.Messag
 		if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 			return
 		}
-		if message.Embeds != nil && len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
+		if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
 			return
 		}
 		if len(message.Attachments) > 0 {
@@ -51,7 +51,7 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 		if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 			return
 		}
-		if message.Embeds != nil && len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
+		if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
 			return
 		}
 		if len(message.Attachments) > 0 {

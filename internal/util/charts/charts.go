@@ -26,16 +26,16 @@ type ChartData struct {
 }
 
 type ChartTracker struct {
-	GuildID     string                 `json:"guildID"`
-	Interaction *discordgo.Interaction `json:"interactionID"`
-	UserID      string                 `json:"userID"`
-	ChartType   ChartType              `json:"chart"`
-	Metric      string                 `json:"metrics"`
-	Users       []string               `json:"users"`
-	Channels    []string               `json:"channels"`
-	DateRange   string                 `json:"date"`
-	GroupBy     string                 `json:"groupBy"`
-	ShowOptions bool                   `json:"showOptions"`
+	GuildID       string    `json:"guildID"`
+	InteractionID string    `json:"interactionID"`
+	UserID        string    `json:"userID"`
+	ChartType     ChartType `json:"chart"`
+	Metric        string    `json:"metrics"`
+	Users         []string  `json:"users"`
+	Channels      []string  `json:"channels"`
+	DateRange     string    `json:"date"`
+	GroupBy       string    `json:"groupBy"`
+	ShowOptions   bool      `json:"showOptions"`
 }
 
 func (c *ChartTracker) GetChart() {
@@ -47,7 +47,7 @@ func (c *ChartTracker) GetChart() {
 }
 
 func (c *ChartTracker) Marshal() string {
-	return fmt.Sprintf("%s|%s|%s|%s|%s", c.Interaction.ID, c.UserID, c.ChartType, strings.Join(c.Users, "-"), c.DateRange)
+	return fmt.Sprintf("%s|%s|%s|%s|%s", c.InteractionID, c.UserID, c.ChartType, strings.Join(c.Users, "-"), c.DateRange)
 }
 
 func (c *ChartTracker) Unmarshal(data []byte) error {
@@ -55,7 +55,7 @@ func (c *ChartTracker) Unmarshal(data []byte) error {
 	if len(d) != 5 {
 		return errors.New("unknown data format")
 	}
-	// c.InteractionID = d[0]
+	c.InteractionID = d[0]
 	c.UserID = d[1]
 	c.ChartType = GetChartType(d[2])
 	c.Users = strings.Split(d[3], "-")

@@ -167,7 +167,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	lastMessage := getLastMessage(channel)
 	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
 	messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
-		messageTime := message.Timestamp
+		messageTime, _ := util.SnowflakeToTimestamp(message.ID)
 
 		return messageTime.After(lastMessage.Date)
 	})
@@ -185,7 +185,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 		for lastMessageCollected != nil {
 			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
 			moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
-				messageTime := message.Timestamp
+				messageTime, _ := util.SnowflakeToTimestamp(message.ID)
 
 				return messageTime.After(lastMessage.Date)
 			})
@@ -260,12 +260,24 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string) {
 	}
 
 	// Prepare the content as a single string (for simplicity, we join it)
-	contentStr := strings.Join(content, " ")
+	contentStr := strings.Join(content, "\n")
+	timestamp, err := util.SnowflakeToTimestamp(message.ID)
+	if err != nil {
+		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
+	}
+
+	var maxVersion int
+	err = duckdbClient.QueryRow(`
+    SELECT COALESCE(MAX(version) + 1, 1) FROM messages WHERE id = ? AND guild_id = ?`, message.ID, guildID).Scan(&maxVersion)
+
+	if err != nil {
+		fmt.Println("Error fetching max version:", err)
+	}
 
 	// Increment the version and insert the updated message
-	_, err := duckdbClient.Exec(`INSERT INTO messages (id, guild_id, channel_id, author_id, content, date, version) 
-                                SELECT ?, ?, ?, ?, ?, ?, MAX(version) + 1 FROM messages WHERE id = ? AND guild_id = ?`,
-		message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, message.Timestamp, message.ID, guildID)
+	_, err = duckdbClient.Exec(`INSERT INTO messages (id, guild_id, channel_id, author_id, content, date, version) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp, maxVersion)
 
 	if err != nil {
 		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)

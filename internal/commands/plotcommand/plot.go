@@ -45,11 +45,11 @@ func (p PlotCommand) ParseArguments(bot *discordgo.Session, interaction *discord
 func (p PlotCommand) interactionHandler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	chartTracker := &charts.ChartTracker{
 		GuildID:     interaction.GuildID,
-		Interaction: interaction.Interaction,
+		InteractionID: interaction.Interaction.ID,
 		UserID:      interaction.Member.User.ID,
 		ShowOptions: true,
 	}
-	cache[chartTracker.Interaction.ID] = chartTracker
+	cache[chartTracker.InteractionID] = chartTracker
 
 	err := bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -127,7 +127,7 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 				Content: &e,
 			})
 		} else {
-			_, err = bot.FollowupMessageCreate(chartTracker.Interaction, false, &discordgo.WebhookParams{
+			_, err = bot.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
 				Files: []*discordgo.File{chart},
 			})
 			if err != nil {
