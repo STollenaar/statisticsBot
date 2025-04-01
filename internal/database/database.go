@@ -15,10 +15,6 @@ import (
 	_ "github.com/marcboeker/go-duckdb" // DuckDB Go driver
 )
 
-const (
-	collectionName = "statisticsbot"
-)
-
 var (
 	duckdbClient *sql.DB
 )
