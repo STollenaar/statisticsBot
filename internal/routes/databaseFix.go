@@ -1,10 +1,8 @@
 package routes
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"slices"
 	"sync"
 
@@ -13,6 +11,11 @@ import (
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
+
+type deleteBadEntriesResponse struct {
+	Updates     map[string]int       `json:"updates"`
+	BadMessages []*discordgo.Message `json:"badMessages"`
+}
 
 type MessageBody struct {
 	Embedding     []float32
@@ -69,8 +72,10 @@ func deleteBadEntries(c *gin.Context) {
 		})
 	}
 
-	var deletedIDs []string
-	var messages []*discordgo.Message
+	response := deleteBadEntriesResponse{
+		Updates: make(map[string]int),
+	}
+
 	cachedGuilds := make(map[string]string)
 
 	for rs.Next() {
@@ -89,6 +94,7 @@ func deleteBadEntries(c *gin.Context) {
 				continue
 			}
 			_, err = tx.Exec(updateDate, snflk, message_id)
+			response.Updates["date"] = response.Updates["date"] + 1
 			if err != nil {
 				fmt.Println(err)
 				c.JSON(500, gin.H{
@@ -100,33 +106,16 @@ func deleteBadEntries(c *gin.Context) {
 		}
 		if guild_id == "" {
 			var guild string
-			if guild, ok := cachedGuilds[channel_id]; !ok {
-				channel, err := bot.Channel(channel_id)
-				
-				if err != nil {
-					var apiErr *discordgo.RESTError
-					if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
-						fmt.Println(err)
-						c.JSON(500, gin.H{
-							"error": err.Error(),
-						})
-						tx.Rollback()
-						return
-					} else {
-						deletedIDs = append(deletedIDs, message_id)
-						_, err := tx.Exec(deleteMessage, message_id)
-						if err != nil {
-							fmt.Println(err)
-						}
-						continue
-					}
-				}
+			var ok bool
+			if guild, ok = cachedGuilds[channel_id]; !ok {
+				channel, _ := bot.Channel(channel_id)
 
 				guild = channel.GuildID
 				cachedGuilds[channel_id] = guild
 			}
 
 			_, err = tx.Exec(updateGuild, guild, message_id)
+			response.Updates["guild"] = response.Updates["guild"] + 1
 			if err != nil {
 				fmt.Println(err)
 				c.JSON(500, gin.H{
@@ -148,8 +137,9 @@ func deleteBadEntries(c *gin.Context) {
 					tx.Rollback()
 					return
 				} else {
-					deletedIDs = append(deletedIDs, message_id)
 					_, err := tx.Exec(deleteMessage, message_id)
+					response.Updates["deleted"] = response.Updates["deleted"] + 1
+
 					if err != nil {
 						fmt.Println(err)
 					}
@@ -167,8 +157,8 @@ func deleteBadEntries(c *gin.Context) {
 				message.Poll != nil ||
 				message.StickerItems != nil ||
 				message.Author.Bot {
-				deletedIDs = append(deletedIDs, message_id)
 				_, err := tx.Exec(deleteMessage, message_id)
+				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -176,15 +166,15 @@ func deleteBadEntries(c *gin.Context) {
 			}
 			if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 				_, err := tx.Exec(deleteMessage, message_id)
-				deletedIDs = append(deletedIDs, message_id)
+				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
 					fmt.Println(err)
 				}
 				continue
 			}
-			if message.Embeds != nil && len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
+			if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
 				_, err := tx.Exec(deleteMessage, message_id)
-				deletedIDs = append(deletedIDs, message_id)
+				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
 					fmt.Println(err)
 				}
@@ -192,29 +182,29 @@ func deleteBadEntries(c *gin.Context) {
 			}
 			if len(message.Attachments) > 0 {
 				_, err := tx.Exec(deleteMessage, message_id)
-				deletedIDs = append(deletedIDs, message_id)
+				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
 					fmt.Println(err)
 				}
 				continue
 			}
-			discordLink := fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guild_id, channel_id, message.ID)
-			messages = append(messages, message)
-			fmt.Println("Discord link to the message:", discordLink)
-			fmt.Println(message.Flags == discordgo.MessageFlagsIsCrossPosted)
+			response.BadMessages = append(response.BadMessages, message)
+			if util.ConfigFile.DEBUG {
+				discordLink := fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guild_id, channel_id, message.ID)
+				fmt.Println("Discord link to the message:", discordLink)
+			}
 		}
 	}
 
-	data, err := json.MarshalIndent(messages, "", "    ")
-	os.WriteFile("messages.json", []byte(data), 0644)
 	err = tx.Commit()
 	if err != nil {
 		c.JSON(500, gin.H{
-			"error": err.Error(),
+			"error":   err.Error(),
+			"message": response,
 		})
 	} else {
 		c.JSON(200, gin.H{
-			"message": "done",
+			"message": response,
 		})
 	}
 }
@@ -284,7 +274,7 @@ func addMissingEntries(c *gin.Context) {
 				if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 					continue
 				}
-				if message.Embeds != nil && len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
+				if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
 					continue
 				}
 				if len(message.Attachments) > 0 {
