@@ -7,4 +7,5 @@ use (
 	./internal/routes
 	./internal/util
 	./internal/util/charts
+    ./tools/charts
 )

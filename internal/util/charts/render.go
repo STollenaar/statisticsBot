@@ -3,7 +3,9 @@ package charts
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os"
+	"slices"
 	"strings"
 	"time"
 
@@ -40,6 +42,12 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 	case LineChart:
 		lineChart := c.generateLineChart(data, title)
 		err = render.MakeChartSnapshot(lineChart.RenderContent(), fileName)
+	case HeatmapChart:
+		heatmapChart := c.generateHeatMapChart(data, title)
+		err = render.MakeChartSnapshot(heatmapChart.RenderContent(), fileName)
+	case SunburstChart:
+		sunburstChart := c.generateSunBurstChart(data, title)
+		err = render.MakeChartSnapshot(sunburstChart.RenderContent(), fileName)
 	}
 
 	if err != nil {
@@ -59,12 +67,41 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 	}, nil
 }
 
+func (c *ChartTracker) GenerateDebugChart() {
+	data, err := c.getDebugData()
+	fmt.Println(data)
+	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric, c.GroupBy), "_", " "))
+	f, _ := os.Create("chart.html")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	switch c.ChartType {
+	case BarChart:
+		barChart := c.generateBarChart(data, title)
+		barChart.Render(f)
+	case PieChart:
+		pieChart := c.generatePieChart(data, title)
+		pieChart.Render(f)
+	case LineChart:
+		lineChart := c.generateLineChart(data, title)
+		lineChart.Render(f)
+	case HeatmapChart:
+		heatmapChart := c.generateHeatMapChart(data, title)
+		heatmapChart.Render(f)
+	case SunburstChart:
+		sunburstChart := c.generateSunBurstChart(data, title)
+		sunburstChart.Render(f)
+	}
+}
+
 func (c *ChartTracker) generateBarChart(chartData []ChartData, title string) *charts.Bar {
 	// create a new bar instance
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			BackgroundColor: "#FFFFFF",
+			Width:           "100%",
 		}),
 		// Don't forget disable the Animation
 		charts.WithAnimation(false),
@@ -72,7 +109,17 @@ func (c *ChartTracker) generateBarChart(chartData []ChartData, title string) *ch
 			Title: title,
 			Right: "40%",
 		}),
-		charts.WithLegendOpts(opts.Legend{Right: "80%"}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type:      "category",
+			SplitArea: &opts.SplitArea{Show: opts.Bool(true)},
+			AxisLabel: &opts.AxisLabel{
+				Show:     opts.Bool(true),
+				Interval: "0",
+				Rotate:   45,
+				FontSize: 10,
+			},
+		}),
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
 	// Put data into instance
@@ -82,12 +129,13 @@ func (c *ChartTracker) generateBarChart(chartData []ChartData, title string) *ch
 	return bar
 }
 
-func (c *ChartTracker) generatePieChart(ChartData []ChartData, title string) *charts.Pie {
+func (c *ChartTracker) generatePieChart(chartData []ChartData, title string) *charts.Pie {
 	pie := charts.NewPie()
 
 	pie.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			BackgroundColor: "#FFFFFF",
+			Width:           "100%",
 		}),
 		// Don't forget disable the Animation
 		charts.WithAnimation(false),
@@ -95,18 +143,19 @@ func (c *ChartTracker) generatePieChart(ChartData []ChartData, title string) *ch
 			Title: title,
 			Right: "40%",
 		}),
-		charts.WithLegendOpts(opts.Legend{Right: "80%"}),
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	pie.AddSeries(c.Metric, genPieData(ChartData))
+	pie.AddSeries(c.Metric, genPieData(chartData))
 	return pie
 }
 
-func (c *ChartTracker)generateLineChart(chartData []ChartData, title string) *charts.Line {
+func (c *ChartTracker) generateLineChart(chartData []ChartData, title string) *charts.Line {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
 			BackgroundColor: "#FFFFFF",
+			Width:           "100%",
 		}),
 		// Don't forget disable the Animation
 		charts.WithAnimation(false),
@@ -114,7 +163,7 @@ func (c *ChartTracker)generateLineChart(chartData []ChartData, title string) *ch
 			Title: title,
 			Right: "40%",
 		}),
-		charts.WithLegendOpts(opts.Legend{Right: "80%"}),
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
 	line.SetXAxis(toXaxes(chartData)).
@@ -130,9 +179,85 @@ func (c *ChartTracker)generateLineChart(chartData []ChartData, title string) *ch
 	return line
 }
 
+func (c *ChartTracker) generateSunBurstChart(chartData []ChartData, title string) *charts.Sunburst {
+	sunburst := charts.NewSunburst()
+
+	sunburst.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{
+			BackgroundColor: "#FFFFFF",
+			Width:           "100%",
+		}),
+		// Don't forget disable the Animation
+		charts.WithAnimation(false),
+		charts.WithTitleOpts(opts.Title{
+			Title: title,
+			Right: "40%",
+		}),
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	sunburst.AddSeries(c.Metric, genSunburst(chartData))
+	return sunburst
+}
+
+func (c *ChartTracker) generateHeatMapChart(chartData []ChartData, title string) *charts.HeatMap {
+	heatmap := charts.NewHeatMap()
+	heatMapData, xAxes, yAxes := genHeatMap(chartData)
+
+	heatmap.SetGlobalOptions(
+		charts.WithInitializationOpts(opts.Initialization{
+			BackgroundColor: "#FFFFFF",
+			Width:           "100%",
+		}),
+		// Don't forget disable the Animation
+		charts.WithAnimation(false),
+		charts.WithTitleOpts(opts.Title{
+			Title: title,
+			Right: "40%",
+		}),
+		charts.WithXAxisOpts(opts.XAxis{
+			Type:      "category",
+			Data:      xAxes,
+			SplitArea: &opts.SplitArea{Show: opts.Bool(true)},
+			AxisLabel: &opts.AxisLabel{
+				Show:     opts.Bool(true),
+				Interval: "0",
+				Rotate:   45,
+				FontSize: 10,
+			},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Type:      "category",
+			Data:      yAxes,
+			SplitArea: &opts.SplitArea{Show: opts.Bool(true)},
+			AxisLabel: &opts.AxisLabel{
+				Show:     opts.Bool(true), // Ensure labels are always displayed
+				Interval: "0",             // Force every label to appear
+			},
+		}),
+		charts.WithVisualMapOpts(opts.VisualMap{
+			Show: opts.Bool(false),
+			InRange: &opts.VisualMapInRange{
+				Color: []string{"#50a3ba", "#eac736", "#d94e5d"},
+			},
+		}),
+		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
+	)
+
+	heatmap.SetXAxis(xAxes).AddSeries(c.Metric, heatMapData)
+	return heatmap
+}
+
 func toXaxes(chartData []ChartData) (rs []string) {
 	for _, data := range chartData {
 		rs = append(rs, data.XLabel)
+	}
+	return
+}
+
+func toYaxes(chartData []ChartData) (rs []string) {
+	for _, data := range chartData {
+		rs = append(rs, data.YLabel)
 	}
 	return
 }
@@ -156,4 +281,87 @@ func genLineData(chartData []ChartData) (rs []opts.LineData) {
 		rs = append(rs, opts.LineData{Value: data.Value})
 	}
 	return
+}
+
+func genHeatMap(chartData []ChartData) (rs []opts.HeatMapData, xAxes []string, yAxes []string) {
+	xAxes, yAxes = uniqueStrings(toXaxes(chartData)), uniqueStrings(toYaxes(chartData))
+
+	// Find min & max values
+	var minVal, maxVal float64 = chartData[0].Value, chartData[0].Value
+	for _, data := range chartData {
+		if data.Value < minVal {
+			minVal = data.Value
+		}
+		if data.Value > maxVal {
+			maxVal = data.Value
+		}
+	}
+
+	for _, data := range chartData {
+		normalizedValue := normalizeLog(data.Value, minVal, maxVal) * 100
+		// rs = append(rs, opts.HeatMapData{
+		// 	Value: [3]interface{}{data.Xaxes, data.Yaxes, normalizedValue * 100}, // Scale to 0-100
+		// })
+		rs = append(rs, opts.HeatMapData{Value: [3]interface{}{slices.Index(xAxes, data.XLabel), slices.Index(yAxes, data.YLabel), normalizedValue}})
+	}
+	return
+}
+
+func genSunburst(chartData []ChartData) (rs []opts.SunBurstData) {
+	yAxes := uniqueStrings(toYaxes(chartData))
+
+	type sunburst struct {
+		value float64
+		children []*opts.SunBurstData
+	}
+
+	yAxesData := make(map[string]sunburst)
+
+	for _, data := range chartData {
+		if slices.Contains(yAxes, data.YLabel) {
+			yData := yAxesData[data.YLabel]
+			yData.value += data.Value
+			yData.children = append(yData.children, &opts.SunBurstData{
+				Value: data.Value,
+				Name: data.XLabel,
+			})
+			yAxesData[data.YLabel] = yData
+		}
+	}
+
+	for key, data := range yAxesData {
+		rs = append(rs, opts.SunBurstData{
+			Value: data.value,
+			Name: key,
+			Children: data.children,
+		})
+	}
+
+	return
+}
+
+// Unique values in a slice
+func uniqueStrings(input []string) []string {
+	seen := make(map[string]struct{})
+	var result []string
+
+	for _, v := range input {
+		if _, exists := seen[v]; !exists {
+			seen[v] = struct{}{}
+			result = append(result, v)
+		}
+	}
+	return result
+}
+
+func normalizeLog(value, minVal, maxVal float64) float64 {
+	if value <= 0 {
+		return 0 // Avoid log(0) issues
+	}
+	logMin := math.Log10(minVal + 1)
+	logMax := math.Log10(maxVal + 1)
+	logVal := math.Log10(value + 1)
+
+	// Scale between 0 and 100
+	return (logVal - logMin) / (logMax - logMin)
 }

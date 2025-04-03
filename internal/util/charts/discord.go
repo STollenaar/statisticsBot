@@ -69,6 +69,16 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 								Value:   "histogram",
 								Default: c.ChartType == BarChart,
 							},
+							{
+								Label:   "Sunburst",
+								Value:   "sunburst",
+								Default: c.ChartType == SunburstChart,
+							},
+							{
+								Label:   "Heatmap",
+								Value:   "heatmap",
+								Default: c.ChartType == HeatmapChart,
+							},
 						},
 					},
 				},
@@ -108,26 +118,7 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 					discordgo.SelectMenu{
 						CustomID:    "group_by",
 						Placeholder: "Group chart data by...",
-						Options: []discordgo.SelectMenuOption{
-							{
-								Label:       "User",
-								Value:       "user",
-								Description: "Group results by user (author)",
-								Default:     c.GroupBy == "user",
-							},
-							{
-								Label:       "Date",
-								Value:       "date",
-								Description: "Group results by individual day",
-								Default:     c.GroupBy == "date",
-							},
-							{
-								Label:       "Channel",
-								Value:       "channel",
-								Description: "Group results by channel",
-								Default:     c.GroupBy == "channel",
-							},
-						},
+						Options:     c.getGroupBy(),
 					},
 				},
 			},
@@ -247,4 +238,51 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 	// 		},
 	// 	},
 	// },
+}
+
+func (c *ChartTracker) getGroupBy() []discordgo.SelectMenuOption {
+	switch c.ChartType {
+	default:
+		fallthrough
+	case PieChart:
+		fallthrough
+	case BarChart:
+		fallthrough
+	case LineChart:
+		if c.GroupBy == "channel_user" {
+			c.GroupBy = ""
+		}
+		return []discordgo.SelectMenuOption{
+			{
+				Label:       "User",
+				Value:       "user",
+				Description: "Group results by user (author)",
+				Default:     c.GroupBy == "user",
+			},
+			{
+				Label:       "Date",
+				Value:       "date",
+				Description: "Group results by individual day",
+				Default:     c.GroupBy == "date",
+			},
+			{
+				Label:       "Channel",
+				Value:       "channel",
+				Description: "Group results by channel",
+				Default:     c.GroupBy == "channel",
+			},
+		}
+	case SunburstChart:
+		fallthrough
+	case HeatmapChart:
+		c.GroupBy = "channel_user"
+		return []discordgo.SelectMenuOption{
+			{
+				Label:       "Channel & User",
+				Value:       "channel_user",
+				Description: "Group results by channel and user (author)",
+				Default:     true,
+			},
+		}		
+	}
 }

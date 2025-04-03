@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/stollenaar/statisticsbot/internal/util"
 	"github.com/stollenaar/statisticsbot/internal/util/charts"
 )
 
@@ -44,10 +45,10 @@ func (p PlotCommand) ParseArguments(bot *discordgo.Session, interaction *discord
 
 func (p PlotCommand) interactionHandler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
 	chartTracker := &charts.ChartTracker{
-		GuildID:     interaction.GuildID,
+		GuildID:       interaction.GuildID,
 		InteractionID: interaction.Interaction.ID,
-		UserID:      interaction.Member.User.ID,
-		ShowOptions: true,
+		UserID:        interaction.Member.User.ID,
+		ShowOptions:   true,
 	}
 	cache[chartTracker.InteractionID] = chartTracker
 
@@ -129,14 +130,15 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 		} else {
 			_, err = bot.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
 				Files: []*discordgo.File{chart},
+				Flags: util.ConfigFile.SetEphemeral(),
 			})
 			if err != nil {
 				fmt.Println(err)
-			}	
+			}
 			err = bot.InteractionResponseDelete(interaction.Interaction)
 			if err != nil {
 				fmt.Println(err)
-			}	
+			}
 		}
 	}
 }
