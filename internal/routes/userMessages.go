@@ -1,47 +1,23 @@
 package routes
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sqs"
 	"github.com/gin-gonic/gin"
-	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 var (
-	sqsClient *sqs.Client
-
 	reTarget *regexp.Regexp
 )
 
 func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
-
-	if os.Getenv("AWS_SHARED_CREDENTIALS_FILE") != "" {
-		provider := filecreds.NewFilecredentialsProvider(os.Getenv("AWS_SHARED_CREDENTIALS_FILE"))
-		sqsClient = sqs.New(sqs.Options{
-			Credentials: provider,
-			Region:      os.Getenv("AWS_REGION"),
-		})
-	} else {
-		// Create a config with the credentials provider.
-		cfg, err := config.LoadDefaultConfig(context.TODO())
-
-		if err != nil {
-			panic("configuration error, " + err.Error())
-		}
-
-		sqsClient = sqs.NewFromConfig(cfg)
-	}
 }
 
 func addGetUserMessages(r *gin.Engine) {

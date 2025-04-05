@@ -66,3 +66,35 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 		constructUpdateMessageObject(message.Message, guildID)
 	}
 }
+
+func MessageReactAddListener(session *discordgo.Session, message *discordgo.MessageReactionAdd) {
+	guildID := message.GuildID
+	if guildID == "" {
+		channel, _ := session.Channel(message.ChannelID)
+		guildID = channel.GuildID
+	}
+
+	ConstructMessageReactObject(MessageReact{
+		ID:        message.MessageID,
+		GuildID:   guildID,
+		ChannelID: message.ChannelID,
+		Author:    message.UserID,
+		Reaction:  message.Emoji.Name,
+	}, false)
+}
+
+func MessageReactRemoveListener(session *discordgo.Session, message *discordgo.MessageReactionRemove) {
+	guildID := message.GuildID
+	if guildID == "" {
+		channel, _ := session.Channel(message.ChannelID)
+		guildID = channel.GuildID
+	}
+
+	ConstructMessageReactObject(MessageReact{
+		ID:        message.MessageID,
+		GuildID:   guildID,
+		ChannelID: message.ChannelID,
+		Author:    message.UserID,
+		Reaction:  message.Emoji.ID,
+	}, true)
+}

@@ -24,6 +24,14 @@ type TextRequest struct {
 	Text string `json:"text"`
 }
 
+type MessageReact struct {
+	ID        string
+	GuildID   string
+	ChannelID string
+	Author    string
+	Reaction  string
+}
+
 func init() {
 	initDuckDB()
 }
@@ -53,6 +61,23 @@ func initDuckDB() {
 			version INTEGER DEFAULT 1,
     		PRIMARY KEY (id, version)
 		);
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
+
+	// Create the reactions table
+	_, err = duckdbClient.Exec(`
+		CREATE TABLE IF NOT EXISTS reactions (
+			id VARCHAR,
+			guild_id VARCHAR,
+			channel_id VARCHAR,
+			author_id VARCHAR,
+			reaction VARCHAR,
+			date TIMESTAMP,
+			PRIMARY KEY (id, reaction, author_id)
+		);
+		CREATE INDEX IF NOT EXISTS idx_message_reactions ON reactions (id);
 	`)
 	if err != nil {
 		log.Fatalf("Failed to create table: %v", err)
@@ -172,6 +197,15 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	for _, message := range messages {
 		operations++
 		ConstructCreateMessageObject(message, channel.GuildID)
+		for _, reaction := range message.Reactions {
+			ConstructMessageReactObject(MessageReact{
+				ID:        message.ID,
+				GuildID:   channel.GuildID,
+				ChannelID: message.ChannelID,
+				Author:    reaction.Emoji.User.ID,
+				Reaction:  reaction.Emoji.Name,
+			}, false)
+		}
 	}
 
 	// Loading more messages if got 100 message the first time
@@ -277,6 +311,31 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string) {
 
 	if err != nil {
 		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)
+	}
+}
+
+func ConstructMessageReactObject(message MessageReact, delete bool) {
+	timestamp, err := util.SnowflakeToTimestamp(message.ID)
+	if err != nil {
+		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
+	}
+	if !delete {
+
+		// insert the reaction to the message
+		_, err = duckdbClient.Exec(`INSERT INTO reactions (id, guild_id, channel_id, author_id, reaction, date) 
+                                VALUES (?, ?, ?, ?, ?, ?)`,
+			message.ID, message.GuildID, message.ChannelID, message.Author, message.Reaction, timestamp)
+
+		if err != nil {
+			fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
+		}
+	} else {
+		// insert the reaction to the message
+		_, err := duckdbClient.Exec(`DELETE FROM reactions WHERE id = ? AND author_id = ? AND reaction = ?`,
+			message.ID, message.Author, message.Reaction)
+		if err != nil {
+			fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
+		}
 	}
 }
 

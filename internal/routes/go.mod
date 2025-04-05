@@ -3,11 +3,8 @@ module github.com/stollenaar/statisticsbot/internal/routes
 go 1.24.1
 
 require (
-	github.com/aws/aws-sdk-go-v2/config v1.29.12
-	github.com/aws/aws-sdk-go-v2/service/sqs v1.38.3
 	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
 	github.com/gin-gonic/gin v1.10.0
-	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250320232739-1e4fd2205923
 	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250320232739-1e4fd2205923
 )
@@ -15,6 +12,7 @@ require (
 require (
 	github.com/apache/arrow-go/v18 v18.2.0 // indirect
 	github.com/aws/aws-sdk-go-v2 v1.36.3 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.29.12 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.65 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.34 // indirect
@@ -59,6 +57,7 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
+	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect

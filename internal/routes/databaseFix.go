@@ -213,6 +213,10 @@ func addMissingEntries(c *gin.Context) {
 	query := `
 	SELECT id FROM messages`
 
+	reactions := `SELECT id, author_id, reaction FROM reactions`
+
+	reactionTable := make(map[string]bool)
+
 	rs, err := database.QueryDuckDB(query, nil)
 	if err != nil {
 		c.JSON(500, gin.H{
@@ -229,6 +233,24 @@ func addMissingEntries(c *gin.Context) {
 		}
 		ids = append(ids, id)
 	}
+
+	rs, err = database.QueryDuckDB(reactions, nil)
+	if err != nil {
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	for rs.Next() {
+		var id, author_id, reaction string
+		err = rs.Scan(&id, &author_id, &reaction)
+		if err != nil {
+			break
+		}
+		reactionTable[fmt.Sprintf("%s_%s_%s", id, author_id, reaction)] = true
+	}
+
 	guilds, err := bot.UserGuilds(100, "", "", false)
 	if err != nil {
 		fmt.Println(err)
@@ -259,6 +281,22 @@ func addMissingEntries(c *gin.Context) {
 	fmt.Printf("DatabaseFix: done collecting messages found %d messages\n", len(missedMessages))
 	var missed int
 	for _, message := range missedMessages {
+		guildId := message.GuildID
+		if guildId == "" {
+			channnel, _ := bot.Channel(message.ChannelID)
+			guildId = channnel.GuildID
+		}
+		for _, reaction := range message.Reactions {
+			if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.User.ID, reaction.Emoji.Name)]; !ok {
+				database.ConstructMessageReactObject(database.MessageReact{
+					ID: message.ID,
+					GuildID: guildId,
+					ChannelID: message.ChannelID,
+					Author: reaction.Emoji.User.ID,
+					Reaction: reaction.Emoji.Name,
+				}, false)
+			}
+		}
 		if !slices.Contains(ids, message.ID) {
 			if message.Flags != discordgo.MessageFlagsLoading &&
 				message.Type != discordgo.MessageTypeGuildMemberJoin &&
@@ -280,11 +318,7 @@ func addMissingEntries(c *gin.Context) {
 				if len(message.Attachments) > 0 {
 					continue
 				}
-				guildId := message.GuildID
-				if guildId == "" {
-					channnel, _ := bot.Channel(message.ChannelID)
-					guildId = channnel.GuildID
-				}
+
 				database.ConstructCreateMessageObject(message, guildId)
 				missed++
 			}

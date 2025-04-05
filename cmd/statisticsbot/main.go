@@ -44,10 +44,12 @@ func init() {
 }
 
 func main() {
-	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers | discordgo.IntentsMessageContent)
+	bot.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages | discordgo.IntentsGuildMembers | discordgo.IntentsMessageContent | discordgo.IntentGuildMessageReactions)
 
 	bot.AddHandler(database.MessageCreateListener)
 	bot.AddHandler(database.MessageUpdateListener)
+	bot.AddHandler(database.MessageReactAddListener)
+	bot.AddHandler(database.MessageReactRemoveListener)
 
 	err := bot.Open()
 	if err != nil {

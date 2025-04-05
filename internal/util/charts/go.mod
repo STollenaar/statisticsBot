@@ -7,6 +7,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.5.2
 	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250320232739-1e4fd2205923
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250320232739-1e4fd2205923
 	golang.org/x/text v0.23.0
 )
 
@@ -52,7 +53,6 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330190920-cf9393549915 // indirect
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250320232739-1e4fd2205923 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
