@@ -91,7 +91,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		}
 	}()
 
-	query := `
+	message_query := `
 	WITH latest_messages AS (
 		SELECT *
 		FROM (
@@ -103,6 +103,13 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 	)
 	SELECT %s, %s as value
 	FROM latest_messages
+	WHERE guild_id = ?
+	AND date BETWEEN ? AND ?
+`
+
+	reaction_query := `
+	SELECT %s, %s as value
+	FROM reactions
 	WHERE guild_id = ?
 	AND date BETWEEN ? AND ?
 `
@@ -122,9 +129,11 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 	// Determine aggregation
 	var aggExpr string
 	switch c.Metric {
+	case "reaction_count":
+		fallthrough
 	case "message_count":
 		aggExpr = "COUNT(*)"
-	case "avg_length":
+	case "message_avg_length":
 		aggExpr = "AVG(LENGTH(content))"
 	case "message_freq":
 		aggExpr = fmt.Sprintf(
@@ -146,7 +155,11 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 	case "channel":
 		selectExpr, groupField = "channel_id AS xaxes", "channel_id"
 	case "channel_user":
-		selectExpr, groupField = "channel_id AS yaxes, author_id as xaxes", "channel_id, author_id"
+		selectExpr, groupField = "channel_id AS yaxes, author_id AS xaxes", "channel_id, author_id"
+	case "reaction_user":
+		selectExpr, groupField = "reaction AS yaxes, author_id AS xaxes", "reaction, author_id"
+	case "reaction_channel":
+		selectExpr, groupField = "reaction AS yaxes, channel_id AS xaxes", "reaction, channel_id"
 	default:
 		selectExpr, groupField = "author_id", "author_id" // fallback
 	}
@@ -156,7 +169,15 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		orderByField = fmt.Sprintf("%s ASC", groupField)
 	}
 
-	query = fmt.Sprintf(query, selectExpr, aggExpr)
+	var query string
+	switch strings.Split(c.Metric, "_")[0] {
+	case "reaction":
+		query = fmt.Sprintf(reaction_query, selectExpr, aggExpr)
+	case "message":
+		fallthrough
+	default:
+		query = fmt.Sprintf(message_query, selectExpr, aggExpr)
+	}
 
 	var filters []string
 	if len(c.Users) > 0 {
@@ -186,7 +207,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
 
 	// Pre-fetch users if grouping by "user"
-	if c.GroupBy == "user" || c.GroupBy == "channel_user" {
+	if c.GroupBy == "user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_users" {
 		lastID := "" // Discord API requires the last ID for pagination
 
 		for {
@@ -208,7 +229,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 	}
 
 	// Pre-fetch channels if grouping by "channel"
-	if c.GroupBy == "channel" || c.GroupBy == "channel_user" {
+	if c.GroupBy == "channel" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_channels" {
 		guildChannels, err := bot.GuildChannels(c.GuildID)
 		if err == nil {
 			for _, ch := range guildChannels {
@@ -227,7 +248,9 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		var xaxes, yaxes string
 		var value float64
 
-		if c.GroupBy != "channel_user" {
+		if !(c.GroupBy == "channel_user" ||
+			c.GroupBy == "reaction_user" ||
+			c.GroupBy == "reaction_channel") {
 			err = rs.Scan(&xaxes, &value)
 		} else {
 			err = rs.Scan(&yaxes, &xaxes, &value)
@@ -260,6 +283,20 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 			} else {
 				yLabel = yaxes
 			}
+		case "reaction_user":
+			if name, found := usernames[xaxes]; found {
+				xLabel = name
+			} else {
+				xLabel = xaxes
+			}
+			yLabel = yaxes
+		case "reaction_channel":
+			if name, found := channels[xaxes]; found {
+				xLabel = name
+			} else {
+				xLabel = xaxes
+			}
+			yLabel = yaxes
 		case "date":
 			xLabel = xaxes
 		}
@@ -267,6 +304,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 			Xaxes:  xaxes,
 			XLabel: xLabel,
 			YLabel: yLabel,
+			Yaxes:  yaxes,
 			Value:  value,
 		})
 	}
@@ -275,7 +313,10 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 	}
 
 	// Process top 14 and "Other" category
-	if (c.GroupBy != "channel_user" && c.ChartType == SunburstChart ) || c.GroupBy != "date" && len(allData) > 14 {
+	if !(c.GroupBy == "channel_user" ||
+		c.GroupBy == "reaction_user" ||
+		c.GroupBy == "reaction_channel") &&
+		c.GroupBy != "date" && len(allData) > 14 {
 		topData := allData[:14]
 		otherValue := 0.0
 		for _, d := range allData[14:] {
@@ -308,8 +349,7 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		}
 	}()
 
-	
-	query := `
+	message_query := `
 	WITH latest_messages AS (
 		SELECT *
 		FROM (
@@ -321,6 +361,13 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 	)
 	SELECT %s, %s as value
 	FROM latest_messages
+	WHERE guild_id = ?
+	AND date BETWEEN ? AND ?
+`
+
+	reaction_query := `
+	SELECT %s, %s as value
+	FROM reactions
 	WHERE guild_id = ?
 	AND date BETWEEN ? AND ?
 `
@@ -340,9 +387,11 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 	// Determine aggregation
 	var aggExpr string
 	switch c.Metric {
+	case "reaction_count":
+		fallthrough
 	case "message_count":
 		aggExpr = "COUNT(*)"
-	case "avg_length":
+	case "message_avg_length":
 		aggExpr = "AVG(LENGTH(content))"
 	case "message_freq":
 		aggExpr = fmt.Sprintf(
@@ -352,7 +401,7 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		)
 	}
 
-	// Determine grouping
+	// Determine grouping!(c.GroupBy == "channel_user"
 	var selectExpr, groupField string
 	switch c.GroupBy {
 	case "user":
@@ -364,7 +413,11 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 	case "channel":
 		selectExpr, groupField = "channel_id AS xaxes", "channel_id"
 	case "channel_user":
-		selectExpr, groupField = "channel_id AS yaxes, author_id as xaxes", "channel_id, author_id"
+		selectExpr, groupField = "channel_id AS yaxes, author_id AS xaxes", "channel_id, author_id"
+	case "reaction_user":
+		selectExpr, groupField = "reaction AS yaxes, author_id AS xaxes", "reaction, author_id"
+	case "reaction_channel":
+		selectExpr, groupField = "reaction AS yaxes, channel_id AS xaxes", "reaction, channel_id"
 	default:
 		selectExpr, groupField = "author_id", "author_id" // fallback
 	}
@@ -374,7 +427,15 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		orderByField = fmt.Sprintf("%s ASC", groupField)
 	}
 
-	query = fmt.Sprintf(query, selectExpr, aggExpr)
+	var query string
+	switch strings.Split(c.Metric, "_")[0] {
+	case "reaction":
+		query = fmt.Sprintf(reaction_query, selectExpr, aggExpr)
+	case "message":
+		fallthrough
+	default:
+		query = fmt.Sprintf(message_query, selectExpr, aggExpr)
+	}
 
 	var filters []string
 	if len(c.Users) > 0 {
@@ -409,7 +470,9 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		var xaxes, yaxes string
 		var value float64
 
-		if c.GroupBy != "channel_user" {
+		if !(c.GroupBy == "channel_user" ||
+			c.GroupBy == "reaction_user" ||
+			c.GroupBy == "reaction_channel") {
 			err = rs.Scan(&xaxes, &value)
 		} else {
 			err = rs.Scan(&yaxes, &xaxes, &value)
@@ -417,11 +480,12 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		if err != nil {
 			break
 		}
-		
+
 		allData = append(allData, ChartData{
 			Xaxes:  xaxes,
 			XLabel: xaxes,
 			YLabel: yaxes,
+			Yaxes:  yaxes,
 			Value:  value,
 		})
 	}
@@ -430,7 +494,10 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 	}
 
 	// Process top 14 and "Other" category
-	if c.GroupBy != "channel_user" && c.GroupBy != "date" && len(allData) > 14 {
+	if !(c.GroupBy == "channel_user" ||
+		c.GroupBy == "reaction_user" ||
+		c.GroupBy == "reaction_channel") &&
+		c.GroupBy != "date" && len(allData) > 14 {
 		topData := allData[:14]
 		otherValue := 0.0
 		for _, d := range allData[14:] {

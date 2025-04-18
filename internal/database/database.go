@@ -82,7 +82,6 @@ func initDuckDB() {
 	if err != nil {
 		log.Fatalf("Failed to create table: %v", err)
 	}
-
 }
 
 // Init doing the initialization of all the messages
@@ -198,6 +197,9 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 		operations++
 		ConstructCreateMessageObject(message, channel.GuildID)
 		for _, reaction := range message.Reactions {
+			if reaction.Emoji.User == nil {
+				continue
+			}
 			ConstructMessageReactObject(MessageReact{
 				ID:        message.ID,
 				GuildID:   channel.GuildID,

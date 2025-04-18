@@ -6,6 +6,7 @@ import (
 	"math"
 	"os"
 	"slices"
+	"sort"
 	"strings"
 	"time"
 
@@ -284,11 +285,23 @@ func genLineData(chartData []ChartData) (rs []opts.LineData) {
 }
 
 func genHeatMap(chartData []ChartData) (rs []opts.HeatMapData, xAxes []string, yAxes []string) {
-	xAxes, yAxes = uniqueStrings(toXaxes(chartData)), uniqueStrings(toYaxes(chartData))
+	xAxesTotals, yAxesTotals := make(map[string]float64), make(map[string]float64)
+	for _, data := range chartData {
+		xAxesTotals[data.Xaxes] += data.Value
+		yAxesTotals[data.Yaxes] += data.Value
+	}
+	xAxes, yAxes = topNKeys(xAxesTotals, 14), topNKeys(yAxesTotals, 10)
+	var filteredChartData []ChartData
+	for _, data := range chartData {
+		if slices.Contains(xAxes, data.Xaxes) && slices.Contains(yAxes, data.Yaxes) {
+			filteredChartData = append(filteredChartData, data)
+		}
+	}
+
 
 	// Find min & max values
-	var minVal, maxVal float64 = chartData[0].Value, chartData[0].Value
-	for _, data := range chartData {
+	var minVal, maxVal float64 = filteredChartData[0].Value, filteredChartData[0].Value
+	for _, data := range filteredChartData {
 		if data.Value < minVal {
 			minVal = data.Value
 		}
@@ -297,7 +310,7 @@ func genHeatMap(chartData []ChartData) (rs []opts.HeatMapData, xAxes []string, y
 		}
 	}
 
-	for _, data := range chartData {
+	for _, data := range filteredChartData {
 		normalizedValue := normalizeLog(data.Value, minVal, maxVal) * 100
 		// rs = append(rs, opts.HeatMapData{
 		// 	Value: [3]interface{}{data.Xaxes, data.Yaxes, normalizedValue * 100}, // Scale to 0-100
@@ -311,7 +324,7 @@ func genSunburst(chartData []ChartData) (rs []opts.SunBurstData) {
 	yAxes := uniqueStrings(toYaxes(chartData))
 
 	type sunburst struct {
-		value float64
+		value    float64
 		children []*opts.SunBurstData
 	}
 
@@ -323,7 +336,7 @@ func genSunburst(chartData []ChartData) (rs []opts.SunBurstData) {
 			yData.value += data.Value
 			yData.children = append(yData.children, &opts.SunBurstData{
 				Value: data.Value,
-				Name: data.XLabel,
+				Name:  data.XLabel,
 			})
 			yAxesData[data.YLabel] = yData
 		}
@@ -331,8 +344,8 @@ func genSunburst(chartData []ChartData) (rs []opts.SunBurstData) {
 
 	for key, data := range yAxesData {
 		rs = append(rs, opts.SunBurstData{
-			Value: data.value,
-			Name: key,
+			Value:    data.value,
+			Name:     key,
 			Children: data.children,
 		})
 	}
@@ -364,4 +377,24 @@ func normalizeLog(value, minVal, maxVal float64) float64 {
 
 	// Scale between 0 and 100
 	return (logVal - logMin) / (logMax - logMin)
+}
+
+func topNKeys(m map[string]float64, n int) []string {
+	type kv struct {
+		Key   string
+		Value float64
+	}
+	var sorted []kv
+	for k, v := range m {
+		sorted = append(sorted, kv{k, v})
+	}
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Value > sorted[j].Value
+	})
+
+	top := []string{}
+	for i := 0; i < n && i < len(sorted); i++ {
+		top = append(top, sorted[i].Key)
+	}
+	return top
 }

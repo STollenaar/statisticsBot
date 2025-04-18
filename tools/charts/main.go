@@ -7,9 +7,9 @@ import (
 func main() {
 	chartTracker := charts.ChartTracker{
 		GuildID:   "497544520695808000",
-		ChartType: "sunburst",
-		Metric:    "message_count",
-		GroupBy:   "channel_user",
+		ChartType: "heatmap",
+		Metric:    "reaction_count",
+		GroupBy:   "reaction_user",
 		DateRange: "30d",
 	}
 

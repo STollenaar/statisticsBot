@@ -2,6 +2,7 @@ package charts
 
 import (
 	"errors"
+	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -90,6 +91,12 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 						Placeholder: "Choose a metric to chart...",
 						Options: []discordgo.SelectMenuOption{
 							{
+								Label: "Reaction Count",
+								Value: "reaction_count",
+								Description: "How many times a reaction was used",
+								Default: c.Metric == "reaction_count",
+							},
+							{
 								Label:       "Message Count",
 								Value:       "message_count",
 								Description: "How many messages are sent",
@@ -97,9 +104,9 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 							},
 							{
 								Label:       "Avg. Message Length",
-								Value:       "avg_length",
+								Value:       "message_avg_length",
 								Description: "Average length of each message",
-								Default:     c.Metric == "avg_length",
+								Default:     c.Metric == "message_avg_length",
 							},
 							{
 								Label:       "Message Frequency",
@@ -275,7 +282,19 @@ func (c *ChartTracker) getGroupBy() []discordgo.SelectMenuOption {
 	case SunburstChart:
 		fallthrough
 	case HeatmapChart:
-		c.GroupBy = "channel_user"
+		options := c.getMultiGroupBy()
+		if !isOption(c.GroupBy, options) {
+			c.GroupBy = ""
+		}
+		return options
+	}
+}
+
+func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
+	switch strings.Split(c.Metric, "_")[0] {
+	case "message":
+		fallthrough
+	default:
 		return []discordgo.SelectMenuOption{
 			{
 				Label:       "Channel & User",
@@ -284,5 +303,29 @@ func (c *ChartTracker) getGroupBy() []discordgo.SelectMenuOption {
 				Default:     true,
 			},
 		}		
+	case "reaction":
+		return []discordgo.SelectMenuOption{
+			{
+				Label: "Reaction & User",
+				Value: "reaction_user",
+				Description: "Group results by emoji and user (author)",
+				Default: c.GroupBy == "reaction_user",
+			},
+			{
+				Label: "Reaction & Channelr",
+				Value: "reaction_channel",
+				Description: "Group results by emoji and channel",
+				Default: c.GroupBy == "reaction_channel",
+			},
+		}
 	}
+}
+
+func isOption(selected string, options []discordgo.SelectMenuOption) bool { 
+	for _, option := range options {
+		if option.Value == selected {
+			return true
+		}
+	}
+	return false
 }
