@@ -32,6 +32,13 @@ type MessageReact struct {
 	Reaction  string
 }
 
+type EmojiData struct {
+	ID        string
+	GuildID   string
+	Name      string
+	ImageData string
+}
+
 func init() {
 	initDuckDB()
 }
@@ -78,6 +85,20 @@ func initDuckDB() {
 			PRIMARY KEY (id, reaction, author_id)
 		);
 		CREATE INDEX IF NOT EXISTS idx_message_reactions ON reactions (id);
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
+
+	// Create guild emoji cache
+	_, err = duckdbClient.Exec(`
+		CREATE TABLE IF NOT EXISTS emojis (
+			id VARCHAR,
+			name VARCHAR,
+			guild_id VARCHAR,
+			image_data VARCHAR,
+			PRIMARY KEY (guild_id, id)
+		);
 	`)
 	if err != nil {
 		log.Fatalf("Failed to create table: %v", err)
@@ -338,6 +359,18 @@ func ConstructMessageReactObject(message MessageReact, delete bool) {
 		if err != nil {
 			fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
 		}
+	}
+}
+
+func ConstructEmojiObject(message EmojiData) {
+
+	// insert the reaction to the message
+	_, err := duckdbClient.Exec(`INSERT INTO emojis (id, guild_id, name, image_data) 
+                                VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING;`,
+		message.ID, message.GuildID, message.Name,message.ImageData)
+
+	if err != nil {
+		fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
 	}
 }
 

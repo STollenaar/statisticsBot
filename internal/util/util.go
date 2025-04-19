@@ -1,14 +1,21 @@
 package util
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
 
-const DiscordEpoch int64 = 1420070400000
+const (
+	DISCORD_EMOJI_URL          = "https://cdn.discordapp.com/emojis/%s.%s"
+	DiscordEpoch int64 = 1420070400000
+)
+
 
 // Contains check slice contains want string
 func Contains(slice []string, want string) bool {
@@ -79,4 +86,31 @@ func SnowflakeToTimestamp(snowflakeID string) (time.Time, error) {
 	}
 	timestamp := (id >> 22) + DiscordEpoch
 	return time.Unix(0, timestamp*int64(time.Millisecond)), nil
+}
+
+// FetchDiscordEmojiImage fetches the raw image bytes for a given emoji ID and animation status.
+func FetchDiscordEmojiImage(emojiID string, isAnimated bool) (string, error) {
+	ext := "png"
+	if isAnimated {
+		ext = "gif"
+	}
+	url := fmt.Sprintf(DISCORD_EMOJI_URL, emojiID, ext)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to fetch emoji from %s: %w", url, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code %d from %s", resp.StatusCode, url)
+	}
+
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("failed to read image data: %w", err)
+	}
+	base64Data := base64.StdEncoding.EncodeToString(data)
+
+	return base64Data, nil
 }

@@ -1,7 +1,10 @@
 package database
 
 import (
+	"fmt"
+
 	"github.com/bwmarrin/discordgo"
+	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 // MessageCreateListener registers a simpler handler on a discordgo session to automatically parse incoming messages for you.
@@ -81,6 +84,22 @@ func MessageReactAddListener(session *discordgo.Session, message *discordgo.Mess
 		Author:    message.UserID,
 		Reaction:  message.Emoji.Name,
 	}, false)
+
+	if message.Emoji.ID != "" {
+		emoji, err := util.FetchDiscordEmojiImage(message.Emoji.ID, message.Emoji.Animated)
+
+		// emoji, err := session.GuildEmoji(guildID, message.Emoji.ID)
+		if err != nil {
+			fmt.Printf("error fetching emoji: %s\n", err)
+			return
+		}
+		ConstructEmojiObject(EmojiData{
+			ID:        message.Emoji.ID,
+			GuildID:   guildID,
+			Name:      message.Emoji.Name,
+			ImageData: emoji,
+		})
+	}
 }
 
 func MessageReactRemoveListener(session *discordgo.Session, message *discordgo.MessageReactionRemove) {
