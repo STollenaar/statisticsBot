@@ -18,16 +18,16 @@ import (
 	"golang.org/x/text/language"
 )
 
-const (
-	formatterFunc = `
- 		function(value, index) {
-			var image = new Image();
-			image.src = 'data:image/png;base64,%s';
- 			console.log(index, value);
-			return image;
-		}
-	`
-)
+// const (
+// 	formatterFunc = `
+//  		function(value, index) {
+// 			var image = new Image();
+// 			image.src = 'data:image/png;base64,%s';
+//  			console.log(index, value);
+// 			return image;
+// 		}
+// 	`
+// )
 
 var (
 	caser = cases.Title(language.AmericanEnglish)
