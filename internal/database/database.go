@@ -17,6 +17,8 @@ import (
 
 var (
 	duckdbClient *sql.DB
+
+	CustomEmojiCache = make(map[string]string)
 )
 
 // Define the request and response structures
@@ -41,6 +43,7 @@ type EmojiData struct {
 
 func init() {
 	initDuckDB()
+	loadCache()
 }
 
 func Exit() {
@@ -102,6 +105,24 @@ func initDuckDB() {
 	`)
 	if err != nil {
 		log.Fatalf("Failed to create table: %v", err)
+	}
+}
+
+func loadCache() {
+	rs, err := duckdbClient.Query(`
+		SELECT name,image_data AS image FROM emojis;
+	`)
+	if err != nil {
+		log.Fatalf("Failed to initialize cache: %v", err)
+	}
+	for rs.Next() {
+		var name, image string
+		err = rs.Scan(&name, &image)
+		if err != nil {
+			fmt.Printf("Error parsing: %v\n", err)
+			continue
+		}
+		CustomEmojiCache[name] = image
 	}
 }
 
@@ -367,11 +388,12 @@ func ConstructEmojiObject(message EmojiData) {
 	// insert the reaction to the message
 	_, err := duckdbClient.Exec(`INSERT INTO emojis (id, guild_id, name, image_data) 
                                 VALUES (?, ?, ?, ?) ON CONFLICT DO NOTHING;`,
-		message.ID, message.GuildID, message.Name,message.ImageData)
+		message.ID, message.GuildID, message.Name, message.ImageData)
 
 	if err != nil {
 		fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
 	}
+	CustomEmojiCache[message.Name] = message.ImageData
 }
 
 // Get a result from the database using a filter

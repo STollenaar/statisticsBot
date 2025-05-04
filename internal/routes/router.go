@@ -20,6 +20,7 @@ func CreateRouter(b *discordgo.Session) {
 		})
 	})
 	addGetUserMessages(r)
-	addFixDatabase(r)
+	addFixMessages(r)
+	addFixEmojis(r)
 	r.Run()
 }

@@ -18,6 +18,17 @@ import (
 	"golang.org/x/text/language"
 )
 
+const (
+	formatterFunc = `
+ 		function(value, index) {
+			var image = new Image();
+			image.src = 'data:image/png;base64,%s';
+ 			console.log(index, value);
+			return image;
+		}
+	`
+)
+
 var (
 	caser = cases.Title(language.AmericanEnglish)
 )
@@ -70,7 +81,7 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 
 func (c *ChartTracker) GenerateDebugChart() {
 	data, err := c.getDebugData()
-	fmt.Println(data)
+
 	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric, c.GroupBy), "_", " "))
 	f, _ := os.Create("chart.html")
 
@@ -96,7 +107,7 @@ func (c *ChartTracker) GenerateDebugChart() {
 	}
 }
 
-func (c *ChartTracker) generateBarChart(chartData []ChartData, title string) *charts.Bar {
+func (c *ChartTracker) generateBarChart(chartData []*ChartData, title string) *charts.Bar {
 	// create a new bar instance
 	bar := charts.NewBar()
 	bar.SetGlobalOptions(
@@ -130,7 +141,7 @@ func (c *ChartTracker) generateBarChart(chartData []ChartData, title string) *ch
 	return bar
 }
 
-func (c *ChartTracker) generatePieChart(chartData []ChartData, title string) *charts.Pie {
+func (c *ChartTracker) generatePieChart(chartData []*ChartData, title string) *charts.Pie {
 	pie := charts.NewPie()
 
 	pie.SetGlobalOptions(
@@ -151,7 +162,7 @@ func (c *ChartTracker) generatePieChart(chartData []ChartData, title string) *ch
 	return pie
 }
 
-func (c *ChartTracker) generateLineChart(chartData []ChartData, title string) *charts.Line {
+func (c *ChartTracker) generateLineChart(chartData []*ChartData, title string) *charts.Line {
 	line := charts.NewLine()
 	line.SetGlobalOptions(
 		charts.WithInitializationOpts(opts.Initialization{
@@ -180,7 +191,7 @@ func (c *ChartTracker) generateLineChart(chartData []ChartData, title string) *c
 	return line
 }
 
-func (c *ChartTracker) generateSunBurstChart(chartData []ChartData, title string) *charts.Sunburst {
+func (c *ChartTracker) generateSunBurstChart(chartData []*ChartData, title string) *charts.Sunburst {
 	sunburst := charts.NewSunburst()
 
 	sunburst.SetGlobalOptions(
@@ -201,7 +212,7 @@ func (c *ChartTracker) generateSunBurstChart(chartData []ChartData, title string
 	return sunburst
 }
 
-func (c *ChartTracker) generateHeatMapChart(chartData []ChartData, title string) *charts.HeatMap {
+func (c *ChartTracker) generateHeatMapChart(chartData []*ChartData, title string) *charts.HeatMap {
 	heatmap := charts.NewHeatMap()
 	heatMapData, xAxes, yAxes := genHeatMap(chartData)
 
@@ -233,7 +244,7 @@ func (c *ChartTracker) generateHeatMapChart(chartData []ChartData, title string)
 			SplitArea: &opts.SplitArea{Show: opts.Bool(true)},
 			AxisLabel: &opts.AxisLabel{
 				Show:     opts.Bool(true), // Ensure labels are always displayed
-				Interval: "0",             // Force every label to appear
+				Interval: "0",             // Force every label to appear,
 			},
 		}),
 		charts.WithVisualMapOpts(opts.VisualMap{
@@ -245,59 +256,64 @@ func (c *ChartTracker) generateHeatMapChart(chartData []ChartData, title string)
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	heatmap.SetXAxis(xAxes).AddSeries(c.Metric, heatMapData)
+	heatmap.
+		SetXAxis(xAxes).
+		AddSeries(
+			c.Metric,
+			heatMapData,
+		)
+
 	return heatmap
 }
 
-func toXaxes(chartData []ChartData) (rs []string) {
+func toXaxes(chartData []*ChartData) (rs []string) {
 	for _, data := range chartData {
 		rs = append(rs, data.XLabel)
 	}
 	return
 }
 
-func toYaxes(chartData []ChartData) (rs []string) {
+func toYaxes(chartData []*ChartData) (rs []string) {
 	for _, data := range chartData {
 		rs = append(rs, data.YLabel)
 	}
 	return
 }
 
-func genBarData(chartData []ChartData) (rs []opts.BarData) {
+func genBarData(chartData []*ChartData) (rs []opts.BarData) {
 	for _, data := range chartData {
 		rs = append(rs, opts.BarData{Value: data.Value})
 	}
 	return
 }
 
-func genPieData(chartData []ChartData) (rs []opts.PieData) {
+func genPieData(chartData []*ChartData) (rs []opts.PieData) {
 	for _, data := range chartData {
 		rs = append(rs, opts.PieData{Name: data.XLabel, Value: data.Value})
 	}
 	return
 }
 
-func genLineData(chartData []ChartData) (rs []opts.LineData) {
+func genLineData(chartData []*ChartData) (rs []opts.LineData) {
 	for _, data := range chartData {
 		rs = append(rs, opts.LineData{Value: data.Value})
 	}
 	return
 }
 
-func genHeatMap(chartData []ChartData) (rs []opts.HeatMapData, xAxes []string, yAxes []string) {
+func genHeatMap(chartData []*ChartData) (rs []opts.HeatMapData, xAxes []string, yAxes []string) {
 	xAxesTotals, yAxesTotals := make(map[string]float64), make(map[string]float64)
 	for _, data := range chartData {
 		xAxesTotals[data.Xaxes] += data.Value
 		yAxesTotals[data.Yaxes] += data.Value
 	}
 	xAxes, yAxes = topNKeys(xAxesTotals, 14), topNKeys(yAxesTotals, 10)
-	var filteredChartData []ChartData
+	var filteredChartData []*ChartData
 	for _, data := range chartData {
 		if slices.Contains(xAxes, data.Xaxes) && slices.Contains(yAxes, data.Yaxes) {
 			filteredChartData = append(filteredChartData, data)
 		}
 	}
-
 
 	// Find min & max values
 	var minVal, maxVal float64 = filteredChartData[0].Value, filteredChartData[0].Value
@@ -320,7 +336,7 @@ func genHeatMap(chartData []ChartData) (rs []opts.HeatMapData, xAxes []string, y
 	return
 }
 
-func genSunburst(chartData []ChartData) (rs []opts.SunBurstData) {
+func genSunburst(chartData []*ChartData) (rs []opts.SunBurstData) {
 	yAxes := uniqueStrings(toYaxes(chartData))
 
 	type sunburst struct {

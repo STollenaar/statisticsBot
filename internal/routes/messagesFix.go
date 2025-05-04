@@ -26,12 +26,12 @@ type MessageBody struct {
 	AuthorID      string
 }
 
-func addFixDatabase(r *gin.Engine) {
-	r.DELETE("/fixDatabase", deleteBadEntries)
-	r.PUT("/fixDatabase", addMissingEntries)
+func addFixMessages(r *gin.Engine) {
+	r.DELETE("/fixMessages", deleteBadMessages)
+	r.PUT("/fixMessages", addMissingMessages)
 }
 
-func deleteBadEntries(c *gin.Context) {
+func deleteBadMessages(c *gin.Context) {
 	query := `
 	SELECT id AS message_id,
 	channel_id,
@@ -209,7 +209,7 @@ func deleteBadEntries(c *gin.Context) {
 	}
 }
 
-func addMissingEntries(c *gin.Context) {
+func addMissingMessages(c *gin.Context) {
 	query := `
 	SELECT id FROM messages`
 
@@ -254,6 +254,10 @@ func addMissingEntries(c *gin.Context) {
 	guilds, err := bot.UserGuilds(100, "", "", false)
 	if err != nil {
 		fmt.Println(err)
+		c.JSON(500, gin.H{
+			"error": err.Error(),
+		})
+		return
 	}
 
 	var waitGroup sync.WaitGroup
@@ -289,11 +293,11 @@ func addMissingEntries(c *gin.Context) {
 		for _, reaction := range message.Reactions {
 			if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.User.ID, reaction.Emoji.Name)]; !ok {
 				database.ConstructMessageReactObject(database.MessageReact{
-					ID: message.ID,
-					GuildID: guildId,
+					ID:        message.ID,
+					GuildID:   guildId,
 					ChannelID: message.ChannelID,
-					Author: reaction.Emoji.User.ID,
-					Reaction: reaction.Emoji.Name,
+					Author:    reaction.Emoji.User.ID,
+					Reaction:  reaction.Emoji.Name,
 				}, false)
 			}
 		}

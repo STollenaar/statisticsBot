@@ -85,7 +85,7 @@ func MessageReactAddListener(session *discordgo.Session, message *discordgo.Mess
 		Reaction:  message.Emoji.Name,
 	}, false)
 
-	if message.Emoji.ID != "" {
+	if message.Emoji.ID != "" && CustomEmojiCache[message.Emoji.Name] == "" {
 		emoji, err := util.FetchDiscordEmojiImage(message.Emoji.ID, message.Emoji.Animated)
 
 		// emoji, err := session.GuildEmoji(guildID, message.Emoji.ID)

@@ -79,7 +79,7 @@ func GetChartType(in string) ChartType {
 	}
 }
 
-func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err error) {
+func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err error) {
 	// Start tracking execution time
 	startTime := time.Now()
 
@@ -240,7 +240,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		}
 	}
 
-	var allData []ChartData
+	var allData []*ChartData
 
 	// Track execution time for scanning the data
 	scanStartTime := time.Now()
@@ -300,7 +300,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		case "date":
 			xLabel = xaxes
 		}
-		allData = append(allData, ChartData{
+		allData = append(allData, &ChartData{
 			Xaxes:  xaxes,
 			XLabel: xLabel,
 			YLabel: yLabel,
@@ -322,7 +322,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		for _, d := range allData[14:] {
 			otherValue += d.Value
 		}
-		topData = append(topData, ChartData{
+		topData = append(topData, &ChartData{
 			Xaxes:  "other",
 			XLabel: "Other",
 			Yaxes:  "other",
@@ -334,10 +334,27 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []ChartData, err er
 		data = allData
 	}
 
+	if strings.Split(c.Metric, "_")[0] == "reaction" {
+		for _, d := range data {
+			if grouped := strings.Split(c.GroupBy, "_"); len(grouped) > 1 {
+				if grouped[0] == "reaction" {
+					if _, ok := database.CustomEmojiCache[d.Yaxes]; ok {
+						d.Yaxes = fmt.Sprintf(":%s:",d.Yaxes)
+					}
+				}
+				if grouped[1] == "reaction" {
+					if _, ok := database.CustomEmojiCache[d.Xaxes]; ok {
+						d.Xaxes = fmt.Sprintf(":%s:",d.Xaxes)
+					}
+				}
+			}
+		}
+	}
+
 	return
 }
 
-func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
+func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 	// Start tracking execution time
 	startTime := time.Now()
 
@@ -462,7 +479,7 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		fmt.Printf("Database query execution time: %s\n", time.Since(queryStartTime))
 	}
 
-	var allData []ChartData
+	var allData []*ChartData
 
 	// Track execution time for scanning the data
 	scanStartTime := time.Now()
@@ -481,7 +498,7 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 			break
 		}
 
-		allData = append(allData, ChartData{
+		allData = append(allData, &ChartData{
 			Xaxes:  xaxes,
 			XLabel: xaxes,
 			YLabel: yaxes,
@@ -503,7 +520,7 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		for _, d := range allData[14:] {
 			otherValue += d.Value
 		}
-		topData = append(topData, ChartData{
+		topData = append(topData, &ChartData{
 			Xaxes:  "other",
 			XLabel: "Other",
 			Value:  otherValue,
@@ -511,6 +528,23 @@ func (c *ChartTracker) getDebugData() (data []ChartData, err error) {
 		data = topData
 	} else {
 		data = allData
+	}
+
+	if strings.Split(c.Metric, "_")[0] == "reaction" {
+		for _, d := range data {
+			if grouped := strings.Split(c.GroupBy, "_"); len(grouped) > 1 {
+				if grouped[0] == "reaction" {
+					if _, ok := database.CustomEmojiCache[d.Yaxes]; ok {
+						d.Yaxes = fmt.Sprintf(":%s:",d.Yaxes)
+					}
+				}
+				if grouped[1] == "reaction" {
+					if _, ok := database.CustomEmojiCache[d.Xaxes]; ok {
+						d.Xaxes = fmt.Sprintf(":%s:",d.Xaxes)
+					}
+				}
+			}
+		}
 	}
 
 	return
