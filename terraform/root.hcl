@@ -1,6 +1,6 @@
 locals {
   name            = "statisticsbot"
-  kubeconfig_file = get_env("KUBECONFIG")
+  kubeconfig_file = get_env("KUBECONFIG", "")
 
   # Automatically load provider variables
   provider_vars = read_terragrunt_config("${get_original_terragrunt_dir()}/provider.hcl")
