@@ -61,10 +61,12 @@ jobs:
           role-session-name: GithubActions
           aws-region: ca-central-1
 
-      - name: Log in to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ca-central-1 | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com
-
+      - name: Login to Amazon ECR Private
+        id: login-ecr-private
+        uses: aws-actions/amazon-ecr-login@v2
+        with:
+          registry-type: private
+        
       - name: Build Docker Image
         run: |
           KIND=build/statisticsbot
