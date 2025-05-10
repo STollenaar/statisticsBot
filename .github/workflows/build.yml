@@ -18,7 +18,7 @@ env:
   AWS_IAM_ARN: arn:aws:iam::405934267152:role/github-actions
 
 jobs:
-  build-and-release:
+  build-project:
     name: Build and Release Docker Image
     runs-on: ubuntu-latest
     permissions:
@@ -75,7 +75,41 @@ jobs:
           docker build --build-arg KIND=$KIND -t $IMAGE .
           echo "IMAGE=$IMAGE" >> $GITHUB_ENV
 
-      - name: Push Docker Image (Release and Snapshot Only)
-        if: ${{ github.event.inputs.release_type != 'pre-release' }}
+      - name: Push Docker Image
         run: |
           docker push $IMAGE
+  deploy-with-terragrunt:
+    name: Deploy with Terragrunt
+    runs-on: arc-runner-statisticsbot
+    needs: build-project
+    if: ${{ github.event.inputs.release_type == 'release' || github.event.inputs.release_type == 'pre-release' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: "${{ env.AWS_IAM_ARN }}"
+          role-session-name: GithubActions
+          aws-region: ca-central-1
+
+      - name: Install Tofu
+        run: |
+          curl -L -o tofu https://github.com/bridgecrewio/tofu/releases/download/v1.8.1/tofu_linux_amd64
+          chmod +x tofu
+          sudo mv tofu /usr/local/bin/
+
+      - name: Install Terragrunt
+        run: |
+          curl -L -o terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.77.12/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+
+      - name: Run Terragrunt Apply
+        env:
+          IMAGE: ${{ needs.build-project.outputs.IMAGE }}
+        run: |
+          cd terraform/kubernetes
+          terragrunt apply -auto-approve -var "docker_image=${IMAGE}"

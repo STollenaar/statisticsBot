@@ -1,5 +1,6 @@
 locals {
   name = "statisticsbot"
+  image = try(var.docker_image, "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab8ea54")
 }
 
 resource "kubernetes_namespace" "statisticsbot" {
@@ -44,7 +45,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           name = kubernetes_manifest.external_secret.manifest.spec.target.name
         }
         container {
-          image = "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab8ea54"
+          image = local.image
           name  = local.name
           env {
             name  = "AWS_REGION"
