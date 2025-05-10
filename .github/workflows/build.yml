@@ -82,6 +82,12 @@ jobs:
     name: Deploy with Terragrunt
     runs-on: arc-runner-statisticsbot
     needs: build-project
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
     if: ${{ github.event.inputs.release_type == 'release' || github.event.inputs.release_type == 'pre-release' }}
 
     steps:
