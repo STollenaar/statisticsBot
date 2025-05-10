@@ -15,7 +15,8 @@ on:
 
 env:
   AWS_ACCOUNT_ID: 405934267152
-  AWS_IAM_ARN: arn:aws:iam::405934267152:role/github-actions
+  BUILD_IAM_ARN: arn:aws:iam::405934267152:role/github-actions
+  DEPLOY_IAM_ARN: arn:aws:iam::405934267152:role/github-actions-deploy
 
 jobs:
   build-project:
@@ -57,7 +58,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4 # More information on this action can be found below in the 'AWS Credentials' section
         with:
-          role-to-assume: "${{ env.AWS_IAM_ARN }}"
+          role-to-assume: "${{ env.BUILD_IAM_ARN }}"
           role-session-name: GithubActions
           aws-region: ca-central-1
 
@@ -97,7 +98,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: "${{ env.AWS_IAM_ARN }}"
+          role-to-assume: "${{ env.DEPLOY_IAM_ARN }}"
           role-session-name: GithubActions
           aws-region: ca-central-1
 
