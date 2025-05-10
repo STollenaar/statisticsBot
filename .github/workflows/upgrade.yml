@@ -1,0 +1,50 @@
+name: Upgrade GO modules Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  upgrade-modules:
+    name: Upgrade Go Modules
+    runs-on: ubuntu-latest
+    if: github.event.inputs.release_type == 'upgrade-modules'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Extract Go Version from go.mod
+        id: go-version
+        run: |
+          GO_VERSION=$(grep '^go ' go.mod | awk '{print $2}')
+          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ steps.go-version.outputs.GO_VERSION }}
+
+      - name: Upgrade Go modules
+        run: |
+          find . -type d \( -name build -prune \) -o -name go.mod -print | while read -r gomod_path; do
+            dir_path=$(dirname "$gomod_path")
+            echo "Upgrading Go modules in directory: $dir_path"
+            (cd "$dir_path" && go get -u ./... && go mod tidy)
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b upgrade-modules
+          git add .
+          git commit -m "chore: upgrade Go modules"
+          git push origin upgrade-modules
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: upgrade-modules
+          title: "Upgrade Go Modules"
+          body: "This PR upgrades all Go modules to their latest versions and runs 'go mod tidy'."

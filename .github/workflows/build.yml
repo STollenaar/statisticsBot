@@ -1,0 +1,73 @@
+name: Build and Release Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Type of release (snapshot, release, pre-release)"
+        required: true
+        default: "snapshot"
+        type: choice
+        options:
+          - snapshot
+          - release
+          - pre-release
+
+env:
+  ACCOUNT_ID: 405934267152
+  AWS_IAM_ARN: arn:aws:iam::405934267152:role/github-actions
+
+jobs:
+  build-and-release:
+    name: Build and Release Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Extract Go Version from go.mod
+        id: go-version
+        run: |
+          GO_VERSION=$(grep '^go ' go.mod | awk '{print $2}')
+          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ steps.go-version.outputs.GO_VERSION }}
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential gcc
+
+      - name: Build Go Binary
+        run: |
+          mkdir -p build
+          cd cmd/statisticsbot
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ../../build/statisticsbot
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4 # More information on this action can be found below in the 'AWS Credentials' section
+        with:
+          role-to-assume: "${{ env.AWS_IAM_ARN }}"
+          role-session-name: GithubActions
+          aws-region: ca-central-1
+
+      - name: Log in to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ca-central-1 | docker login --username AWS --password-stdin ${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com
+
+      - name: Build Docker Image
+        run: |
+          KIND=build/statisticsbot
+          VERSION=$(date +%Y%m%d%H%M%S)
+          IMAGE="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com/discordbots:statisticsbot-${{ github.event.inputs.release_type }}-${VERSION}"
+          docker build --build-arg KIND=$KIND -t $IMAGE .
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Push Docker Image (Release and Snapshot Only)
+        if: ${{ github.event.inputs.release_type != 'pre-release' }}
+        run: |
+          docker push $IMAGE

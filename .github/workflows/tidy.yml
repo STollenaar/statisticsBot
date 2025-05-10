@@ -1,0 +1,50 @@
+name: Tidy GO modules Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  tidy-modules:
+    name: Tidy Go Modules
+    runs-on: ubuntu-latest
+    if: github.event.inputs.release_type == 'tidy-modules'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Extract Go Version from go.mod
+        id: go-version
+        run: |
+          GO_VERSION=$(grep '^go ' go.mod | awk '{print $2}')
+          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: ${{ steps.go-version.outputs.GO_VERSION }}
+
+      - name: Tidy Go modules
+        run: |
+          find . -type d \( -name build -prune \) -o -name go.mod -print | while read -r gomod_path; do
+            dir_path=$(dirname "$gomod_path")
+            echo "Tidying Go modules in directory: $dir_path"
+            (cd "$dir_path" && go mod tidy)
+          done
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b tidy-modules
+          git add .
+          git commit -m "chore: tidy Go modules"
+          git push origin tidy-modules
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: tidy-modules
+          title: "Tidy Go Modules"
+          body: "This PR runs 'go mod tidy' to clean up unused dependencies."
