@@ -14,7 +14,7 @@ on:
           - pre-release
 
 env:
-  ACCOUNT_ID: 405934267152
+  AWS_ACCOUNT_ID: 405934267152
   AWS_IAM_ARN: arn:aws:iam::405934267152:role/github-actions
 
 jobs:
