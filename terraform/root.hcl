@@ -33,10 +33,11 @@ generate "provider" {
             config_path = "${local.kubeconfig_file}"
         }
         %{endif}
-        %{if contains(local.providers, "hcp")}
-        provider "hcp" {
-            client_id     = data.aws_ssm_parameter.vault_client_id.value
-            client_secret = data.aws_ssm_parameter.vault_client_secret.value
+        %{if contains(local.providers, "helm")}
+        provider "helm" {
+            kubernetes {
+                config_path = "${local.kubeconfig_file}"
+            }
         }
         %{endif}
         %{if contains(local.providers, "vault")}
@@ -62,12 +63,10 @@ generate "versions" {
             version = "~> 5.24.0"
             }
             %{endif}
-            %{if contains(local.providers, "hcp")}
-            hcp = {
-            version = "~> 0.76.0"
-            source  = "hashicorp/hcp"
+            helm = {
+            version = "~> 2.10.1"
+            source  = "hashicorp/helm"
             }
-            %{endif}
             %{if contains(local.providers, "kubernetes")}
             kubernetes = {
             version = "~> 2.23.0"
