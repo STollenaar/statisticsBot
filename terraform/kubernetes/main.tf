@@ -1,6 +1,6 @@
 locals {
   name = "statisticsbot"
-  image = try(var.docker_image, "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab8ea54")
+  image = var.docker_image != null ? var.docker_image : "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab8ea54"
 }
 
 resource "kubernetes_namespace" "statisticsbot" {

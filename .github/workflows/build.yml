@@ -43,10 +43,10 @@ jobs:
         with:
           go-version: ${{ steps.go-version.outputs.GO_VERSION }}
 
-    #   - name: Install Dependencies
-    #     run: |
-    #       sudo apt-get update
-    #       sudo apt-get install -y build-essential gcc
+      #   - name: Install Dependencies
+      #     run: |
+      #       sudo apt-get update
+      #       sudo apt-get install -y build-essential gcc
 
       - name: Build Go Binary
         run: |
@@ -66,7 +66,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
         with:
           registry-type: private
-        
+
       - name: Build Docker Image
         run: |
           KIND=build/statisticsbot
@@ -104,9 +104,9 @@ jobs:
       - name: Deploy
         uses: gruntwork-io/terragrunt-action@v2
         env:
-            TF_VAR_docker_image: ${{ needs.build-project.outputs.IMAGE }}
+          TF_VAR_docker_image: ${{ needs.build-project.outputs.IMAGE }}
         with:
           tofu_version: v1.8.1
           tg_version: v0.77.12
           tg_dir: terraform/kubernetes
-          tg_command: 'apply'
+          tg_command: "apply"

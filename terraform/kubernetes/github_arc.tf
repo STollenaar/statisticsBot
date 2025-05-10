@@ -14,4 +14,8 @@ resource "helm_release" "github_arc_runner_statisticsbot" {
     name  = "githubConfigSecret"
     value =  data.terraform_remote_state.kubernetes_cluster.outputs.github_arc.secret_name
   }
+  set {
+    name = "containerMode.type"
+    value = "dind"
+  }
 }

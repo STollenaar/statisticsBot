@@ -1,4 +1,4 @@
 variable "docker_image" {
     type = string
-    default = ""
+    default = null
 }
