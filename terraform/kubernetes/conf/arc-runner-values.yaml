@@ -1,0 +1,11 @@
+githubConfigUrl: ${github_config_url}
+githubConfigSecret: ${github_secret}
+
+containerMode:
+  type: "kubernetes"
+  kubernetesModeWorkVolumeClaim:
+    accessModes: ["ReadWriteOnce"]
+    storageClassName: "nfs-csi-other"
+    resources:
+      requests:
+        storage: 1Gi
