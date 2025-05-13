@@ -101,13 +101,28 @@ jobs:
           role-to-assume: "${{ env.DEPLOY_IAM_ARN }}"
           role-session-name: GithubActions
           aws-region: ca-central-1
+      - name: Install Tofu
+        run: |
+          curl -L -o tofu https://github.com/bridgecrewio/tofu/releases/download/v1.8.1/tofu_linux_amd64
+          chmod +x tofu
+          sudo mv tofu /usr/local/bin/
 
-      - name: Deploy
-        uses: gruntwork-io/terragrunt-action@v2
+      - name: Install Terragrunt
+        run: |
+          curl -L -o terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.77.12/terragrunt_linux_amd64
+          chmod +x terragrunt
+          sudo mv terragrunt /usr/local/bin/
+      - name: Run Terragrunt Apply
         env:
-          TF_VAR_docker_image: ${{ needs.build-project.outputs.IMAGE }}
-        with:
-          tofu_version: v1.8.1
-          tg_version: v0.77.12
-          tg_dir: terraform/kubernetes
-          tg_command: "apply"
+          IMAGE: ${{ needs.build-project.outputs.IMAGE }}
+        run: |
+          cd terraform/kubernetes
+          terragrunt apply -auto-approve -var "docker_image=${IMAGE}"    #   - name: Deploy
+    #     uses: gruntwork-io/terragrunt-action@v2
+    #     env:
+    #       TF_VAR_docker_image: ${{ needs.build-project.outputs.IMAGE }}
+    #     with:
+    #       tofu_version: v1.8.1
+    #       tg_version: v0.77.12
+    #       tg_dir: terraform/kubernetes
+    #       tg_command: "apply"
