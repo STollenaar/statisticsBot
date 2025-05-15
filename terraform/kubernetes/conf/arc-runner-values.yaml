@@ -18,3 +18,50 @@ template:
         env:
           - name: ACTIONS_RUNNER_REQUIRE_JOB_CONTAINER
             value: "false"
+        volumeMounts:
+          - name: tools
+            mountPath: /usr/local/bin/tofu
+            subPath: tofu
+          - name: tools
+            mountPath: /usr/local/bin/terragrunt
+            subPath: terragrunt
+    volumes:
+      - name: tools
+        emptyDir: {}
+    initContainers:
+      - name: install-tofu
+        image: curlimages/curl:latest
+        command:
+          - sh
+          - -c
+          - |
+            set -e
+            # Download the installer script:
+            curl --proto '=https' --tlsv1.2 -fsSL https://get.opentofu.org/install-opentofu.sh -o install-opentofu.sh
+            # Alternatively: wget --secure-protocol=TLSv1_2 --https-only https://get.opentofu.org/install-opentofu.sh -O install-opentofu.sh
+
+            # Give it execution permissions:
+            chmod +x install-opentofu.sh
+
+            # Please inspect the downloaded script
+
+            # Run the installer:
+            ./install-opentofu.sh --install-method standalone --install-path /tools/ --skip-verify --symlink-path -
+
+            # Remove the installer:
+            rm -f install-opentofu.sh
+        volumeMounts:
+          - name: tools
+            mountPath: /tools
+      - name: install-terragrunt
+        image: curlimages/curl:latest
+        command:
+          - sh
+          - -c
+          - |
+            set -e
+            curl -sL https://github.com/gruntwork-io/terragrunt/releases/latest/download/terragrunt_linux_amd64 -o /tools/terragrunt
+            chmod +x /tools/terragrunt
+        volumeMounts:
+          - name: tools
+            mountPath: /tools

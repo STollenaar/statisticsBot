@@ -101,17 +101,6 @@ jobs:
           role-to-assume: "${{ env.DEPLOY_IAM_ARN }}"
           role-session-name: GithubActions
           aws-region: ca-central-1
-      - name: Install Tofu
-        run: |
-          curl -L -o tofu https://github.com/bridgecrewio/tofu/releases/download/v1.8.1/tofu_linux_amd64
-          chmod +x tofu
-          sudo mv tofu /usr/local/bin/
-
-      - name: Install Terragrunt
-        run: |
-          curl -L -o terragrunt https://github.com/gruntwork-io/terragrunt/releases/download/v0.77.12/terragrunt_linux_amd64
-          chmod +x terragrunt
-          sudo mv terragrunt /usr/local/bin/
       - name: Run Terragrunt Apply
         env:
           IMAGE: ${{ needs.build-project.outputs.IMAGE }}
