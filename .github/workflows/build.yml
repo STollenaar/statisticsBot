@@ -29,6 +29,8 @@ jobs:
       # with sigstore/fulcio when running outside of PRs.
       id-token: write
 
+    outputs:
+        image: ${{ steps.build-image.outputs.image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -44,16 +46,11 @@ jobs:
         with:
           go-version: ${{ steps.go-version.outputs.GO_VERSION }}
 
-      #   - name: Install Dependencies
-      #     run: |
-      #       sudo apt-get update
-      #       sudo apt-get install -y build-essential gcc
-
       - name: Build Go Binary
         run: |
           mkdir -p build
           cd cmd/statisticsbot
-          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o ../../build/statisticsbot
+          CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w -linkmode external -extldflags \"-static\"" -o ../../build/statisticsbot
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4 # More information on this action can be found below in the 'AWS Credentials' section
@@ -69,16 +66,17 @@ jobs:
           registry-type: private
 
       - name: Build Docker Image
+        id: build-image
         run: |
           KIND=build/statisticsbot
           VERSION=$(date +%Y%m%d%H%M%S)
           IMAGE="${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.ca-central-1.amazonaws.com/discordbots:statisticsbot-${{ github.event.inputs.release_type }}-${VERSION}"
           docker build --build-arg KIND=$KIND -t $IMAGE .
-          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+          echo "image=$IMAGE" >> "$GITHUB_OUTPUT"
 
       - name: Push Docker Image
         run: |
-          docker push $IMAGE
+          docker push ${{ steps.build-image.outputs.image }}
   deploy-with-terragrunt:
     name: Deploy with Terragrunt
     runs-on: arc-runner-statisticsbot
@@ -103,13 +101,13 @@ jobs:
           aws-region: ca-central-1
       - name: Run Terragrunt Apply
         env:
-          IMAGE: ${{ needs.build-project.outputs.IMAGE }}
+          IMAGE: ${{ needs.build-project.outputs.image }}
         run: |
           cd terraform/kubernetes_statisticsbot
           terragrunt apply -auto-approve -var "docker_image=${IMAGE}"    #   - name: Deploy
     #     uses: gruntwork-io/terragrunt-action@v2
     #     env:
-    #       TF_VAR_docker_image: ${{ needs.build-project.outputs.IMAGE }}
+    #       TF_VAR_docker_image: ${{ needs.build-project.outputs.image }}
     #     with:
     #       tofu_version: v1.8.1
     #       tg_version: v0.77.12
