@@ -1,3 +1,11 @@
-# output "address" {
-#   value = kubernetes_ingress_v1.ingress.status.0.load_balancer.0.ingress.0.hostname
-# }
+output "namespace" {
+  value = kubernetes_namespace.statisticsbot
+}
+
+output "persistent_volume_claim" {
+  value = kubernetes_persistent_volume_claim_v1.duckdb
+}
+
+output "external_secret" {
+  value = kubernetes_manifest.external_secret.manifest
+}

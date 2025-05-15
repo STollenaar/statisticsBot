@@ -105,7 +105,7 @@ jobs:
         env:
           IMAGE: ${{ needs.build-project.outputs.IMAGE }}
         run: |
-          cd terraform/kubernetes
+          cd terraform/kubernetes_statisticsbot
           terragrunt apply -auto-approve -var "docker_image=${IMAGE}"    #   - name: Deploy
     #     uses: gruntwork-io/terragrunt-action@v2
     #     env:
