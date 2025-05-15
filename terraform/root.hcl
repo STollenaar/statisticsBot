@@ -9,6 +9,8 @@ locals {
   providers = local.provider_vars.locals.providers
 }
 
+terraform_binary = run_cmd("which", "tofu")
+
 remote_state {
   backend = "s3"
   generate = {
