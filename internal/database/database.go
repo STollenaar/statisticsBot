@@ -435,13 +435,14 @@ func StartTX() (*sql.Tx, error) {
 func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {
 	query := `
 		WITH latest_versions AS (
-			SELECT *
-			FROM messages
-			WHERE (id, version) IN (
-				SELECT id, MAX(version)
+			SELECT m.*
+			FROM messages m
+			JOIN (
+				SELECT id, MAX(version) AS latest_version
 				FROM messages
 				GROUP BY id
-			)
+			) latest
+				ON m.id = latest.id AND m.version = latest.latest_version
 		),
 		tokenized_messages AS (
 			SELECT 

@@ -304,13 +304,13 @@ func genLineData(chartData []*ChartData) (rs []opts.LineData) {
 func genHeatMap(chartData []*ChartData) (rs []opts.HeatMapData, xAxes []string, yAxes []string) {
 	xAxesTotals, yAxesTotals := make(map[string]float64), make(map[string]float64)
 	for _, data := range chartData {
-		xAxesTotals[data.Xaxes] += data.Value
-		yAxesTotals[data.Yaxes] += data.Value
+		xAxesTotals[data.XLabel] += data.Value
+		yAxesTotals[data.YLabel] += data.Value
 	}
 	xAxes, yAxes = topNKeys(xAxesTotals, 14), topNKeys(yAxesTotals, 10)
 	var filteredChartData []*ChartData
 	for _, data := range chartData {
-		if slices.Contains(xAxes, data.Xaxes) && slices.Contains(yAxes, data.Yaxes) {
+		if slices.Contains(xAxes, data.XLabel) && slices.Contains(yAxes, data.YLabel) {
 			filteredChartData = append(filteredChartData, data)
 		}
 	}

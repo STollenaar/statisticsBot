@@ -207,7 +207,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
 
 	// Pre-fetch users if grouping by "user"
-	if c.GroupBy == "user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_users" {
+	if c.GroupBy == "user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
 		lastID := "" // Discord API requires the last ID for pagination
 
 		for {
@@ -229,7 +229,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	}
 
 	// Pre-fetch channels if grouping by "channel"
-	if c.GroupBy == "channel" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_channels" {
+	if c.GroupBy == "channel" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_channel" {
 		guildChannels, err := bot.GuildChannels(c.GuildID)
 		if err == nil {
 			for _, ch := range guildChannels {
