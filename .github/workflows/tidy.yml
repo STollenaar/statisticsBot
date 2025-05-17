@@ -7,7 +7,6 @@ jobs:
   tidy-modules:
     name: Tidy Go Modules
     runs-on: ubuntu-latest
-    if: github.event.inputs.release_type == 'tidy-modules'
 
     steps:
       - name: Checkout repository

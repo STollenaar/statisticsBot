@@ -7,7 +7,6 @@ jobs:
   upgrade-modules:
     name: Upgrade Go Modules
     runs-on: ubuntu-latest
-    if: github.event.inputs.release_type == 'upgrade-modules'
 
     steps:
       - name: Checkout repository
