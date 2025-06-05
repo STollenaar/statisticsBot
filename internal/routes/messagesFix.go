@@ -311,8 +311,7 @@ func addMissingMessages(c *gin.Context) {
 				message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
 				message.Thread == nil &&
 				message.Poll == nil &&
-				message.StickerItems == nil &&
-				!message.Author.Bot {
+				message.StickerItems == nil {
 				if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 					continue
 				}
@@ -323,7 +322,7 @@ func addMissingMessages(c *gin.Context) {
 					continue
 				}
 
-				database.ConstructCreateMessageObject(message, guildId)
+				database.ConstructCreateMessageObject(message, guildId, !message.Author.Bot)
 				missed++
 			}
 		}

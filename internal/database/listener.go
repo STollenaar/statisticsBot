@@ -18,8 +18,7 @@ func MessageCreateListener(session *discordgo.Session, message *discordgo.Messag
 		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
 		message.Thread == nil &&
 		message.Poll == nil &&
-		message.StickerItems == nil &&
-		!message.Author.Bot {
+		message.StickerItems == nil {
 		if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 			return
 		}
@@ -34,7 +33,7 @@ func MessageCreateListener(session *discordgo.Session, message *discordgo.Messag
 			channel, _ := session.Channel(message.ChannelID)
 			guildID = channel.GuildID
 		}
-		ConstructCreateMessageObject(message.Message, guildID)
+		ConstructCreateMessageObject(message.Message, guildID, !message.Author.Bot)
 	}
 }
 
@@ -49,8 +48,7 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
 		message.Thread == nil &&
 		message.Poll == nil &&
-		message.StickerItems == nil &&
-		!message.Author.Bot {
+		message.StickerItems == nil {
 		if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 			return
 		}
@@ -66,7 +64,7 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 			guildID = channel.GuildID
 		}
 
-		constructUpdateMessageObject(message.Message, guildID)
+		constructUpdateMessageObject(message.Message, guildID, !message.Author.Bot)
 	}
 }
 

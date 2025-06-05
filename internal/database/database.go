@@ -66,6 +66,7 @@ func initDuckDB() {
 			guild_id VARCHAR,
 			channel_id VARCHAR,
 			author_id VARCHAR,
+			reply_message_id VARCHAR,
 			content VARCHAR,
 			date TIMESTAMP,
 			version INTEGER DEFAULT 1,
@@ -73,7 +74,7 @@ func initDuckDB() {
 		);
 	`)
 	if err != nil {
-		log.Fatalf("Failed to create table: %v", err)
+		log.Fatalf("Failed to create message table: %v", err)
 	}
 
 	// Create the reactions table
@@ -90,7 +91,7 @@ func initDuckDB() {
 		CREATE INDEX IF NOT EXISTS idx_message_reactions ON reactions (id);
 	`)
 	if err != nil {
-		log.Fatalf("Failed to create table: %v", err)
+		log.Fatalf("Failed to create reactions table: %v", err)
 	}
 
 	// Create guild emoji cache
@@ -104,7 +105,25 @@ func initDuckDB() {
 		);
 	`)
 	if err != nil {
-		log.Fatalf("Failed to create table: %v", err)
+		log.Fatalf("Failed to create guild emoji table: %v", err)
+	}
+
+	// Create bot message cache
+	_, err = duckdbClient.Exec(`
+		CREATE TABLE IF NOT EXISTS bot_messages (
+			id VARCHAR,
+			guild_id VARCHAR,
+			channel_id VARCHAR,
+			author_id VARCHAR,
+			reply_message_id VARCHAR,
+			content VARCHAR,
+			date TIMESTAMP,
+			version INTEGER DEFAULT 1,
+    		PRIMARY KEY (id, version)
+		);
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create bot messages table: %v", err)
 	}
 }
 
@@ -237,7 +256,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	// Constructing operations for first 100
 	for _, message := range messages {
 		operations++
-		ConstructCreateMessageObject(message, channel.GuildID)
+		ConstructCreateMessageObject(message, channel.GuildID, !message.Author.Bot)
 		for _, reaction := range message.Reactions {
 			if reaction.Emoji.User == nil {
 				continue
@@ -266,7 +285,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 
 			for _, message := range moreMes {
 				operations++
-				ConstructCreateMessageObject(message, channel.GuildID)
+				ConstructCreateMessageObject(message, channel.GuildID, !message.Author.Bot)
 			}
 			if len(moreMes) != 0 {
 				lastMessageCollected = moreMes[len(moreMes)-1]
@@ -280,7 +299,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
-func ConstructCreateMessageObject(message *discordgo.Message, guildID string) {
+func ConstructCreateMessageObject(message *discordgo.Message, guildID string, isBot bool) {
 
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
@@ -305,14 +324,23 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string) {
 	if err != nil {
 		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
 	}
+	table := "messages"
+	if isBot {
+		table = "bot_messages"
+	}
 
-	_, err = duckdbClient.Exec(`INSERT INTO messages VALUES (?,?,?,?,?,?,1)`, message.ID, guildID, message.ChannelID, message.Author.ID, strings.Join(content, "\n"), timestamp)
+	var referencedMessage string
+	if message.MessageReference != nil {
+		referencedMessage = message.MessageReference.MessageID
+	}
+
+	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s VALUES (?,?,?,?,?,?,?,1)`, table), message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, strings.Join(content, "\n"), timestamp)
 	if err != nil {
 		fmt.Printf("Error inserting into duckdb: %s\n", err)
 	}
 }
 
-func constructUpdateMessageObject(message *discordgo.Message, guildID string) {
+func constructUpdateMessageObject(message *discordgo.Message, guildID string, isBot bool) {
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
 		for _, embed := range message.Embeds {
@@ -340,18 +368,28 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string) {
 		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
 	}
 
+	table := "messages"
+	if isBot {
+		table = "bot_messages"
+	}
+
 	var maxVersion int
-	err = duckdbClient.QueryRow(`
-    SELECT COALESCE(MAX(version) + 1, 1) FROM messages WHERE id = ? AND guild_id = ?`, message.ID, guildID).Scan(&maxVersion)
+	err = duckdbClient.QueryRow(fmt.Sprintf(`
+    SELECT COALESCE(MAX(version) + 1, 1) FROM %s WHERE id = ? AND guild_id = ?`, table), message.ID, guildID).Scan(&maxVersion)
 
 	if err != nil {
 		fmt.Println("Error fetching max version:", err)
 	}
 
+	var referencedMessage string
+	if message.MessageReference != nil {
+		referencedMessage = message.MessageReference.MessageID
+	}
+
 	// Increment the version and insert the updated message
-	_, err = duckdbClient.Exec(`INSERT INTO messages (id, guild_id, channel_id, author_id, content, date, version) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp, maxVersion)
+	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (id, guild_id, channel_id, author_id, reply_message_id, content, date, version) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, table),
+		message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, contentStr, timestamp, maxVersion)
 
 	if err != nil {
 		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)
