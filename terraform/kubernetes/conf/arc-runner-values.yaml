@@ -5,7 +5,7 @@ containerMode:
   type: "kubernetes"
   kubernetesModeWorkVolumeClaim:
     accessModes: ["ReadWriteOnce"]
-    storageClassName: "nfs-csi-other"
+    storageClassName: "nfs-csi-main"
     resources:
       requests:
         storage: 1Gi
