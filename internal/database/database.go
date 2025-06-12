@@ -256,7 +256,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	// Constructing operations for first 100
 	for _, message := range messages {
 		operations++
-		ConstructCreateMessageObject(message, channel.GuildID, !message.Author.Bot)
+		ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
 		for _, reaction := range message.Reactions {
 			if reaction.Emoji.User == nil {
 				continue
@@ -285,7 +285,7 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 
 			for _, message := range moreMes {
 				operations++
-				ConstructCreateMessageObject(message, channel.GuildID, !message.Author.Bot)
+				ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
 			}
 			if len(moreMes) != 0 {
 				lastMessageCollected = moreMes[len(moreMes)-1]
@@ -392,12 +392,12 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string, is
 	var referencedMessage string
 	columns := "id, guild_id, channel_id, author_id, content, date, version"
 	values := "?, ?, ?, ?, ?, ?, ?"
-	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp}
+	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp, maxVersion}
 	if message.MessageReference != nil {
 		referencedMessage = message.MessageReference.MessageID
 		columns = "id, guild_id, channel_id, author_id, reply_message_id, content, date, version"
 		values = "?, ?, ?, ?, ?, ?, ?, ?"
-		args = []any{message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, contentStr, timestamp}
+		args = []any{message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, contentStr, timestamp, maxVersion}
 	}
 
 	// Increment the version and insert the updated message

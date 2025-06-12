@@ -33,7 +33,7 @@ func MessageCreateListener(session *discordgo.Session, message *discordgo.Messag
 			channel, _ := session.Channel(message.ChannelID)
 			guildID = channel.GuildID
 		}
-		ConstructCreateMessageObject(message.Message, guildID, !message.Author.Bot)
+		ConstructCreateMessageObject(message.Message, guildID, message.Author.Bot)
 	}
 }
 
@@ -64,7 +64,7 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 			guildID = channel.GuildID
 		}
 
-		constructUpdateMessageObject(message.Message, guildID, !message.Author.Bot)
+		constructUpdateMessageObject(message.Message, guildID, message.Author.Bot)
 	}
 }
 

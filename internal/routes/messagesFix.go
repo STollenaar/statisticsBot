@@ -322,7 +322,7 @@ func addMissingMessages(c *gin.Context) {
 					continue
 				}
 
-				database.ConstructCreateMessageObject(message, guildId, !message.Author.Bot)
+				database.ConstructCreateMessageObject(message, guildId, message.Author.Bot)
 				missed++
 			}
 		}
