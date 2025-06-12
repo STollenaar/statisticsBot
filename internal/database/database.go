@@ -330,11 +330,19 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string, is
 	}
 
 	var referencedMessage string
+	columns := "id, guild_id, channel_id, author_id, content, date, version"
+	values := "?, ?, ?, ?, ?, ?, 1"
+	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, strings.Join(content, "\n"), timestamp}
 	if message.MessageReference != nil {
 		referencedMessage = message.MessageReference.MessageID
+		columns = "id, guild_id, channel_id, author_id, reply_message_id, content, date, version"
+		values = "?, ?, ?, ?, ?, ?, ?, 1"
+		args = []any{message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, strings.Join(content, "\n"), timestamp}
 	}
 
-	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s VALUES (?,?,?,?,?,?,?,1)`, table), message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, strings.Join(content, "\n"), timestamp)
+	// Increment the version and insert the updated message
+	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s) 
+                                VALUES (%s)`, table, columns, values), args...)
 	if err != nil {
 		fmt.Printf("Error inserting into duckdb: %s\n", err)
 	}
@@ -382,14 +390,19 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string, is
 	}
 
 	var referencedMessage string
+	columns := "id, guild_id, channel_id, author_id, content, date, version"
+	values := "?, ?, ?, ?, ?, ?, ?"
+	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp}
 	if message.MessageReference != nil {
 		referencedMessage = message.MessageReference.MessageID
+		columns = "id, guild_id, channel_id, author_id, reply_message_id, content, date, version"
+		values = "?, ?, ?, ?, ?, ?, ?, ?"
+		args = []any{message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, contentStr, timestamp}
 	}
 
 	// Increment the version and insert the updated message
-	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (id, guild_id, channel_id, author_id, reply_message_id, content, date, version) 
-                                VALUES (?, ?, ?, ?, ?, ?, ?, ?)`, table),
-		message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, contentStr, timestamp, maxVersion)
+	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s) 
+                                VALUES (%s)`, table, columns, values), args...)
 
 	if err != nil {
 		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)
