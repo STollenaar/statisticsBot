@@ -3,7 +3,6 @@ package routes
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"sync"
 
 	"github.com/bwmarrin/discordgo"
@@ -211,7 +210,10 @@ func deleteBadMessages(c *gin.Context) {
 
 func addMissingMessages(c *gin.Context) {
 	query := `
-	SELECT id FROM messages`
+		SELECT id FROM messages
+		UNION ALL
+		SELECT id FROM bot_messages;
+	`
 
 	reactions := `SELECT id, author_id, reaction FROM reactions`
 
@@ -261,8 +263,9 @@ func addMissingMessages(c *gin.Context) {
 	}
 
 	var waitGroup sync.WaitGroup
-	var missedMessages []*discordgo.Message
 	var mu sync.Mutex
+	var missed int
+
 	for _, guild := range guilds {
 		channels, err := bot.GuildChannels(guild.ID)
 		if err != nil {
@@ -274,66 +277,22 @@ func addMissingMessages(c *gin.Context) {
 		waitGroup.Add(1)
 		go func(bot *discordgo.Session, channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
-			messages := doChannels(bot, channels, ids)
+			miss := doChannels(bot, channels, ids, reactionTable)
 			mu.Lock()
-			missedMessages = append(missedMessages, messages...)
+			missed += miss
 			mu.Unlock()
 		}(bot, channels, &waitGroup)
 	}
 	// Waiting for all async calls to complete
 	waitGroup.Wait()
-	fmt.Printf("DatabaseFix: done collecting messages found %d messages\n", len(missedMessages))
-	var missed int
-	for _, message := range missedMessages {
-		guildId := message.GuildID
-		if guildId == "" {
-			channnel, _ := bot.Channel(message.ChannelID)
-			guildId = channnel.GuildID
-		}
-		for _, reaction := range message.Reactions {
-			if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.User.ID, reaction.Emoji.Name)]; !ok {
-				database.ConstructMessageReactObject(database.MessageReact{
-					ID:        message.ID,
-					GuildID:   guildId,
-					ChannelID: message.ChannelID,
-					Author:    reaction.Emoji.User.ID,
-					Reaction:  reaction.Emoji.Name,
-				}, false)
-			}
-		}
-		if !slices.Contains(ids, message.ID) {
-			if message.Flags != discordgo.MessageFlagsLoading &&
-				message.Type != discordgo.MessageTypeGuildMemberJoin &&
-				message.Type != discordgo.MessageTypeChannelPinnedMessage &&
-				message.Type != discordgo.MessageTypeUserPremiumGuildSubscription &&
-				message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierOne &&
-				message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierTwo &&
-				message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
-				message.Thread == nil &&
-				message.Poll == nil &&
-				message.StickerItems == nil {
-				if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
-					continue
-				}
-				if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
-					continue
-				}
-				if len(message.Attachments) > 0 {
-					continue
-				}
 
-				database.ConstructCreateMessageObject(message, guildId, message.Author.Bot)
-				missed++
-			}
-		}
-	}
 	c.JSON(200, gin.H{
 		"message": fmt.Sprintf("done, added %d messages", missed),
 	})
 }
-func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []string) (result []*discordgo.Message) {
-	var mu sync.Mutex
+func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []string, reactionTable map[string]bool) (missed int) {
 	var waitGroup sync.WaitGroup
+	var mu sync.Mutex
 	for _, channel := range channels {
 		// Check if channel is a guild text channel and not a voice or DM channel
 		if channel.Type != discordgo.ChannelTypeGuildText {
@@ -344,9 +303,9 @@ func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []str
 		waitGroup.Add(1)
 		go func(bot *discordgo.Session, channel *discordgo.Channel, IDs []string, waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
-			messages := loadMessages(bot, channel, IDs)
+			miss := loadMessages(bot, channel, IDs, reactionTable)
 			mu.Lock()
-			result = append(result, messages...)
+			missed += miss
 			mu.Unlock()
 		}(bot, channel, IDs, &waitGroup)
 	}
@@ -355,7 +314,7 @@ func doChannels(bot *discordgo.Session, channels []*discordgo.Channel, IDs []str
 }
 
 // loadMessages loading messages from the channel
-func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel, IDs []string) []*discordgo.Message {
+func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel, IDs []string, reactionTable map[string]bool) (missed int) {
 	fmt.Printf("DatabaseFix: loading %s", channel.Name)
 
 	var result []*discordgo.Message
@@ -381,7 +340,48 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel, IDs []stri
 		}
 	}
 	fmt.Printf("DatabaseFix: done collecting messages for %s, found: %d messages\n", channel.Name, len(result))
-	return filterSlice(result, IDs)
+	filtered := filterSlice(result, IDs)
+
+	for _, message := range filtered {
+		for _, reaction := range message.Reactions {
+			users, _ := bot.MessageReactions(message.ChannelID, message.ID, reaction.Emoji.Name, 100, "", "")
+			for _, user := range users {
+				if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, user.ID, reaction.Emoji.Name)]; !ok {
+					database.ConstructMessageReactObject(database.MessageReact{
+					ID:        message.ID,
+					GuildID:   message.GuildID,
+					ChannelID: message.ChannelID,
+					Author:    user.ID,
+					Reaction:  reaction.Emoji.Name,
+					}, false)
+				}
+			}
+		}
+		if message.Flags != discordgo.MessageFlagsLoading &&
+			message.Type != discordgo.MessageTypeGuildMemberJoin &&
+			message.Type != discordgo.MessageTypeChannelPinnedMessage &&
+			message.Type != discordgo.MessageTypeUserPremiumGuildSubscription &&
+			message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierOne &&
+			message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierTwo &&
+			message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
+			message.Thread == nil &&
+			message.Poll == nil &&
+			message.StickerItems == nil {
+			if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
+				continue
+			}
+			if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
+				continue
+			}
+			if len(message.Attachments) > 0 {
+				continue
+			}
+
+			database.ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
+			missed++
+		}
+	}
+	return
 }
 
 // Remove items from A if their ID exists in B
