@@ -208,14 +208,23 @@ func getLastMessage(channel *discordgo.Channel) (lastMessage util.MessageObject)
 	// Query to find the most recent message per channel
 	query := `
 		SELECT id, date
-          FROM messages
-          WHERE channel_id = ?
-          ORDER BY date DESC
-          LIMIT 1;
+		FROM (
+			SELECT id, date
+			FROM bot_messages
+			WHERE channel_id = ?
+		
+			UNION ALL
+		
+			SELECT id, date
+			FROM messages
+			WHERE channel_id = ?
+		) AS all_msgs
+		ORDER BY date DESC
+		LIMIT 1;
 	`
 
 	// Execute the query'
-	row := duckdbClient.QueryRow(query, channel.ID)
+	row := duckdbClient.QueryRow(query, channel.ID, channel.ID)
 
 	var (
 		id   string
