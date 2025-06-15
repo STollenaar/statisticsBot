@@ -101,14 +101,14 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		) t
 		WHERE rn = 1
 	)
-	SELECT %s, %s as value
+	SELECT %s, %s AS value
 	FROM latest_messages
 	WHERE guild_id = ?
 	AND date BETWEEN ? AND ?
 `
 
 	reaction_query := `
-	SELECT %s, %s as value
+	SELECT %s, %s AS value
 	FROM reactions
 	WHERE guild_id = ?
 	AND date BETWEEN ? AND ?
@@ -234,10 +234,18 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		if err == nil {
 			for _, ch := range guildChannels {
 				channels[ch.ID] = ch.Name
+
 			}
-		} else {
-			fmt.Println("Error fetching guild channels:", err)
-		}
+			} else {
+				fmt.Println("Error fetching guild channels:", err)
+			}
+			threads, err := bot.GuildThreadsActive(c.GuildID)
+			if err != nil {
+				fmt.Printf("Error fetching threads for %s: %e\n", c.GuildID, err)
+			}
+			for _, thread := range threads.Threads {
+				channels[thread.ID] = thread.Name
+			}
 	}
 
 	var allData []*ChartData
@@ -376,14 +384,14 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		) t
 		WHERE rn = 1
 	)
-	SELECT %s, %s as value
+	SELECT %s, %s AS value
 	FROM latest_messages
 	WHERE guild_id = ?
 	AND date BETWEEN ? AND ?
 `
 
 	reaction_query := `
-	SELECT %s, %s as value
+	SELECT %s, %s AS value
 	FROM reactions
 	WHERE guild_id = ?
 	AND date BETWEEN ? AND ?

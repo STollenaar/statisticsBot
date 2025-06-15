@@ -266,6 +266,10 @@ func (c *ChartTracker) generateHeatMapChart(chartData []*ChartData, title string
 	return heatmap
 }
 
+func (c *ChartTracker) CanGenerate() bool {
+	return c.DateRange != "" && c.Metric != "" && c.GroupBy != "" && c.ChartType != ""
+}
+
 func toXaxes(chartData []*ChartData) (rs []string) {
 	for _, data := range chartData {
 		rs = append(rs, data.XLabel)

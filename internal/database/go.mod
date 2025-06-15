@@ -3,7 +3,7 @@ module github.com/stollenaar/statisticsbot/internal/database
 go 1.24.1
 
 require (
-	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/marcboeker/go-duckdb v1.8.5
 	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c
 )

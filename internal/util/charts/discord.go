@@ -46,7 +46,8 @@ func (c *ChartTracker) getSelectMenuDefaultValue(st discordgo.SelectMenuType) (r
 
 func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 	if c.ShowOptions {
-		return &[]discordgo.MessageComponent{
+		var components []discordgo.MessageComponent
+		components = append(components,
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
 					discordgo.SelectMenu{
@@ -91,10 +92,10 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 						Placeholder: "Choose a metric to chart...",
 						Options: []discordgo.SelectMenuOption{
 							{
-								Label: "Reaction Count",
-								Value: "reaction_count",
+								Label:       "Reaction Count",
+								Value:       "reaction_count",
 								Description: "How many times a reaction was used",
-								Default: c.Metric == "reaction_count",
+								Default:     c.Metric == "reaction_count",
 							},
 							{
 								Label:       "Message Count",
@@ -120,15 +121,14 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 					},
 				},
 			},
-			discordgo.ActionsRow{
-				Components: []discordgo.MessageComponent{
-					discordgo.SelectMenu{
-						CustomID:    "group_by",
-						Placeholder: "Group chart data by...",
-						Options:     c.getGroupBy(),
-					},
-				},
-			},
+		)
+
+		groupedBy := c.getGroupBy()
+
+		if groupedBy != nil {
+			components = append(components, *groupedBy)
+		}
+		components = append(components,
 			discordgo.ActionsRow{
 				Components: []discordgo.MessageComponent{
 					discordgo.SelectMenu{
@@ -173,7 +173,8 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 					},
 				},
 			},
-		}
+		)
+		return &components
 	} else {
 		return &[]discordgo.MessageComponent{
 			discordgo.ActionsRow{
@@ -247,7 +248,10 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 	// },
 }
 
-func (c *ChartTracker) getGroupBy() []discordgo.SelectMenuOption {
+func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
+
+	var options []discordgo.SelectMenuOption
+
 	switch c.ChartType {
 	default:
 		fallthrough
@@ -259,7 +263,7 @@ func (c *ChartTracker) getGroupBy() []discordgo.SelectMenuOption {
 		if c.GroupBy == "channel_user" {
 			c.GroupBy = ""
 		}
-		return []discordgo.SelectMenuOption{
+		options = []discordgo.SelectMenuOption{
 			{
 				Label:       "User",
 				Value:       "user",
@@ -282,19 +286,29 @@ func (c *ChartTracker) getGroupBy() []discordgo.SelectMenuOption {
 	case SunburstChart:
 		fallthrough
 	case HeatmapChart:
-		options := c.getMultiGroupBy()
+		options = c.getMultiGroupBy()
 		if !isOption(c.GroupBy, options) {
 			c.GroupBy = ""
 		}
-		return options
+	}
+	if len(options) == 0 {
+		return nil
+	}
+
+	return &discordgo.ActionsRow{
+		Components: []discordgo.MessageComponent{
+			discordgo.SelectMenu{
+				CustomID:    "group_by",
+				Placeholder: "Group chart data by...",
+				Options:     options,
+			},
+		},
 	}
 }
 
 func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 	switch strings.Split(c.Metric, "_")[0] {
 	case "message":
-		fallthrough
-	default:
 		return []discordgo.SelectMenuOption{
 			{
 				Label:       "Channel & User",
@@ -302,26 +316,28 @@ func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 				Description: "Group results by channel and user (author)",
 				Default:     true,
 			},
-		}		
+		}
 	case "reaction":
 		return []discordgo.SelectMenuOption{
 			{
-				Label: "Reaction & User",
-				Value: "reaction_user",
+				Label:       "Reaction & User",
+				Value:       "reaction_user",
 				Description: "Group results by emoji and user (author)",
-				Default: c.GroupBy == "reaction_user",
+				Default:     c.GroupBy == "reaction_user",
 			},
 			{
-				Label: "Reaction & Channelr",
-				Value: "reaction_channel",
+				Label:       "Reaction & Channelr",
+				Value:       "reaction_channel",
 				Description: "Group results by emoji and channel",
-				Default: c.GroupBy == "reaction_channel",
+				Default:     c.GroupBy == "reaction_channel",
 			},
 		}
+	default:
+		return []discordgo.SelectMenuOption{}
 	}
 }
 
-func isOption(selected string, options []discordgo.SelectMenuOption) bool { 
+func isOption(selected string, options []discordgo.SelectMenuOption) bool {
 	for _, option := range options {
 		if option.Value == selected {
 			return true

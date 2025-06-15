@@ -3,7 +3,7 @@ module github.com/stollenaar/statisticsbot/internal/util/charts
 go 1.24.1
 
 require (
-	github.com/bwmarrin/discordgo v0.28.2-0.20241208071600-33ffff21d31a
+	github.com/bwmarrin/discordgo v0.29.0
 	github.com/go-echarts/go-echarts/v2 v2.5.3
 	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250504222652-ab8ea54a862c

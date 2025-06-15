@@ -119,6 +119,11 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 				Content: &e,
 			})
 		}
+	} else if !chartTracker.CanGenerate() {
+		e := "Not all required options have been selected"
+		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			Content: &e,
+		})
 	} else {
 		chart, err := chartTracker.GenerateChart(bot)
 		if err != nil {
