@@ -116,6 +116,7 @@ func initDuckDB() {
 			channel_id VARCHAR,
 			author_id VARCHAR,
 			reply_message_id VARCHAR,
+			interaction_id VARCHAR,
 			content VARCHAR,
 			date TIMESTAMP,
 			version INTEGER DEFAULT 1,
@@ -329,6 +330,9 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string, is
 	} else {
 		content = []string{message.Content}
 	}
+
+	// Prepare the content as a single string (for simplicity, we join it)
+	contentStr := strings.Join(content, "\n")
 	timestamp, err := util.SnowflakeToTimestamp(message.ID)
 	if err != nil {
 		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
@@ -338,20 +342,24 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string, is
 		table = "bot_messages"
 	}
 
-	var referencedMessage string
-	columns := "id, guild_id, channel_id, author_id, content, date, version"
-	values := "?, ?, ?, ?, ?, ?, 1"
-	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, strings.Join(content, "\n"), timestamp}
+	columns := []string{"id", "guild_id", "channel_id", "author_id", "content", "date", "version"}
+	values := []string{"?", "?", "?", "?", "?", "?", "1"}
+	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp}
 	if message.MessageReference != nil {
-		referencedMessage = message.MessageReference.MessageID
-		columns = "id, guild_id, channel_id, author_id, reply_message_id, content, date, version"
-		values = "?, ?, ?, ?, ?, ?, ?, 1"
-		args = []any{message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, strings.Join(content, "\n"), timestamp}
+		args = append(args, message.MessageReference.MessageID)
+		columns = append(columns, "reply_message_id")
+		values = append(values, "?")
+	}
+
+	if message.Interaction != nil {
+		args = append(args, message.Interaction.ID)
+		columns = append(columns, "interaction_id")
+		values = append(values, "?")
 	}
 
 	// Increment the version and insert the updated message
 	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s) 
-                                VALUES (%s)`, table, columns, values), args...)
+                                VALUES (%s)`, table, strings.Join(columns, ","), strings.Join(values, ",")), args...)
 	if err != nil {
 		fmt.Printf("Error inserting into duckdb: %s\n", err)
 	}
@@ -398,20 +406,24 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string, is
 		fmt.Println("Error fetching max version:", err)
 	}
 
-	var referencedMessage string
-	columns := "id, guild_id, channel_id, author_id, content, date, version"
-	values := "?, ?, ?, ?, ?, ?, ?"
+	columns := []string{"id", "guild_id", "channel_id", "author_id", "content", "date", "version"}
+	values := []string{"?", "?", "?", "?", "?", "?", "1"}
 	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp, maxVersion}
 	if message.MessageReference != nil {
-		referencedMessage = message.MessageReference.MessageID
-		columns = "id, guild_id, channel_id, author_id, reply_message_id, content, date, version"
-		values = "?, ?, ?, ?, ?, ?, ?, ?"
-		args = []any{message.ID, guildID, message.ChannelID, message.Author.ID, referencedMessage, contentStr, timestamp, maxVersion}
+		args = append(args, message.MessageReference.MessageID)
+		columns = append(columns, "reply_message_id")
+		values = append(values, "?")
+	}
+
+	if message.Interaction != nil {
+		args = append(args, message.Interaction.ID)
+		columns = append(columns, "interaction_id")
+		values = append(values, "?")
 	}
 
 	// Increment the version and insert the updated message
 	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s) 
-                                VALUES (%s)`, table, columns, values), args...)
+                                VALUES (%s)`, table, strings.Join(columns, ","), strings.Join(values, ",")), args...)
 
 	if err != nil {
 		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)
