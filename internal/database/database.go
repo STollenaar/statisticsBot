@@ -407,7 +407,7 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string, is
 	}
 
 	columns := []string{"id", "guild_id", "channel_id", "author_id", "content", "date", "version"}
-	values := []string{"?", "?", "?", "?", "?", "?", "1"}
+	values := []string{"?", "?", "?", "?", "?", "?", "?"}
 	args := []any{message.ID, guildID, message.ChannelID, message.Author.ID, contentStr, timestamp, maxVersion}
 	if message.MessageReference != nil {
 		args = append(args, message.MessageReference.MessageID)
