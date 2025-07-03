@@ -7,7 +7,7 @@ require (
 	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250504222652-ab8ea54a862c
 	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250504222652-ab8ea54a862c
 	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250504222652-ab8ea54a862c
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250504222652-ab8ea54a862c
+	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250703223851-d0caf4231f16
 	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250504222652-ab8ea54a862c
 	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250504222652-ab8ea54a862c
 	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c
