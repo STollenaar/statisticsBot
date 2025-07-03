@@ -1,0 +1,53 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "description": "Renovate configuration for Docker + Go + Terragrunt + Terraform",
+    "enabledManagers": [
+        "docker",
+        "golang",
+        "terraform",
+        "terragrunt"
+    ],
+    "terraform": {
+        "enabled": true,
+        "managerFilePatterns": [
+            "/(^|/)versions\\.tf\\.json$/"
+        ]
+    },
+    "packageRules": [
+        {
+            "matchManagers": [
+                "terraform",
+                "terragrunt"
+            ],
+            "ignorePaths": [
+                "**/grunt_*"
+            ],
+            "groupName": "terraform providers",
+            "matchPackageNames": [
+                "/.*/"
+            ]
+        },
+        {
+            "matchDatasources": [
+                "helm"
+            ],
+            "groupName": "helm charts"
+        },
+        {
+            "matchManagers": [
+                "terraform"
+            ],
+            "matchDatasources": [
+                "docker"
+            ],
+            "enabled": false
+        }
+    ],
+    "schedule": [
+        "at any time"
+    ],
+    "commitMessagePrefix": "chore(deps): "
+}
