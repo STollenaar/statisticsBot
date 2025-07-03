@@ -5,12 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
-func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err error) {
+func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 	// Start tracking execution time
 	startTime := time.Now()
 
@@ -43,50 +42,6 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		fmt.Printf("Database query execution time: %s\n", time.Since(queryStartTime))
 	}
 
-	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
-
-	// Pre-fetch users if grouping by "user"
-	if c.GroupBy == "user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
-		lastID := "" // Discord API requires the last ID for pagination
-
-		for {
-			members, err := bot.GuildMembers(c.GuildID, lastID, 1000) // Fetch up to 1000 at a time
-			if err != nil {
-				fmt.Println("Error fetching guild members:", err)
-				break
-			}
-
-			if len(members) == 0 {
-				break // No more members to fetch
-			}
-
-			for _, m := range members {
-				usernames[m.User.ID] = m.User.Username
-				lastID = m.User.ID // Set last ID for next batch
-			}
-		}
-	}
-
-	// Pre-fetch channels if grouping by "channel"
-	if c.GroupBy == "channel" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_channel" {
-		guildChannels, err := bot.GuildChannels(c.GuildID)
-		if err == nil {
-			for _, ch := range guildChannels {
-				channels[ch.ID] = ch.Name
-
-			}
-		} else {
-			fmt.Println("Error fetching guild channels:", err)
-		}
-		threads, err := bot.GuildThreadsActive(c.GuildID)
-		if err != nil {
-			fmt.Printf("Error fetching threads for %s: %e\n", c.GuildID, err)
-		}
-		for _, thread := range threads.Threads {
-			channels[thread.ID] = thread.Name
-		}
-	}
-
 	var allData []*ChartData
 
 	// Track execution time for scanning the data
@@ -105,52 +60,11 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		if err != nil {
 			break
 		}
-		var xLabel, yLabel string
-		switch c.GroupBy {
-		case "user":
-			if name, found := usernames[xaxes]; found {
-				xLabel = name
-			} else {
-				xLabel = xaxes
-			}
-		case "channel":
-			if name, found := channels[xaxes]; found {
-				xLabel = name
-			} else {
-				xLabel = xaxes
-			}
-		case "channel_user":
-			if name, found := usernames[xaxes]; found {
-				xLabel = name
-			} else {
-				xLabel = xaxes
-			}
-			if name, found := channels[yaxes]; found {
-				yLabel = name
-			} else {
-				yLabel = yaxes
-			}
-		case "reaction_user":
-			if name, found := usernames[xaxes]; found {
-				xLabel = name
-			} else {
-				xLabel = xaxes
-			}
-			yLabel = yaxes
-		case "reaction_channel":
-			if name, found := channels[xaxes]; found {
-				xLabel = name
-			} else {
-				xLabel = xaxes
-			}
-			yLabel = yaxes
-		case "date":
-			xLabel = xaxes
-		}
+
 		allData = append(allData, &ChartData{
 			Xaxes:  xaxes,
-			XLabel: xLabel,
-			YLabel: yLabel,
+			XLabel: xaxes,
+			YLabel: yaxes,
 			Yaxes:  yaxes,
 			Value:  value,
 		})
@@ -172,8 +86,6 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		topData = append(topData, &ChartData{
 			Xaxes:  "other",
 			XLabel: "Other",
-			Yaxes:  "other",
-			YLabel: "Other",
 			Value:  otherValue,
 		})
 		data = topData

@@ -116,7 +116,7 @@ func initDuckDB() {
 			channel_id VARCHAR,
 			author_id VARCHAR,
 			reply_message_id VARCHAR,
-			interaction_id VARCHAR,
+			interaction_author_id VARCHAR,
 			content VARCHAR,
 			date TIMESTAMP,
 			version INTEGER DEFAULT 1,
@@ -352,8 +352,8 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string, is
 	}
 
 	if message.Interaction != nil {
-		args = append(args, message.Interaction.ID)
-		columns = append(columns, "interaction_id")
+		args = append(args, message.Interaction.User.ID)
+		columns = append(columns, "interaction_author_id")
 		values = append(values, "?")
 	}
 
@@ -416,8 +416,8 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string, is
 	}
 
 	if message.Interaction != nil {
-		args = append(args, message.Interaction.ID)
-		columns = append(columns, "interaction_id")
+		args = append(args, message.Interaction.User.ID)
+		columns = append(columns, "interaction_author_id")
 		values = append(values, "?")
 	}
 

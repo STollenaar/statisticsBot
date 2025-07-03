@@ -115,6 +115,12 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 								Description: "Number of messages per day",
 								Default:     c.Metric == "message_freq",
 							},
+							// {
+							// 	Label:       "Bot interaction count",
+							// 	Value:       "interaction",
+							// 	Description: "How many times a bot has been interacted with",
+							// 	Default:     c.Metric == "bot_interaction",
+							// },
 							// {Label: "Mentions Received", Value: "mentions", Description: "Times the user was mentioned"},
 							// {Label: "Reactions Received", Value: "reactions", Description: "Reactions per user (if available)"},
 						},
@@ -263,26 +269,7 @@ func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
 		if c.GroupBy == "channel_user" {
 			c.GroupBy = ""
 		}
-		options = []discordgo.SelectMenuOption{
-			{
-				Label:       "User",
-				Value:       "user",
-				Description: "Group results by user (author)",
-				Default:     c.GroupBy == "user",
-			},
-			{
-				Label:       "Date",
-				Value:       "date",
-				Description: "Group results by individual day",
-				Default:     c.GroupBy == "date",
-			},
-			{
-				Label:       "Channel",
-				Value:       "channel",
-				Description: "Group results by channel",
-				Default:     c.GroupBy == "channel",
-			},
-		}
+		options = c.getSingleGroupBy()
 	case SunburstChart:
 		fallthrough
 	case HeatmapChart:
@@ -303,6 +290,38 @@ func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
 				Options:     options,
 			},
 		},
+	}
+}
+
+func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
+	switch strings.Split(c.Metric, "_")[0] {
+	case "bot":
+		fallthrough
+	case "message":
+		fallthrough
+	case "reaction":
+		return []discordgo.SelectMenuOption{
+			{
+				Label:       "User",
+				Value:       "single_user",
+				Description: "Group results by user (author)",
+				Default:     c.GroupBy == "single_user",
+			},
+			{
+				Label:       "Date",
+				Value:       "single_date",
+				Description: "Group results by individual day",
+				Default:     c.GroupBy == "single_date",
+			},
+			{
+				Label:       "Channel",
+				Value:       "single_channel",
+				Description: "Group results by channel",
+				Default:     c.GroupBy == "single_channel",
+			},
+		}
+	default:
+		return []discordgo.SelectMenuOption{}
 	}
 }
 
