@@ -10,7 +10,7 @@ require (
 	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250504222652-ab8ea54a862c
 	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250504222652-ab8ea54a862c
 	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250504222652-ab8ea54a862c
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250703205208-3fad5de72650
 )
 
 require (
