@@ -5,8 +5,8 @@
     ],
     "description": "Renovate configuration for Docker + Go + Terragrunt + Terraform",
     "enabledManagers": [
-        "docker",
-        "golang",
+        "dockerfile",
+        "gomod",
         "terraform",
         "terragrunt"
     ],
