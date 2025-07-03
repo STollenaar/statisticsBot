@@ -4,25 +4,25 @@
             
             aws = {
             source  = "hashicorp/aws"
-            version = "~> 5.24.0"
+            version = "~> 5.100.0"
             }
             
             
             hcp = {
-            version = "~> 0.76.0"
+            version = "~> 0.108.0"
             source  = "hashicorp/hcp"
             }
             
             
             kubernetes = {
-            version = "~> 2.23.0"
+            version = "~> 2.37.0"
             source  = "hashicorp/kubernetes"
             }
             
             
             vault = {
                 source  = "hashicorp/vault"
-                version = "~> 3.21.0"
+                version = "~> 3.25.0"
             }
             
         }
