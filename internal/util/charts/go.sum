@@ -121,6 +121,8 @@ github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250
 github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c/go.mod h1:Onw6S0Wpft407KHcyMwU8hD9O7W9ODnP8y7GB0l/N8k=
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250504222652-ab8ea54a862c h1:lYcW23pUy+e2yaXTNPmXC5jNUF2+6MY234RzsmC4w7I=
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250504222652-ab8ea54a862c/go.mod h1:2i2aj7/Cjt8QKF4G31vS/1A4QHFEHBG1EoZijCPI0gA=
+github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250703223851-d0caf4231f16 h1:o7pZ72ksEbx6DYzWyP6h188s3hFF6tVrn7g9bdyvGsY=
+github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250703223851-d0caf4231f16/go.mod h1:4jCSanNvPZwA+CJaJXbW5opbAIUSAxdGadpMAokYOCE=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c h1:Qlo9EyBa4SsnOTaZUftzabQ+6J1v0u1QDmC+8xIRC0s=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c/go.mod h1:JTzprDarPt/id4Vq/bCtC06qhMlWk2aNry6qeZyFZYw=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
