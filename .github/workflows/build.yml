@@ -2,6 +2,8 @@ name: Build and Release Workflow
 
 on:
   push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       release_type:
@@ -31,7 +33,7 @@ jobs:
       id-token: write
 
     outputs:
-        image: ${{ steps.build-image.outputs.image }}
+      image: ${{ steps.build-image.outputs.image }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
