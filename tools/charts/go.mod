@@ -2,7 +2,7 @@ module github.com/stollenaar/statisticsbot/tools/charts
 
 go 1.24.1
 
-require github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250504222652-ab8ea54a862c
+require github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250703205208-3fad5de72650
 
 require (
 	github.com/apache/arrow-go/v18 v18.2.0 // indirect
