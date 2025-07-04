@@ -7,7 +7,7 @@ require (
 	github.com/go-echarts/go-echarts/v2 v2.6.0
 	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250703231546-245da67c64ff
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250703231546-245da67c64ff
 	golang.org/x/text v0.26.0
 )
 
