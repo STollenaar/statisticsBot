@@ -41,10 +41,7 @@
                 "**/grunt_versions.tf",
                 "**/grunt_backend.tf"
             ],
-            "groupName": "terraform providers",
-            "matchPackageNames": [
-                "/.*/"
-            ]
+            "groupName": "terraform providers"
         },
         {
             "matchDatasources": [
