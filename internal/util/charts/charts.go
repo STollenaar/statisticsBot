@@ -46,7 +46,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
 
 	// Pre-fetch users if grouping by "user"
-	if c.GroupBy == "user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
+	if c.GroupBy == "interaction_user" || c.GroupBy == "single_user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
 		lastID := "" // Discord API requires the last ID for pagination
 
 		for {
@@ -107,13 +107,15 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		}
 		var xLabel, yLabel string
 		switch c.GroupBy {
-		case "user":
+		case "interaction_user":
+			fallthrough
+		case "single_user":
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
-		case "channel":
+		case "single_channel":
 			if name, found := channels[xaxes]; found {
 				xLabel = name
 			} else {

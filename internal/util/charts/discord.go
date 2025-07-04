@@ -115,12 +115,12 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 								Description: "Number of messages per day",
 								Default:     c.Metric == "message_freq",
 							},
-							// {
-							// 	Label:       "Bot interaction count",
-							// 	Value:       "interaction",
-							// 	Description: "How many times a bot has been interacted with",
-							// 	Default:     c.Metric == "bot_interaction",
-							// },
+							{
+								Label:       "Bot interaction count",
+								Value:       "interaction_count",
+								Description: "How many times a bot has been interacted with",
+								Default:     c.Metric == "interaction_count",
+							},
 							// {Label: "Mentions Received", Value: "mentions", Description: "Times the user was mentioned"},
 							// {Label: "Reactions Received", Value: "reactions", Description: "Reactions per user (if available)"},
 						},
@@ -295,8 +295,15 @@ func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
 
 func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 	switch strings.Split(c.Metric, "_")[0] {
-	case "bot":
-		fallthrough
+	case "interaction":
+		return []discordgo.SelectMenuOption{
+			{
+				Label:       "User",
+				Value:       "interaction_user",
+				Description: "Group results by initiator (author)",
+				Default:     c.GroupBy == "interaction_user",
+			},
+		}
 	case "message":
 		fallthrough
 	case "reaction":

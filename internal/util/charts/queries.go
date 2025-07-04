@@ -13,7 +13,7 @@ const (
 		FROM (
 			SELECT *,
 				ROW_NUMBER() OVER (PARTITION BY id ORDER BY version DESC) AS rn
-			FROM messages
+			FROM %s
 		) t
 		WHERE rn = 1
 	)
@@ -44,7 +44,7 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	switch c.Metric {
 	case "reaction_count":
 		fallthrough
-	case "bot_interaction":
+	case "interaction_count":
 		fallthrough
 	case "message_count":
 		aggExpr = "COUNT(*)"
@@ -61,6 +61,8 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	// Determine grouping
 	var selectExpr, groupField string
 	switch c.GroupBy {
+	case "interaction_user":
+		selectExpr, groupField = "interaction_author_id AS xaxes", "interaction_author_id"
 	case "single_user":
 		selectExpr, groupField = "author_id AS xaxes", "author_id"
 	case "single_date":
@@ -87,10 +89,12 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	switch strings.Split(c.Metric, "_")[0] {
 	case "reaction":
 		query = fmt.Sprintf(ReactionQuery, selectExpr, aggExpr)
+	case "interaction":
+		query = fmt.Sprintf(MessageQuery, "bot_messages", selectExpr, aggExpr)
 	case "message":
 		fallthrough
 	default:
-		query = fmt.Sprintf(MessageQuery, selectExpr, aggExpr)
+		query = fmt.Sprintf(MessageQuery, "messages", selectExpr, aggExpr)
 	}
 
 	var filters []string
@@ -102,6 +106,9 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	}
 
 	whereClause := ""
+	if strings.Split(c.Metric, "_")[0] == "interaction" {
+		filters = append(filters, "interaction_author_id IS NOT NULL")
+	}
 	if len(filters) > 0 {
 		whereClause = fmt.Sprintf("AND %s", strings.Join(filters, " AND "))
 	}
