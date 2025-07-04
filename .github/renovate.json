@@ -22,12 +22,14 @@
                 "gomod"
             ],
             "matchUpdateTypes": [
+                "pin",
+                "pinDigest",
                 "digest",
-                "pinDigest"
+                "patch",
+                "minor"
             ],
-            "groupName": "gomod digest",
-            "automerge": true,
-            "automergeType": "branch"
+            "groupName": "go modules",
+            "automerge": true
         },
         {
             "matchManagers": [
@@ -35,7 +37,9 @@
                 "terragrunt"
             ],
             "ignorePaths": [
-                "**/grunt_*"
+                "**/grunt_providers.tf",
+                "**/grunt_versions.tf",
+                "**/grunt_backend.tf"
             ],
             "groupName": "terraform providers",
             "matchPackageNames": [

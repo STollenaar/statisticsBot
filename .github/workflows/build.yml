@@ -16,6 +16,10 @@ on:
           - release
           - pre-release
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   AWS_ACCOUNT_ID: 405934267152
   BUILD_IAM_ARN: arn:aws:iam::405934267152:role/github-actions
@@ -35,6 +39,9 @@ jobs:
     outputs:
       image: ${{ steps.build-image.outputs.image }}
     steps:
+      - name: Wait for quiet period
+        run: sleep 600
+
       - name: Checkout repository
         uses: actions/checkout@v3
 
