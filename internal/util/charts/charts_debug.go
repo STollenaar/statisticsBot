@@ -93,9 +93,9 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		data = allData
 	}
 
-	if strings.Split(c.Metric, "_")[0] == "reaction" {
+	if c.Metric.Category == "reaction" {
 		for _, d := range data {
-			if grouped := strings.Split(c.GroupBy, "_"); len(grouped) > 1 {
+			if grouped := strings.Split(c.GroupBy.ToString(), "_"); len(grouped) > 1 {
 				if grouped[0] == "reaction" {
 					if _, ok := database.CustomEmojiCache[d.Yaxes]; ok {
 						d.Yaxes = fmt.Sprintf(":%s:", d.Yaxes)

@@ -41,16 +41,12 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 
 	// Determine aggregation
 	var aggExpr string
-	switch c.Metric {
-	case "reaction_count":
-		fallthrough
-	case "interaction_count":
-		fallthrough
-	case "message_count":
+	switch c.Metric.Metric {
+	case "count":
 		aggExpr = "COUNT(*)"
-	case "message_avg_length":
+	case "avg_length":
 		aggExpr = "AVG(LENGTH(content))"
-	case "message_freq":
+	case "freq":
 		aggExpr = fmt.Sprintf(
 			"COUNT(*) * 1.0 / DATEDIFF('day', DATE '%s', DATE '%s')",
 			start.Format("2006-01-02"),
@@ -63,6 +59,8 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	switch c.GroupBy {
 	case "interaction_user":
 		selectExpr, groupField = "interaction_author_id AS xaxes", "interaction_author_id"
+	case "interaction_bot":
+		selectExpr, groupField = "author_id AS xaxes", "author_id"
 	case "single_user":
 		selectExpr, groupField = "author_id AS xaxes", "author_id"
 	case "single_date":
@@ -86,7 +84,7 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 		orderByField = fmt.Sprintf("%s ASC", groupField)
 	}
 
-	switch strings.Split(c.Metric, "_")[0] {
+	switch c.Metric.Category {
 	case "reaction":
 		query = fmt.Sprintf(ReactionQuery, selectExpr, aggExpr)
 	case "interaction":
@@ -106,7 +104,7 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	}
 
 	whereClause := ""
-	if strings.Split(c.Metric, "_")[0] == "interaction" {
+	if c.Metric.Category == "interaction" {
 		filters = append(filters, "interaction_author_id IS NOT NULL")
 	}
 	if len(filters) > 0 {

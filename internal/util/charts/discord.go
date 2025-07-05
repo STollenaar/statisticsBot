@@ -2,7 +2,6 @@ package charts
 
 import (
 	"errors"
-	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -95,31 +94,31 @@ func (c *ChartTracker) BuildComponents() *[]discordgo.MessageComponent {
 								Label:       "Reaction Count",
 								Value:       "reaction_count",
 								Description: "How many times a reaction was used",
-								Default:     c.Metric == "reaction_count",
+								Default:     c.Metric == MetricType{Category: "reaction", Metric: "count"},
 							},
 							{
 								Label:       "Message Count",
 								Value:       "message_count",
 								Description: "How many messages are sent",
-								Default:     c.Metric == "message_count",
+								Default:     c.Metric == MetricType{Category: "message", Metric: "count"},
 							},
 							{
 								Label:       "Avg. Message Length",
 								Value:       "message_avg_length",
 								Description: "Average length of each message",
-								Default:     c.Metric == "message_avg_length",
+								Default:     c.Metric == MetricType{Category: "message", Metric: "avg_length"},
 							},
 							{
 								Label:       "Message Frequency",
 								Value:       "message_freq",
 								Description: "Number of messages per day",
-								Default:     c.Metric == "message_freq",
+								Default:     c.Metric == MetricType{Category: "message", Metric: "freq"},
 							},
 							{
 								Label:       "Bot interaction count",
 								Value:       "interaction_count",
 								Description: "How many times a bot has been interacted with",
-								Default:     c.Metric == "interaction_count",
+								Default:     c.Metric == MetricType{Category: "interaction", Metric: "count"},
 							},
 							// {Label: "Mentions Received", Value: "mentions", Description: "Times the user was mentioned"},
 							// {Label: "Reactions Received", Value: "reactions", Description: "Reactions per user (if available)"},
@@ -294,7 +293,7 @@ func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
 }
 
 func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
-	switch strings.Split(c.Metric, "_")[0] {
+	switch c.Metric.Category {
 	case "interaction":
 		return []discordgo.SelectMenuOption{
 			{
@@ -302,6 +301,12 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 				Value:       "interaction_user",
 				Description: "Group results by initiator (author)",
 				Default:     c.GroupBy == "interaction_user",
+			},
+			{
+				Label:       "Bot",
+				Value:       "interaction_bot",
+				Description: "Group results by the bot",
+				Default:     c.GroupBy == "interaction_bot",
 			},
 		}
 	case "message":
@@ -333,7 +338,7 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 }
 
 func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
-	switch strings.Split(c.Metric, "_")[0] {
+	switch c.Metric.Category {
 	case "message":
 		return []discordgo.SelectMenuOption{
 			{
@@ -363,9 +368,9 @@ func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 	}
 }
 
-func isOption(selected string, options []discordgo.SelectMenuOption) bool {
+func isOption(selected GroupByType, options []discordgo.SelectMenuOption) bool {
 	for _, option := range options {
-		if option.Value == selected {
+		if option.Value == selected.ToString() {
 			return true
 		}
 	}

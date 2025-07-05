@@ -89,7 +89,7 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 		case "chart_type":
 			chartTracker.ChartType = charts.GetChartType(interaction.Interaction.MessageComponentData().Values[0])
 		case "metric_type":
-			chartTracker.Metric = interaction.Interaction.MessageComponentData().Values[0]
+			chartTracker.Metric = charts.GetMetricType(interaction.Interaction.MessageComponentData().Values[0])
 		case "user_select":
 			chartTracker.Users = interaction.Interaction.MessageComponentData().Values
 		case "channel_select":
@@ -97,7 +97,7 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 		case "date_range_select":
 			chartTracker.DateRange = interaction.Interaction.MessageComponentData().Values[0]
 		case "group_by":
-			chartTracker.GroupBy = interaction.Interaction.MessageComponentData().Values[0]
+			chartTracker.GroupBy = charts.GetGroupByType(interaction.Interaction.MessageComponentData().Values[0])
 		case "filter_chart_form":
 			chartTracker.ShowOptions = !chartTracker.ShowOptions
 		}

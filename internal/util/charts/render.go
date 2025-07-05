@@ -18,17 +18,6 @@ import (
 	"golang.org/x/text/language"
 )
 
-// const (
-// 	formatterFunc = `
-//  		function(value, index) {
-// 			var image = new Image();
-// 			image.src = 'data:image/png;base64,%s';
-//  			console.log(index, value);
-// 			return image;
-// 		}
-// 	`
-// )
-
 var (
 	caser = cases.Title(language.AmericanEnglish)
 )
@@ -37,7 +26,7 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 	data, err := c.getData(bot)
 	fmt.Println(data)
 	t := time.Now()
-	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric, c.GroupBy), "_", " "))
+	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.ToString(), c.GroupBy.ToString()), "_", " "))
 	fileName := fmt.Sprintf("%d.png", t.UnixNano())
 	if err != nil {
 		return nil, err
@@ -82,7 +71,7 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 func (c *ChartTracker) GenerateDebugChart() {
 	data, err := c.getDebugData()
 
-	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric, c.GroupBy), "_", " "))
+	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.ToString(), c.GroupBy.ToString()), "_", " "))
 	f, _ := os.Create("chart.html")
 
 	if err != nil {
@@ -136,7 +125,7 @@ func (c *ChartTracker) generateBarChart(chartData []*ChartData, title string) *c
 
 	// Put data into instance
 	bar.SetXAxis(toXaxes(chartData)).
-		AddSeries(c.Metric, genBarData(chartData))
+		AddSeries(c.Metric.ToString(), genBarData(chartData))
 	// Where the magic happens
 	return bar
 }
@@ -158,7 +147,7 @@ func (c *ChartTracker) generatePieChart(chartData []*ChartData, title string) *c
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	pie.AddSeries(c.Metric, genPieData(chartData))
+	pie.AddSeries(c.Metric.ToString(), genPieData(chartData))
 	return pie
 }
 
@@ -179,7 +168,7 @@ func (c *ChartTracker) generateLineChart(chartData []*ChartData, title string) *
 	)
 
 	line.SetXAxis(toXaxes(chartData)).
-		AddSeries(c.Metric, genLineData(chartData)).
+		AddSeries(c.Metric.ToString(), genLineData(chartData)).
 		SetSeriesOptions(
 			charts.WithLineChartOpts(opts.LineChart{
 				ShowSymbol: opts.Bool(true),
@@ -208,7 +197,7 @@ func (c *ChartTracker) generateSunBurstChart(chartData []*ChartData, title strin
 		charts.WithLegendOpts(opts.Legend{Show: opts.Bool(false)}),
 	)
 
-	sunburst.AddSeries(c.Metric, genSunburst(chartData))
+	sunburst.AddSeries(c.Metric.ToString(), genSunburst(chartData))
 	return sunburst
 }
 
@@ -259,7 +248,7 @@ func (c *ChartTracker) generateHeatMapChart(chartData []*ChartData, title string
 	heatmap.
 		SetXAxis(xAxes).
 		AddSeries(
-			c.Metric,
+			c.Metric.ToString(),
 			heatMapData,
 		)
 
@@ -267,7 +256,7 @@ func (c *ChartTracker) generateHeatMapChart(chartData []*ChartData, title string
 }
 
 func (c *ChartTracker) CanGenerate() bool {
-	return c.DateRange != "" && c.Metric != "" && c.GroupBy != "" && c.ChartType != ""
+	return c.DateRange != "" && c.Metric != MetricType{} && c.GroupBy != "" && c.ChartType != ""
 }
 
 func toXaxes(chartData []*ChartData) (rs []string) {

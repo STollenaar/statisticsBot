@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-type ChartType string
+type (
+	ChartType   string
+	GroupByType string
+)
 
 const (
 	BarChart      ChartType = "bar"
@@ -16,6 +19,11 @@ const (
 	HeatmapChart  ChartType = "heatmap"
 	InvalidChart  ChartType = "invalid"
 )
+
+type MetricType struct {
+	Category string
+	Metric   string
+}
 
 // ChartData Basic count group for the max command
 type ChartData struct {
@@ -27,16 +35,16 @@ type ChartData struct {
 }
 
 type ChartTracker struct {
-	GuildID       string    `json:"guildID"`
-	InteractionID string    `json:"interactionID"`
-	UserID        string    `json:"userID"`
-	ChartType     ChartType `json:"chart"`
-	Metric        string    `json:"metrics"`
-	Users         []string  `json:"users"`
-	Channels      []string  `json:"channels"`
-	DateRange     string    `json:"date"`
-	GroupBy       string    `json:"groupBy"`
-	ShowOptions   bool      `json:"showOptions"`
+	GuildID       string      `json:"guildID"`
+	InteractionID string      `json:"interactionID"`
+	UserID        string      `json:"userID"`
+	ChartType     ChartType   `json:"chart"`
+	Metric        MetricType  `json:"metrics"`
+	Users         []string    `json:"users"`
+	Channels      []string    `json:"channels"`
+	DateRange     string      `json:"date"`
+	GroupBy       GroupByType `json:"groupBy"`
+	ShowOptions   bool        `json:"showOptions"`
 }
 
 func (c *ChartTracker) Marshal() string {
@@ -72,4 +80,21 @@ func GetChartType(in string) ChartType {
 	default:
 		return InvalidChart
 	}
+}
+
+func (g *GroupByType) ToString() string {
+	return string(*g)
+}
+
+func (m *MetricType) ToString() string {
+	return fmt.Sprintf("%s_%s", m.Category, m.Metric)
+}
+
+func GetMetricType(in string) MetricType {
+	cat, metric := strings.Split(in, "_")[0], strings.Join(strings.Split(in, "_")[1:], "_")
+	return MetricType{Category: cat, Metric: metric}
+}
+
+func GetGroupByType(in string) GroupByType {
+	return GroupByType(in)
 }

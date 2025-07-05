@@ -46,7 +46,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
 
 	// Pre-fetch users if grouping by "user"
-	if c.GroupBy == "interaction_user" || c.GroupBy == "single_user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
+	if c.GroupBy == "interaction_user" || c.GroupBy == "interaction_bot" || c.GroupBy == "single_user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
 		lastID := "" // Discord API requires the last ID for pagination
 
 		for {
@@ -108,6 +108,8 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		var xLabel, yLabel string
 		switch c.GroupBy {
 		case "interaction_user":
+			fallthrough
+		case "interaction_bot":
 			fallthrough
 		case "single_user":
 			if name, found := usernames[xaxes]; found {
@@ -183,9 +185,9 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		data = allData
 	}
 
-	if strings.Split(c.Metric, "_")[0] == "reaction" {
+	if c.Metric.Category == "reaction" {
 		for _, d := range data {
-			if grouped := strings.Split(c.GroupBy, "_"); len(grouped) > 1 {
+			if grouped := strings.Split(c.GroupBy.ToString(), "_"); len(grouped) > 1 {
 				if grouped[0] == "reaction" {
 					if _, ok := database.CustomEmojiCache[d.Yaxes]; ok {
 						d.Yaxes = fmt.Sprintf(":%s:", d.Yaxes)
