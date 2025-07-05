@@ -16,6 +16,11 @@
             "/(^|/)versions\\.tf\\.json$/"
         ]
     },
+    "ignorePaths": [
+        "**/grunt_providers.tf",
+        "**/grunt_versions.tf",
+        "**/grunt_backend.tf"
+    ],
     "packageRules": [
         {
             "matchManagers": [
@@ -30,18 +35,6 @@
             ],
             "groupName": "go modules",
             "automerge": true
-        },
-        {
-            "matchManagers": [
-                "terraform",
-                "terragrunt"
-            ],
-            "ignorePaths": [
-                "**/grunt_providers.tf",
-                "**/grunt_versions.tf",
-                "**/grunt_backend.tf"
-            ],
-            "groupName": "terraform providers"
         },
         {
             "matchDatasources": [
