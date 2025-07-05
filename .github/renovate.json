@@ -34,7 +34,8 @@
                 "minor"
             ],
             "groupName": "go modules",
-            "automerge": true
+            "automerge": true,
+            "ignoreTests": true
         },
         {
             "matchDatasources": [
