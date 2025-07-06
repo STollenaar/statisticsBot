@@ -157,6 +157,8 @@ github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250705171043-3e8c
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250705171043-3e8c6cf1627a/go.mod h1:9TW6gAJJg6UKwVxwK1C1hnCZl5M8timdwd4B4MnRCF0=
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250705210702-c299cc04a5a2 h1:HIiSGYgFG0MlSapKaTMSF61m7qQe3az1s/tt+b1rRrY=
 github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250705210702-c299cc04a5a2/go.mod h1:awAytDu8jaIO0kBPpBnCWaPBqGEXkmbT/edWLKmsAJA=
+github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706021057-2a15cde9ee9f h1:iL3/f52h8cOFlP1I8gcrazWGpF1oZuJ0W/8JaQkodas=
+github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706021057-2a15cde9ee9f/go.mod h1:tkvNmTqdcY23R+vfdNMG0J26E5BljKa69fVHjACGubE=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c h1:Qlo9EyBa4SsnOTaZUftzabQ+6J1v0u1QDmC+8xIRC0s=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250504222652-ab8ea54a862c/go.mod h1:JTzprDarPt/id4Vq/bCtC06qhMlWk2aNry6qeZyFZYw=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250704224108-6eca027dd680 h1:qSg5qdvxR22NZwRyMMoQag99dhxagyVgJ+7f1nu+ht8=
@@ -167,6 +169,8 @@ github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250705171043-3e8c6cf1
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250705171043-3e8c6cf1627a/go.mod h1:Eldt3c48giqJC06vkgnEt/8LoFOZpCJ/sAu79pawf7k=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250705210702-c299cc04a5a2 h1:kWq7NmUcT5UKqT4wypsWGs/T6ejwgjYRlit3NKzOZ5w=
 github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250705210702-c299cc04a5a2/go.mod h1:Eldt3c48giqJC06vkgnEt/8LoFOZpCJ/sAu79pawf7k=
+github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706021057-2a15cde9ee9f h1:sVQTnx+a1IsFMlkfAfc9QF3uy/5szww38maYPMt0mbE=
+github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706021057-2a15cde9ee9f/go.mod h1:Eldt3c48giqJC06vkgnEt/8LoFOZpCJ/sAu79pawf7k=
 github.com/stretchr/testify v1.10.0 h1:Xv5erBjTwe/5IxqUQTdXv5kgmIvbHo3QQyRwhJsOfJA=
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/subosito/gotenv v1.6.0 h1:9NlTDc1FTs4qu0DDq7AEtTPNw6SVm7uBMsUCUjABIf8=
