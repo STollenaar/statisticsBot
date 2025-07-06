@@ -2,7 +2,7 @@ module github.com/stollenaar/statisticsbot/tools/charts
 
 go 1.24.1
 
-require github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250706021057-2a15cde9ee9f
+require github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250706055706-ef987d83bc4d
 
 require (
 	github.com/apache/arrow-go/v18 v18.2.0 // indirect
@@ -50,8 +50,8 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706021057-2a15cde9ee9f // indirect
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706021057-2a15cde9ee9f // indirect
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706055706-ef987d83bc4d // indirect
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706055706-ef987d83bc4d // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
