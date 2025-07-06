@@ -6,7 +6,7 @@ require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/marcboeker/go-duckdb v1.8.5
 	github.com/marcboeker/go-duckdb/v2 v2.3.2
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706084226-234957f6bae0
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706130110-7d3b1e6e0c58
 )
 
 require (
