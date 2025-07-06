@@ -5,8 +5,8 @@ go 1.24.1
 require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/gin-gonic/gin v1.10.1
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706130110-7d3b1e6e0c58
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706130110-7d3b1e6e0c58
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706170851-f7aedfac8b66
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706170851-f7aedfac8b66
 )
 
 require (
