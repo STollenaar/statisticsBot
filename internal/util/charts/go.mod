@@ -6,8 +6,8 @@ require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/go-echarts/go-echarts/v2 v2.6.0
 	github.com/go-echarts/snapshot-chromedp v0.0.5
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706170851-f7aedfac8b66
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706170851-f7aedfac8b66
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250706223358-f0fb77e6171f
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250706223358-f0fb77e6171f
 	golang.org/x/text v0.26.0
 )
 
