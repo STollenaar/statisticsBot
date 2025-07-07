@@ -12,7 +12,7 @@ import (
 
 	"github.com/bwmarrin/discordgo"
 
-	_ "github.com/marcboeker/go-duckdb" // DuckDB Go driver
+	_ "github.com/marcboeker/go-duckdb/v2" // DuckDB Go driver
 )
 
 var (

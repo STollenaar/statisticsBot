@@ -28,6 +28,12 @@ require (
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/duckdb/duckdb-go-bindings v0.1.16 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.11 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
@@ -45,7 +51,9 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/marcboeker/go-duckdb v1.8.5 // indirect
+	github.com/marcboeker/go-duckdb/arrowmapping v0.0.9 // indirect
+	github.com/marcboeker/go-duckdb/mapping v0.0.10 // indirect
+	github.com/marcboeker/go-duckdb/v2 v2.3.2 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect

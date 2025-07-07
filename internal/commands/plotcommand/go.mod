@@ -27,6 +27,12 @@ require (
 	github.com/chromedp/cdproto v0.0.0-20250429231605-6ed5b53462d4 // indirect
 	github.com/chromedp/chromedp v0.13.6 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
+	github.com/duckdb/duckdb-go-bindings v0.1.16 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.11 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-echarts/go-echarts/v2 v2.6.0 // indirect
 	github.com/go-echarts/snapshot-chromedp v0.0.5 // indirect
@@ -43,7 +49,9 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
-	github.com/marcboeker/go-duckdb v1.8.5 // indirect
+	github.com/marcboeker/go-duckdb/arrowmapping v0.0.9 // indirect
+	github.com/marcboeker/go-duckdb/mapping v0.0.10 // indirect
+	github.com/marcboeker/go-duckdb/v2 v2.3.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
@@ -53,7 +61,7 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250707144347-f20802fe1ea3 // indirect
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250707185728-300d464a625b // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
