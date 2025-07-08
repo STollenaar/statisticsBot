@@ -50,9 +50,7 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		var xaxes, yaxes string
 		var value float64
 
-		if !(c.GroupBy == "channel_user" ||
-			c.GroupBy == "reaction_user" ||
-			c.GroupBy == "reaction_channel") {
+		if !c.GroupBy.MultiAxes {
 			err = rs.Scan(&xaxes, &value)
 		} else {
 			err = rs.Scan(&yaxes, &xaxes, &value)
@@ -74,10 +72,8 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 	}
 
 	// Process top 14 and "Other" category
-	if !(c.GroupBy == "channel_user" ||
-		c.GroupBy == "reaction_user" ||
-		c.GroupBy == "reaction_channel") &&
-		c.GroupBy != "date" && len(allData) > 14 {
+	if !c.GroupBy.MultiAxes &&
+		c.GroupBy.Metric != "date" && len(allData) > 14 {
 		topData := allData[:14]
 		otherValue := 0.0
 		for _, d := range allData[14:] {

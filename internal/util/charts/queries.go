@@ -57,30 +57,30 @@ func (c *ChartTracker) buildQuery(start, end time.Time) (query string, err error
 	// Determine grouping
 	var selectExpr, groupField string
 	switch c.GroupBy {
-	case "interaction_user":
+	case MetricType{Category: "interaction", Metric: "user"}:
 		selectExpr, groupField = "interaction_author_id AS xaxes", "interaction_author_id"
-	case "interaction_bot":
+	case MetricType{Category: "interaction", Metric: "bot"}:
 		selectExpr, groupField = "author_id AS xaxes", "author_id"
-	case "single_user":
+	case MetricType{Category: "single", Metric: "user"}:
 		selectExpr, groupField = "author_id AS xaxes", "author_id"
-	case "single_date":
+	case MetricType{Category: "single", Metric: "date"}:
 		selectExpr, groupField = "strftime('%Y-%m-%d', date) AS xaxes", "strftime('%Y-%m-%d', date)"
-	case "single_month":
+	case MetricType{Category: "single", Metric: "month"}:
 		selectExpr, groupField = "strftime('%%Y-%%m', date) AS xaxes", "strftime('%%Y-%%m', date)"
-	case "channel":
+	case MetricType{Category: "single", Metric: "channel"}:
 		selectExpr, groupField = "channel_id AS xaxes", "channel_id"
-	case "channel_user":
+	case MetricType{Category: "channel", Metric: "user", MultiAxes: true}:
 		selectExpr, groupField = "channel_id AS yaxes, author_id AS xaxes", "channel_id, author_id"
-	case "reaction_user":
+	case MetricType{Category: "reaction", Metric: "user", MultiAxes: true}:
 		selectExpr, groupField = "reaction AS yaxes, author_id AS xaxes", "reaction, author_id"
-	case "reaction_channel":
+	case MetricType{Category: "reaction", Metric: "channel", MultiAxes: true}:
 		selectExpr, groupField = "reaction AS yaxes, channel_id AS xaxes", "reaction, channel_id"
 	default:
 		selectExpr, groupField = "author_id", "author_id" // fallback
 	}
 
 	orderByField := "value DESC"
-	if c.GroupBy == "date" {
+	if c.GroupBy.Metric == "date" {
 		orderByField = fmt.Sprintf("%s ASC", groupField)
 	}
 

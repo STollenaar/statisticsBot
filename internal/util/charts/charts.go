@@ -46,7 +46,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
 
 	// Pre-fetch users if grouping by "user"
-	if c.GroupBy == "interaction_user" || c.GroupBy == "interaction_bot" || c.GroupBy == "single_user" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_user" {
+	if c.GroupBy.Category == "user" || c.GroupBy.Category == "bot" {
 		lastID := "" // Discord API requires the last ID for pagination
 
 		for {
@@ -68,7 +68,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	}
 
 	// Pre-fetch channels if grouping by "channel"
-	if c.GroupBy == "channel" || c.GroupBy == "channel_user" || c.GroupBy == "reaction_channel" {
+	if c.GroupBy.Metric == "channel" || c.GroupBy.Category == "channel" {
 		guildChannels, err := bot.GuildChannels(c.GuildID)
 		if err == nil {
 			for _, ch := range guildChannels {
@@ -95,9 +95,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		var xaxes, yaxes string
 		var value float64
 
-		if !(c.GroupBy == "channel_user" ||
-			c.GroupBy == "reaction_user" ||
-			c.GroupBy == "reaction_channel") {
+		if !c.GroupBy.MultiAxes {
 			err = rs.Scan(&xaxes, &value)
 		} else {
 			err = rs.Scan(&yaxes, &xaxes, &value)
@@ -107,23 +105,23 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		}
 		var xLabel, yLabel string
 		switch c.GroupBy {
-		case "interaction_user":
+		case MetricType{Metric: "bot"}:
 			fallthrough
-		case "interaction_bot":
-			fallthrough
-		case "single_user":
+		case MetricType{Metric: "user"}:
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
-		case "single_channel":
+		case MetricType{Metric: "channel"}:
 			if name, found := channels[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
-		case "channel_user":
+		case MetricType{Metric: "date"}:
+			xLabel = xaxes
+		case MetricType{Category: "channel", Metric: "user", MultiAxes: true}:
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
@@ -134,22 +132,20 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 			} else {
 				yLabel = yaxes
 			}
-		case "reaction_user":
+		case MetricType{Category: "reaction", Metric: "user", MultiAxes: true}:
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
 			yLabel = yaxes
-		case "reaction_channel":
+		case MetricType{Category: "reaction", Metric: "channel", MultiAxes: true}:
 			if name, found := channels[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
 			yLabel = yaxes
-		case "date":
-			xLabel = xaxes
 		}
 		allData = append(allData, &ChartData{
 			Xaxes:  xaxes,
@@ -164,10 +160,8 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	}
 
 	// Process top 14 and "Other" category
-	if !(c.GroupBy == "channel_user" ||
-		c.GroupBy == "reaction_user" ||
-		c.GroupBy == "reaction_channel") &&
-		c.GroupBy != "date" && len(allData) > 14 {
+	if !c.GroupBy.MultiAxes &&
+		c.GroupBy.Metric != "date" && len(allData) > 14 {
 		topData := allData[:14]
 		otherValue := 0.0
 		for _, d := range allData[14:] {
