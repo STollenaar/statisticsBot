@@ -4,8 +4,8 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250708225332-9bfa1626d83e
-	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250708225332-9bfa1626d83e
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250709041512-08b3cfca6298
+	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250709041512-08b3cfca6298
 )
 
 require (
@@ -61,7 +61,7 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250708193513-a3244cd11436 // indirect
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250708225332-9bfa1626d83e // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
