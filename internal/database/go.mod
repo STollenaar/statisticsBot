@@ -5,7 +5,7 @@ go 1.24.1
 require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/marcboeker/go-duckdb/v2 v2.3.2
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250708193513-a3244cd11436
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250708225332-9bfa1626d83e
 )
 
 require (
