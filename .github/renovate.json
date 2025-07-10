@@ -27,15 +27,23 @@
                 "gomod"
             ],
             "matchUpdateTypes": [
-                "pin",
-                "pinDigest",
-                "digest",
                 "patch",
                 "minor"
             ],
             "groupName": "go modules",
             "automerge": true,
             "ignoreTests": true
+        },
+        {
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchUpdateTypes": [
+                "pin",
+                "pinDigest",
+                "digest"
+            ],
+            "enabled": false
         },
         {
             "matchDatasources": [
