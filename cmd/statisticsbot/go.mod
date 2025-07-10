@@ -4,10 +4,10 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20250708051437-f02c19a6366f
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250708051437-f02c19a6366f
-	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20250708051437-f02c19a6366f
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250708051437-f02c19a6366f
+	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20250710121330-eefca83bde47
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250710121330-eefca83bde47
+	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20250710121330-eefca83bde47
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710121330-eefca83bde47
 )
 
 require (
@@ -32,12 +32,12 @@ require (
 	github.com/chromedp/chromedp v0.13.6 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
 	github.com/cloudwego/base64x v0.1.5 // indirect
-	github.com/duckdb/duckdb-go-bindings v0.1.16 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.11 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.11 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.11 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.11 // indirect
-	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.11 // indirect
+	github.com/duckdb/duckdb-go-bindings v0.1.17 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.12 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.12 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.12 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.12 // indirect
+	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.12 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
@@ -62,9 +62,9 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
-	github.com/marcboeker/go-duckdb/arrowmapping v0.0.9 // indirect
-	github.com/marcboeker/go-duckdb/mapping v0.0.10 // indirect
-	github.com/marcboeker/go-duckdb/v2 v2.3.2 // indirect
+	github.com/marcboeker/go-duckdb/arrowmapping v0.0.10 // indirect
+	github.com/marcboeker/go-duckdb/mapping v0.0.11 // indirect
+	github.com/marcboeker/go-duckdb/v2 v2.3.3 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -77,27 +77,27 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250708020608-75d5f1a8cc24 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250708020608-75d5f1a8cc24 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250708020608-75d5f1a8cc24 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250708020608-75d5f1a8cc24 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250708020608-75d5f1a8cc24 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250708020608-75d5f1a8cc24 // indirect
-	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250708020608-75d5f1a8cc24 // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250710074555-3f32ce6c877f // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/arch v0.16.0 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
+	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/net v0.41.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
