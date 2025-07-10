@@ -4,13 +4,13 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250709171506-40397155d696
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250709171506-40397155d696
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250709171506-40397155d696
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250709171506-40397155d696
-	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250709171506-40397155d696
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250709171506-40397155d696
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250709171506-40397155d696
+	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250710000037-3dc3a2efe120
+	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250710000037-3dc3a2efe120
+	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250710000037-3dc3a2efe120
+	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250710000037-3dc3a2efe120
+	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250710000037-3dc3a2efe120
+	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250710000037-3dc3a2efe120
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710000037-3dc3a2efe120
 )
 
 require (
@@ -66,18 +66,18 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250709171506-40397155d696 // indirect
-	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250709120314-fe0c6fbae883 // indirect
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250710000037-3dc3a2efe120 // indirect
+	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250709171506-40397155d696 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/zeebo/xxh3 v1.0.2 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
