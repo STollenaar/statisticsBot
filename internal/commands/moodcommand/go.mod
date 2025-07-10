@@ -4,8 +4,8 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250710074555-3f32ce6c877f
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710074555-3f32ce6c877f
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250710121330-eefca83bde47
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710121330-eefca83bde47
 )
 
 require (
