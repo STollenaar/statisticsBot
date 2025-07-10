@@ -6,9 +6,9 @@ require (
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/go-echarts/go-echarts/v2 v2.6.0
 	github.com/go-echarts/snapshot-chromedp v0.0.5
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250709120314-fe0c6fbae883
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250709120314-fe0c6fbae883
-	golang.org/x/text v0.26.0
+	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250709171506-40397155d696
+	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250709171506-40397155d696
+	golang.org/x/text v0.27.0
 )
 
 require (
@@ -69,9 +69,9 @@ require (
 	golang.org/x/crypto v0.37.0 // indirect
 	golang.org/x/exp v0.0.0-20250408133849-7e4ce0ab07d0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/tools v0.34.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
