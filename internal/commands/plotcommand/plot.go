@@ -102,15 +102,36 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 			chartTracker.ShowOptions = !chartTracker.ShowOptions
 		}
 
-		_, err := bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Embeds: &[]*discordgo.MessageEmbed{
-				{
-					Title:       "Create a Chart",
-					Description: "Select the chart type, users to include, and provide a date range.",
-					Color:       0x00bfff, // light blue
-				},
+		embeds := []*discordgo.MessageEmbed{
+			{
+				Title:       "Create a Chart",
+				Description: "Select the chart type, users to include, and provide a date range.",
+				Color:       0x00bfff, // light blue
 			},
+		}
+
+		var files []*discordgo.File
+		if chartTracker.CanGenerate() {
+			chart, err := chartTracker.GenerateChart(bot)
+			if err != nil {
+				fmt.Println(err)
+				e := "Error happened while processing selection"
+				embeds = append(embeds, &discordgo.MessageEmbed{
+					Title:       "Preview",
+					Description: e,
+					Image: &discordgo.MessageEmbedImage{
+						URL: fmt.Sprintf("attachment://%s", chart.Name),
+					},
+				})
+			} else {
+				files = append(files, chart)
+			}
+		}
+		_, err := bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			Embeds:     &embeds,
 			Components: chartTracker.BuildComponents(),
+			Files: files,
+			Attachments: &[]*discordgo.MessageAttachment{},
 		})
 		if err != nil {
 			fmt.Println(err)

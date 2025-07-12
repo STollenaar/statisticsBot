@@ -86,6 +86,10 @@ func (m *MetricType) ToString() string {
 	return fmt.Sprintf("%s;%s;%t", m.Category, m.Metric, m.MultiAxes)
 }
 
+func (m *MetricType) Title() string {
+	return fmt.Sprintf("%s_%s", m.Category, m.Metric)
+}
+
 func GetMetricType(in string) MetricType {
 	cat, metric, multi := strings.Split(in, ";")[0], strings.Split(in, ";")[1], "false"
 	if len(strings.Split(in, ";")) == 3 {

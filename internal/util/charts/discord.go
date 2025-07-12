@@ -300,13 +300,13 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 				Label:       "User",
 				Value:       "interaction;user",
 				Description: "Group results by initiator (author)",
-				Default:     c.GroupBy == MetricType{Category: "interaction",Metric: "user"},
+				Default:     c.GroupBy == MetricType{Category: "interaction", Metric: "user"},
 			},
 			{
 				Label:       "Bot",
 				Value:       "interaction;bot",
 				Description: "Group results by the bot",
-				Default:     c.GroupBy == MetricType{Category: "interaction",Metric: "bot"},
+				Default:     c.GroupBy == MetricType{Category: "interaction", Metric: "bot"},
 			},
 		}
 	case "message":
@@ -317,19 +317,19 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 				Label:       "User",
 				Value:       "single;user",
 				Description: "Group results by user (author)",
-				Default:     c.GroupBy == MetricType{Category: "single",Metric: "user"},
+				Default:     c.GroupBy == MetricType{Category: "single", Metric: "user"},
 			},
 			{
 				Label:       "Date",
 				Value:       "single;date",
 				Description: "Group results by individual day",
-				Default:     c.GroupBy == MetricType{Category: "single",Metric: "date"},
+				Default:     c.GroupBy == MetricType{Category: "single", Metric: "date"},
 			},
 			{
 				Label:       "Channel",
 				Value:       "single;channel",
 				Description: "Group results by channel",
-				Default:     c.GroupBy == MetricType{Category: "single",Metric: "channel"},
+				Default:     c.GroupBy == MetricType{Category: "single", Metric: "channel"},
 			},
 		}
 	default:
@@ -340,10 +340,11 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 	switch c.Metric.Category {
 	case "message":
+		c.GroupBy = MetricType{Category: "channel", Metric: "user", MultiAxes: true}
 		return []discordgo.SelectMenuOption{
 			{
 				Label:       "Channel & User",
-				Value:       "channel;user",
+				Value:       "channel;user;true",
 				Description: "Group results by channel and user (author)",
 				Default:     true,
 			},
@@ -352,15 +353,25 @@ func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 		return []discordgo.SelectMenuOption{
 			{
 				Label:       "Reaction & User",
-				Value:       "reaction;user",
+				Value:       "reaction;user;true",
 				Description: "Group results by emoji and user (author)",
-				Default:     c.GroupBy == MetricType{Category: "reaction",Metric: "user", MultiAxes: true},
+				Default:     c.GroupBy == MetricType{Category: "reaction", Metric: "user", MultiAxes: true},
 			},
 			{
 				Label:       "Reaction & Channelr",
-				Value:       "reaction;channel",
+				Value:       "reaction;channel;true",
 				Description: "Group results by emoji and channel",
-				Default:     c.GroupBy == MetricType{Category: "reaction",Metric: "channel", MultiAxes: true},
+				Default:     c.GroupBy == MetricType{Category: "reaction", Metric: "channel", MultiAxes: true},
+			},
+		}
+	case "interaction":
+		c.GroupBy = MetricType{Category: "interaction", Metric: "user", MultiAxes: true}
+		return []discordgo.SelectMenuOption{
+			{
+				Label:       "Bot & User",
+				Value:       "interaction;user;true",
+				Description: "Group results by bot and user (author)",
+				Default:     true,
 			},
 		}
 	default:

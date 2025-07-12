@@ -26,7 +26,7 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 	data, err := c.getData(bot)
 	fmt.Println(data)
 	t := time.Now()
-	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.ToString(), c.GroupBy.ToString()), "_", " "))
+	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.Title(), c.GroupBy.Title()), "_", " "))
 	fileName := fmt.Sprintf("%d.png", t.UnixNano())
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 func (c *ChartTracker) GenerateDebugChart() {
 	data, err := c.getDebugData()
 
-	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.ToString(), c.GroupBy.ToString()), "_", " "))
+	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.Title(), c.GroupBy.Title()), "_", " "))
 	f, _ := os.Create("chart.html")
 
 	if err != nil {

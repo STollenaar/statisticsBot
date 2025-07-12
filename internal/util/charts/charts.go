@@ -46,7 +46,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
 
 	// Pre-fetch users if grouping by "user"
-	if c.GroupBy.Category == "user" || c.GroupBy.Category == "bot" {
+	if c.GroupBy.Metric == "user" || c.GroupBy.Metric == "bot" {
 		lastID := "" // Discord API requires the last ID for pagination
 
 		for {
@@ -104,24 +104,24 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 			break
 		}
 		var xLabel, yLabel string
-		switch c.GroupBy {
-		case MetricType{Metric: "bot"}:
+		switch {
+		case c.GroupBy.Metric == "bot" && !c.GroupBy.MultiAxes:
 			fallthrough
-		case MetricType{Metric: "user"}:
+		case c.GroupBy.Metric == "user" && !c.GroupBy.MultiAxes:
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
-		case MetricType{Metric: "channel"}:
+		case c.GroupBy.Metric == "channel" && !c.GroupBy.MultiAxes:
 			if name, found := channels[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
-		case MetricType{Metric: "date"}:
+		case c.GroupBy.Metric == "date":
 			xLabel = xaxes
-		case MetricType{Category: "channel", Metric: "user", MultiAxes: true}:
+		case c.GroupBy.Category == "channel" && c.GroupBy.Metric == "user" && c.GroupBy.MultiAxes:
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
@@ -132,20 +132,31 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 			} else {
 				yLabel = yaxes
 			}
-		case MetricType{Category: "reaction", Metric: "user", MultiAxes: true}:
+		case c.GroupBy.Category == "reaction" && c.GroupBy.Metric == "user" && c.GroupBy.MultiAxes:
 			if name, found := usernames[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
 			yLabel = yaxes
-		case MetricType{Category: "reaction", Metric: "channel", MultiAxes: true}:
+		case c.GroupBy.Category == "reaction" && c.GroupBy.Metric == "channel" && c.GroupBy.MultiAxes:
 			if name, found := channels[xaxes]; found {
 				xLabel = name
 			} else {
 				xLabel = xaxes
 			}
 			yLabel = yaxes
+		case c.GroupBy.Category == "interaction" && c.GroupBy.Metric == "user" && c.GroupBy.MultiAxes:
+			if name, found := usernames[xaxes]; found {
+				xLabel = name
+			} else {
+				xLabel = xaxes
+			}
+			if name, found := usernames[yaxes]; found {
+				yLabel = name
+			} else {
+				yLabel = yaxes
+			}
 		}
 		allData = append(allData, &ChartData{
 			Xaxes:  xaxes,
