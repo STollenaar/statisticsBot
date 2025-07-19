@@ -256,7 +256,7 @@ func (c *ChartTracker) generateHeatMapChart(chartData []*ChartData, title string
 }
 
 func (c *ChartTracker) CanGenerate() bool {
-	return c.DateRange != "" && c.Metric != MetricType{} && c.GroupBy != MetricType{} && c.ChartType != ""
+	return ((c.DateRange != "" && c.DateRange != "custom") || (c.DateRange == "custom" && c.CustomDateRange.End != nil && c.CustomDateRange.Start != nil)) && c.Metric != MetricType{} && c.GroupBy != MetricType{} && c.ChartType != ""
 }
 
 func toXaxes(chartData []*ChartData) (rs []string) {

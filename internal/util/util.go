@@ -12,10 +12,9 @@ import (
 )
 
 const (
-	DISCORD_EMOJI_URL          = "https://cdn.discordapp.com/emojis/%s.%s"
-	DiscordEpoch int64 = 1420070400000
+	DISCORD_EMOJI_URL       = "https://cdn.discordapp.com/emojis/%s.%s"
+	DiscordEpoch      int64 = 1420070400000
 )
-
 
 // Contains check slice contains want string
 func Contains(slice []string, want string) bool {
@@ -113,4 +112,14 @@ func FetchDiscordEmojiImage(emojiID string, isAnimated bool) (string, error) {
 	base64Data := base64.StdEncoding.EncodeToString(data)
 
 	return base64Data, nil
+}
+
+func GetSeparator() discordgo.Separator {
+	divider := true
+	spacing := discordgo.SeparatorSpacingSizeLarge
+
+	return discordgo.Separator{
+		Divider: &divider,
+		Spacing: &spacing,
+	}
 }

@@ -34,6 +34,10 @@ func init() {
 			if h, ok := commands.CommandHandlers[i.Interaction.Message.Interaction.Name]; ok {
 				h(s, i)
 			}
+		case discordgo.InteractionType(discordgo.InteractionModalSubmit):
+			if h, ok := commands.ModalSubmitHandlers[i.Interaction.Message.Interaction.Name]; ok {
+				h(s, i)
+			}
 		default:
 			if h, ok := commands.CommandHandlers[i.ApplicationCommandData().Name]; ok {
 				h(s, i)

@@ -30,6 +30,7 @@ var (
 	}
 	ApplicationCommands []*discordgo.ApplicationCommand
 	CommandHandlers     = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))
+	ModalSubmitHandlers = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))
 )
 
 func init() {
@@ -39,8 +40,16 @@ func init() {
 			Description: reflect.ValueOf(cmd).FieldByName("Description").String(),
 			Options:     cmd.CreateCommandArguments(),
 		})
-
 		CommandHandlers[reflect.ValueOf(cmd).FieldByName("Name").String()] = cmd.Handler
+
+		if _, ok := reflect.TypeOf(cmd).MethodByName("ModalHandler"); ok {
+			ModalSubmitHandlers[reflect.ValueOf(cmd).FieldByName("Name").String()] = func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+				reflect.ValueOf(cmd).MethodByName("ModalHandler").Call([]reflect.Value{
+					reflect.ValueOf(s),
+					reflect.ValueOf(i),
+				})
+			}
+		}
 	}
 
 	ApplicationCommands = append(ApplicationCommands,

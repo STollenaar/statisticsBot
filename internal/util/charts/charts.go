@@ -22,7 +22,7 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 		}
 	}()
 
-	start, end, err := getDateRange(c.DateRange)
+	start, end, err := c.getDateRange()
 	if err != nil {
 		fmt.Println(err)
 		return nil, err

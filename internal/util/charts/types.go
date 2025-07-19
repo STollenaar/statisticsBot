@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 )
 
 type (
@@ -34,17 +35,22 @@ type ChartData struct {
 	Value  float64 `json:"value"`
 }
 
+type DateRange struct {
+	Start *time.Time
+	End   *time.Time
+}
+
 type ChartTracker struct {
-	GuildID       string     `json:"guildID"`
-	InteractionID string     `json:"interactionID"`
-	UserID        string     `json:"userID"`
-	ChartType     ChartType  `json:"chart"`
-	Metric        MetricType `json:"metrics"`
-	Users         []string   `json:"users"`
-	Channels      []string   `json:"channels"`
-	DateRange     string     `json:"date"`
-	GroupBy       MetricType `json:"groupBy"`
-	ShowOptions   bool       `json:"showOptions"`
+	GuildID         string     `json:"guildID"`
+	InteractionID   string     `json:"interactionID"`
+	UserID          string     `json:"userID"`
+	ChartType       ChartType  `json:"chart"`
+	Metric          MetricType `json:"metrics"`
+	Users           []string   `json:"users"`
+	Channels        []string   `json:"channels"`
+	DateRange       string     `json:"date"`
+	CustomDateRange DateRange  `json:"customDate"`
+	GroupBy         MetricType `json:"groupBy"`
 }
 
 func (c *ChartTracker) Marshal() string {

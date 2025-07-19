@@ -21,7 +21,7 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		}
 	}()
 
-	start, end, err := getDateRange(c.DateRange)
+	start, end, err := c.getDateRange()
 	if err != nil {
 		fmt.Println(err)
 		return nil, err
