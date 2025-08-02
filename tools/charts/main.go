@@ -8,8 +8,14 @@ func main() {
 	chartTracker := charts.ChartTracker{
 		GuildID:   "497544520695808000",
 		ChartType: "pie",
-		Metric:    "message_count",
-		GroupBy:   "channel",
+		Metric: charts.MetricType{
+			Category: "message",
+			Metric:   "count",
+		},
+		GroupBy: charts.MetricType{
+			Category: "single",
+			Metric:   "channel",
+		},
 		DateRange: "30d",
 	}
 
