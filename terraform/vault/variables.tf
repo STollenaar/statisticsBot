@@ -1,1 +1,0 @@
-variable "kubeconfig_file" {}

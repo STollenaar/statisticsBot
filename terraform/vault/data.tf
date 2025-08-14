@@ -16,9 +16,8 @@ data "terraform_remote_state" "iam_role" {
   }
 }
 
-data "hcp_vault_secrets_secret" "vault_root" {
-  app_name    = "proxmox"
-  secret_name = "root"
+data "aws_ssm_parameter" "vault_root" {
+  name = "/vault/root"
 }
 
 data "aws_ssm_parameter" "vault_client_id" {

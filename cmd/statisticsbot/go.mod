@@ -11,21 +11,21 @@ require (
 )
 
 require (
-	github.com/apache/arrow-go/v18 v18.2.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.36.5 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.29.17 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.70 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.32 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.36 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.36 // indirect
+	github.com/apache/arrow-go/v18 v18.4.0 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.37.1 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.30.2 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.2 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.1 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.17 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.60.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.25.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.34.0 // indirect
-	github.com/aws/smithy-go v1.22.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.61.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.26.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.31.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.35.1 // indirect
+	github.com/aws/smithy-go v1.22.5 // indirect
 	github.com/bytedance/sonic v1.13.2 // indirect
 	github.com/bytedance/sonic/loader v0.2.4 // indirect
 	github.com/chromedp/cdproto v0.0.0-20250429231605-6ed5b53462d4 // indirect
@@ -42,14 +42,14 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
 	github.com/gin-gonic/gin v1.10.1 // indirect
-	github.com/go-echarts/go-echarts/v2 v2.6.0 // indirect
+	github.com/go-echarts/go-echarts/v2 v2.6.1 // indirect
 	github.com/go-echarts/snapshot-chromedp v0.0.5 // indirect
 	github.com/go-json-experiment/json v0.0.0-20250417205406-170dfdcf87d1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.26.0 // indirect
 	github.com/go-viper/encoding/ini v0.1.1 // indirect
-	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
+	github.com/go-viper/mapstructure/v2 v2.3.0 // indirect
 	github.com/gobwas/httphead v0.1.0 // indirect
 	github.com/gobwas/pool v0.2.1 // indirect
 	github.com/gobwas/ws v1.4.0 // indirect
@@ -60,11 +60,11 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.10 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/marcboeker/go-duckdb/arrowmapping v0.0.10 // indirect
 	github.com/marcboeker/go-duckdb/mapping v0.0.11 // indirect
-	github.com/marcboeker/go-duckdb/v2 v2.3.3 // indirect
+	github.com/marcboeker/go-duckdb/v2 v2.3.4 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -77,13 +77,13 @@ require (
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250710074555-3f32ce6c877f // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250710074555-3f32ce6c877f // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250710074555-3f32ce6c877f // indirect
-	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250710074555-3f32ce6c877f // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250710121330-eefca83bde47 // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250710121330-eefca83bde47 // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250710121330-eefca83bde47 // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250710121330-eefca83bde47 // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250710121330-eefca83bde47 // indirect
+	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250710121330-eefca83bde47 // indirect
+	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250710121330-eefca83bde47 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect

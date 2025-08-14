@@ -44,8 +44,8 @@ generate "provider" {
         %{endif}
         %{if contains(local.providers, "vault")}
         provider "vault" {
-            token   = data.hcp_vault_secrets_secret.vault_root.secret_value
-            address = "http://localhost:8200"
+            token   = data.aws_ssm_parameter.vault_root.value
+            address = "https://vault.home.spicedelver.me"
         }
         %{endif}
     EOF
