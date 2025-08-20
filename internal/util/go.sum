@@ -18,6 +18,8 @@ github.com/aws/aws-sdk-go-v2/config v1.30.3 h1:utupeVnE3bmB221W08P0Moz1lDI3OwYa2
 github.com/aws/aws-sdk-go-v2/config v1.30.3/go.mod h1:NDGwOEBdpyZwLPlQkpKIO7frf18BW8PaCmAM9iUxQmI=
 github.com/aws/aws-sdk-go-v2/config v1.31.0 h1:9yH0xiY5fUnVNLRWO0AtayqwU1ndriZdN78LlhruJR4=
 github.com/aws/aws-sdk-go-v2/config v1.31.0/go.mod h1:VeV3K72nXnhbe4EuxxhzsDc/ByrCSlZwUnWH52Nde/I=
+github.com/aws/aws-sdk-go-v2/config v1.31.1 h1:PSQn4ObaQLaHl6qjs+XYH2pkxyHzZlk1GgQDrKlRJ7I=
+github.com/aws/aws-sdk-go-v2/config v1.31.1/go.mod h1:3UA8Gj+2nzpV8WBUF0b19onBfz0YMXDQyGEW0Ru1ntI=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.70 h1:ONnH5CM16RTXRkS8Z1qg7/s2eDOhHhaXVd72mmyv4/0=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.70/go.mod h1:M+lWhhmomVGgtuPOhO85u4pEa3SmssPTdcYpP/5J/xc=
 github.com/aws/aws-sdk-go-v2/credentials v1.17.71 h1:r2w4mQWnrTMJjOyIsZtGp3R3XGY3nqHn8C26C2lQWgA=
@@ -32,6 +34,8 @@ github.com/aws/aws-sdk-go-v2/credentials v1.18.3 h1:ptfyXmv+ooxzFwyuBth0yqABcjVI
 github.com/aws/aws-sdk-go-v2/credentials v1.18.3/go.mod h1:Q43Nci++Wohb0qUh4m54sNln0dbxJw8PvQWkrwOkGOI=
 github.com/aws/aws-sdk-go-v2/credentials v1.18.4 h1:IPd0Algf1b+Qy9BcDp0sCUcIWdCQPSzDoMK3a8pcbUM=
 github.com/aws/aws-sdk-go-v2/credentials v1.18.4/go.mod h1:nwg78FjH2qvsRM1EVZlX9WuGUJOL5od+0qvm0adEzHk=
+github.com/aws/aws-sdk-go-v2/credentials v1.18.5 h1:DATc1xnpHUV8VgvtnVQul+zuCwK6vz7gtkbKEUZcuNI=
+github.com/aws/aws-sdk-go-v2/credentials v1.18.5/go.mod h1:y7aigZzjm1jUZuCgOrlBng+VJrKkknY2Cl0JWxG7vHU=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.32 h1:KAXP9JSHO1vKGCr5f4O6WmlVKLFFXgWYAGoJosorxzU=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.32/go.mod h1:h4Sg6FQdexC1yYG9RDnOvLbW1a/P986++/Y/a+GyEM8=
 github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.33 h1:D9ixiWSG4lyUBL2DDNK924Px9V/NBVpML90MHqyTADY=
@@ -94,6 +98,8 @@ github.com/aws/aws-sdk-go-v2/service/ssm v1.62.0 h1:o/2RGV3LouWdbEFpODWRQTw1VSSN
 github.com/aws/aws-sdk-go-v2/service/ssm v1.62.0/go.mod h1:Q42zmnvaj33ibL1cPu7N2hvQx6D19Rf94ScnppcQIlU=
 github.com/aws/aws-sdk-go-v2/service/ssm v1.63.0 h1:1T8wFNEtOP4lgLC7v8Fzgbb4kFrMmnscG7kOqkbA26c=
 github.com/aws/aws-sdk-go-v2/service/ssm v1.63.0/go.mod h1:CDVmu8K5JKdgdJakdZ9gC3K6OJ/+izv/kUncFeGRIj4=
+github.com/aws/aws-sdk-go-v2/service/ssm v1.63.1 h1:fdUWpQTvZM6RDMtmMc9T6r80fb7PNPCQjsQBEIYqTLA=
+github.com/aws/aws-sdk-go-v2/service/ssm v1.63.1/go.mod h1:CDVmu8K5JKdgdJakdZ9gC3K6OJ/+izv/kUncFeGRIj4=
 github.com/aws/aws-sdk-go-v2/service/sso v1.25.5 h1:AIRJ3lfb2w/1/8wOOSqYb9fUKGwQbtysJ2H1MofRUPg=
 github.com/aws/aws-sdk-go-v2/service/sso v1.25.5/go.mod h1:b7SiVprpU+iGazDUqvRSLf5XmCdn+JtT1on7uNL6Ipc=
 github.com/aws/aws-sdk-go-v2/service/sso v1.25.6 h1:rGtWqkQbPk7Bkwuv3NzpE/scwwL9sC1Ul3tn9x83DUI=
@@ -106,6 +112,8 @@ github.com/aws/aws-sdk-go-v2/service/sso v1.27.0 h1:j7/jTOjWeJDolPwZ/J4yZ7dUsxsW
 github.com/aws/aws-sdk-go-v2/service/sso v1.27.0/go.mod h1:M0xdEPQtgpNT7kdAX4/vOAPkFj60hSQRb7TvW9B0iug=
 github.com/aws/aws-sdk-go-v2/service/sso v1.28.0 h1:Mc/MKBf2m4VynyJkABoVEN+QzkfLqGj0aiJuEe7cMeM=
 github.com/aws/aws-sdk-go-v2/service/sso v1.28.0/go.mod h1:iS5OmxEcN4QIPXARGhavH7S8kETNL11kym6jhoS7IUQ=
+github.com/aws/aws-sdk-go-v2/service/sso v1.28.1 h1:YfsU8hHGvVT+c6Q8MUs8haDbFQajAImrB7yZ9XnPcBY=
+github.com/aws/aws-sdk-go-v2/service/sso v1.28.1/go.mod h1:iS5OmxEcN4QIPXARGhavH7S8kETNL11kym6jhoS7IUQ=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.3 h1:BpOxT3yhLwSJ77qIY3DoHAQjZsc4HEGfMCE4NGy3uFg=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.3/go.mod h1:vq/GQR1gOFLquZMSrxUK/cpvKCNVYibNyJ1m7JrU88E=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.30.4 h1:OV/pxyXh+eMA0TExHEC4jyWdumLxNbzz1P0zJoezkJc=
@@ -118,6 +126,8 @@ github.com/aws/aws-sdk-go-v2/service/ssooidc v1.32.0 h1:ywQF2N4VjqX+Psw+jLjMmUL2
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.32.0/go.mod h1:Z+qv5Q6b7sWiclvbJyPSOT1BRVU9wfSUPaqQzZ1Xg3E=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0 h1:6csaS/aJmqZQbKhi1EyEMM7yBW653Wy/B9hnBofW+sw=
 github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.0/go.mod h1:59qHWaY5B+Rs7HGTuVGaC32m0rdpQ68N8QCN3khYiqs=
+github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.1 h1:b4REsk5C0hooowAPmV8fS2haHb+HCyb5FKSKOZRBBfU=
+github.com/aws/aws-sdk-go-v2/service/ssooidc v1.33.1/go.mod h1:59qHWaY5B+Rs7HGTuVGaC32m0rdpQ68N8QCN3khYiqs=
 github.com/aws/aws-sdk-go-v2/service/sts v1.34.0 h1:NFOJ/NXEGV4Rq//71Hs1jC/NvPs1ezajK+yQmkwnPV0=
 github.com/aws/aws-sdk-go-v2/service/sts v1.34.0/go.mod h1:7ph2tGpfQvwzgistp2+zga9f+bCjlQJPkPUmMgDSD7w=
 github.com/aws/aws-sdk-go-v2/service/sts v1.34.1 h1:aUrLQwJfZtwv3/ZNG2xRtEen+NqI3iesuacjP51Mv1s=
@@ -130,6 +140,8 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.36.0 h1:bRP/a9llXSSgDPk7Rqn5GD/DQCGo
 github.com/aws/aws-sdk-go-v2/service/sts v1.36.0/go.mod h1:tgBsFzxwl65BWkuJ/x2EUs59bD4SfYKgikvFDJi1S58=
 github.com/aws/aws-sdk-go-v2/service/sts v1.37.0 h1:MG9VFW43M4A8BYeAfaJJZWrroinxeTi2r3+SnmLQfSA=
 github.com/aws/aws-sdk-go-v2/service/sts v1.37.0/go.mod h1:JdeBDPgpJfuS6rU/hNglmOigKhyEZtBmbraLE4GK1J8=
+github.com/aws/aws-sdk-go-v2/service/sts v1.37.1 h1:ssCHKyNJqTnqRH4Vlf+jI0brtGQYBvzWwnATsOMk1mk=
+github.com/aws/aws-sdk-go-v2/service/sts v1.37.1/go.mod h1:JdeBDPgpJfuS6rU/hNglmOigKhyEZtBmbraLE4GK1J8=
 github.com/aws/smithy-go v1.22.4 h1:uqXzVZNuNexwc/xrh6Tb56u89WDlJY6HS+KC0S4QSjw=
 github.com/aws/smithy-go v1.22.4/go.mod h1:t1ufH5HMublsJYulve2RKmHDC15xu1f26kHCp/HgceI=
 github.com/aws/smithy-go v1.22.5 h1:P9ATCXPMb2mPjYBgueqJNCA5S9UfktsW0tTxi+a7eqw=
