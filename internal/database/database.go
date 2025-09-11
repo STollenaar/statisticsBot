@@ -1,9 +1,14 @@
 package database
 
 import (
+	"crypto/sha256"
 	"database/sql"
+	"embed"
+	"encoding/hex"
 	"fmt"
 	"log"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -19,6 +24,9 @@ var (
 	duckdbClient *sql.DB
 
 	CustomEmojiCache = make(map[string]string)
+
+	//go:embed changelog/*.sql
+	changeLogFiles embed.FS
 )
 
 // Define the request and response structures
@@ -59,73 +67,96 @@ func initDuckDB() {
 		log.Fatal(err)
 	}
 
-	// Create the messages table
+	// Ensure changelog table exists
 	_, err = duckdbClient.Exec(`
-		CREATE TABLE IF NOT EXISTS messages (
-			id VARCHAR,
-			guild_id VARCHAR,
-			channel_id VARCHAR,
-			author_id VARCHAR,
-			reply_message_id VARCHAR,
-			content VARCHAR,
-			date TIMESTAMP,
-			version INTEGER DEFAULT 1,
-    		PRIMARY KEY (id, version)
-		);
+	CREATE TABLE IF NOT EXISTS database_changelog (
+		id INTEGER PRIMARY KEY,
+		name VARCHAR NOT NULL,
+		applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		checksum VARCHAR,
+		success BOOLEAN DEFAULT TRUE
+	);
 	`)
+
 	if err != nil {
-		log.Fatalf("Failed to create message table: %v", err)
+		log.Fatalf("failed to create changelog table: %v", err)
 	}
 
-	// Create the reactions table
-	_, err = duckdbClient.Exec(`
-		CREATE TABLE IF NOT EXISTS reactions (
-			id VARCHAR,
-			guild_id VARCHAR,
-			channel_id VARCHAR,
-			author_id VARCHAR,
-			reaction VARCHAR,
-			date TIMESTAMP,
-			PRIMARY KEY (id, reaction, author_id)
-		);
-		CREATE INDEX IF NOT EXISTS idx_message_reactions ON reactions (id);
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create reactions table: %v", err)
+	if err := runMigrations(); err != nil {
+		log.Fatalf("migration failed: %v", err)
 	}
 
-	// Create guild emoji cache
-	_, err = duckdbClient.Exec(`
-		CREATE TABLE IF NOT EXISTS emojis (
-			id VARCHAR,
-			name VARCHAR,
-			guild_id VARCHAR,
-			image_data VARCHAR,
-			PRIMARY KEY (guild_id, id)
-		);
-	`)
+	log.Println("All migrations applied successfully.")
+}
+
+func runMigrations() error {
+	entries, err := changeLogFiles.ReadDir("changelog")
 	if err != nil {
-		log.Fatalf("Failed to create guild emoji table: %v", err)
+		return fmt.Errorf("failed to read embedded changelogs: %w", err)
 	}
 
-	// Create bot message cache
-	_, err = duckdbClient.Exec(`
-		CREATE TABLE IF NOT EXISTS bot_messages (
-			id VARCHAR,
-			guild_id VARCHAR,
-			channel_id VARCHAR,
-			author_id VARCHAR,
-			reply_message_id VARCHAR,
-			interaction_author_id VARCHAR,
-			content VARCHAR,
-			date TIMESTAMP,
-			version INTEGER DEFAULT 1,
-    		PRIMARY KEY (id, version)
-		);
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create bot messages table: %v", err)
+	var files []string
+	for _, entry := range entries {
+		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".sql") {
+			files = append(files, entry.Name())
+		}
 	}
+
+	sort.Strings(files)
+
+	for i, file := range files {
+		id := i + 1
+
+		contents, err := changeLogFiles.ReadFile(filepath.Join("changelog", file))
+		if err != nil {
+			return fmt.Errorf("failed to read %s: %w", file, err)
+		}
+
+		checksum := sha256.Sum256(contents)
+		checksumHex := hex.EncodeToString(checksum[:])
+
+		var appliedChecksum string
+		err = duckdbClient.QueryRow("SELECT checksum FROM database_changelog WHERE id = ?", id).Scan(&appliedChecksum)
+		if err == nil {
+			if appliedChecksum != checksumHex {
+				return fmt.Errorf("checksum mismatch for migration %s (id=%d). File has changed", file, id)
+			}
+			log.Printf("Skipping already applied migration %s", file)
+			continue
+		}
+
+		// Run changelogs in a transaction
+		tx, err := duckdbClient.Begin()
+		if err != nil {
+			return fmt.Errorf("failed to begin tx: %w", err)
+		}
+
+		_, err = tx.Exec(string(contents))
+		if err != nil {
+			_ = tx.Rollback()
+			_, _ = duckdbClient.Exec(`
+				INSERT INTO database_changelog (id, name, applied_at, checksum, success) VALUES (?, ?, ?, ?, false)
+			`, id, file, time.Now(), checksumHex)
+			return fmt.Errorf("failed to apply migration %s: %w", file, err)
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			return fmt.Errorf("failed to commit migration %s: %w", file, err)
+		}
+
+		_, err = duckdbClient.Exec(`
+			INSERT INTO database_changelog (id, name, applied_at, checksum, success)
+			VALUES (?, ?, ?, ?, true)
+		`, id, file, time.Now(), checksumHex)
+		if err != nil {
+			return fmt.Errorf("failed to record migration %s: %w", file, err)
+		}
+
+		log.Printf("Applied migration %s", file)
+	}
+
+	return nil
 }
 
 func loadCache() {
