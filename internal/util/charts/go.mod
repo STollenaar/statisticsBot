@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/go-echarts/go-echarts/v2 v2.6.2
+	github.com/go-echarts/go-echarts/v2 v2.6.3
 	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250710121330-eefca83bde47
 	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710121330-eefca83bde47
