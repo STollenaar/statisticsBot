@@ -4,32 +4,32 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/marcboeker/go-duckdb/v2 v2.4.0
+	github.com/marcboeker/go-duckdb/v2 v2.4.1
 	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710121330-eefca83bde47
 )
 
 require (
 	github.com/apache/arrow-go/v18 v18.4.1 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.39.0 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.31.8 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.18.12 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.7 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.39.2 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.31.12 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.18.16 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.9 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.9 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.29.3 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.38.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.9 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.65.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.29.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.1 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6 // indirect
 	github.com/aws/smithy-go v1.23.0 // indirect
-	github.com/duckdb/duckdb-go-bindings v0.1.19 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.19 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.19 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.19 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.19 // indirect
-	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.19 // indirect
+	github.com/duckdb/duckdb-go-bindings v0.1.20 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.20 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.20 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.20 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.20 // indirect
+	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.20 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/encoding/ini v0.1.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
@@ -40,8 +40,8 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/marcboeker/go-duckdb/arrowmapping v0.0.19 // indirect
-	github.com/marcboeker/go-duckdb/mapping v0.0.19 // indirect
+	github.com/marcboeker/go-duckdb/arrowmapping v0.0.20 // indirect
+	github.com/marcboeker/go-duckdb/mapping v0.0.20 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect
