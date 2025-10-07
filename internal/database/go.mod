@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/marcboeker/go-duckdb/v2 v2.4.1
+	github.com/marcboeker/go-duckdb/v2 v2.4.2
 	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710121330-eefca83bde47
 )
 
@@ -24,12 +24,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.6 // indirect
 	github.com/aws/smithy-go v1.23.0 // indirect
-	github.com/duckdb/duckdb-go-bindings v0.1.20 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.20 // indirect
-	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.20 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.20 // indirect
-	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.20 // indirect
-	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.20 // indirect
+	github.com/duckdb/duckdb-go-bindings v0.1.21 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.21 // indirect
+	github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.21 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.21 // indirect
+	github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.21 // indirect
+	github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.21 // indirect
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/go-viper/encoding/ini v0.1.1 // indirect
 	github.com/go-viper/mapstructure/v2 v2.4.0 // indirect
@@ -40,8 +40,8 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/marcboeker/go-duckdb/arrowmapping v0.0.20 // indirect
-	github.com/marcboeker/go-duckdb/mapping v0.0.20 // indirect
+	github.com/marcboeker/go-duckdb/arrowmapping v0.0.21 // indirect
+	github.com/marcboeker/go-duckdb/mapping v0.0.21 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/sagikazarmark/locafero v0.9.0 // indirect

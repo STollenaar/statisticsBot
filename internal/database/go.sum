@@ -68,6 +68,8 @@ github.com/duckdb/duckdb-go-bindings v0.1.19 h1:t8fwgKlr/5BEa5TJzvo3Vdr3yAgoYiR7
 github.com/duckdb/duckdb-go-bindings v0.1.19/go.mod h1:pBnfviMzANT/9hi4bg+zW4ykRZZPCXlVuvBWEcZofkc=
 github.com/duckdb/duckdb-go-bindings v0.1.20 h1:k9TOW6/oMSrGG+j7TVbi2CeTBuN0BEYFZ9IgI9zKXFE=
 github.com/duckdb/duckdb-go-bindings v0.1.20/go.mod h1:pBnfviMzANT/9hi4bg+zW4ykRZZPCXlVuvBWEcZofkc=
+github.com/duckdb/duckdb-go-bindings v0.1.21 h1:bOb/MXNT4PN5JBZ7wpNg6hrj9+cuDjWDa4ee9UdbVyI=
+github.com/duckdb/duckdb-go-bindings v0.1.21/go.mod h1:pBnfviMzANT/9hi4bg+zW4ykRZZPCXlVuvBWEcZofkc=
 github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.12 h1:8CLBnsq9YDhi2Gmt3sjSUeXxMzyMQAKefjqUy9zVPFk=
 github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.12/go.mod h1:Ezo7IbAfB8NP7CqPIN8XEHKUg5xdRRQhcPPlCXImXYA=
 github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.18 h1:51xrix3GnfQpQ4yZRBie1hoJOFJ2GHE8ElvIzfAVkJ0=
@@ -76,6 +78,8 @@ github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.19 h1:CdNZfRcFUFxI4Q+1Tu4
 github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.19/go.mod h1:Ezo7IbAfB8NP7CqPIN8XEHKUg5xdRRQhcPPlCXImXYA=
 github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.20 h1:4q5OfbXLoJZ2lbb74ttohBj8Lhz8CbyqVSCTH907VhI=
 github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.20/go.mod h1:Ezo7IbAfB8NP7CqPIN8XEHKUg5xdRRQhcPPlCXImXYA=
+github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.21 h1:Sjjhf2F/zCjPF53c2VXOSKk0PzieMriSoyr5wfvr9d8=
+github.com/duckdb/duckdb-go-bindings/darwin-amd64 v0.1.21/go.mod h1:Ezo7IbAfB8NP7CqPIN8XEHKUg5xdRRQhcPPlCXImXYA=
 github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.12 h1:wjO4I0GhMh2xIpiUgRpzuyOT4KxXLoUS/rjU7UUVvCE=
 github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.12/go.mod h1:eS7m/mLnPQgVF4za1+xTyorKRBuK0/BA44Oy6DgrGXI=
 github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.18 h1:Eu6G6rZws+TL7MXlE0ujPoJJ5y6UgDeFpEDywp9GepY=
@@ -84,6 +88,8 @@ github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.19 h1:mVijr3WFz3TXZLtAm5H
 github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.19/go.mod h1:eS7m/mLnPQgVF4za1+xTyorKRBuK0/BA44Oy6DgrGXI=
 github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.20 h1:Wb6Um5ocqcXQCL4bZ1263jUnPeVgjeR/s3JvUBKwaN0=
 github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.20/go.mod h1:eS7m/mLnPQgVF4za1+xTyorKRBuK0/BA44Oy6DgrGXI=
+github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.21 h1:IUk0FFUB6dpWLhlN9hY1mmdPX7Hkn3QpyrAmn8pmS8g=
+github.com/duckdb/duckdb-go-bindings/darwin-arm64 v0.1.21/go.mod h1:eS7m/mLnPQgVF4za1+xTyorKRBuK0/BA44Oy6DgrGXI=
 github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.12 h1:HzKQi2C+1jzmwANsPuYH6x9Sfw62SQTjNAEq3OySKFI=
 github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.12/go.mod h1:1GOuk1PixiESxLaCGFhag+oFi7aP+9W8byymRAvunBk=
 github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.18 h1:jiQ1MlPd6CUULA6R5EHE3hQGkruFzc1psJobba/V+Z0=
@@ -92,6 +98,8 @@ github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.19 h1:jhchUY24T5bQLOwGyK0B
 github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.19/go.mod h1:1GOuk1PixiESxLaCGFhag+oFi7aP+9W8byymRAvunBk=
 github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.20 h1:U8osykHQE1CWhJO+cZpQW4GSy2++gUgWEJ9UD1phEc0=
 github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.20/go.mod h1:1GOuk1PixiESxLaCGFhag+oFi7aP+9W8byymRAvunBk=
+github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.21 h1:Qpc7ZE3n6Nwz30KTvaAwI6nGkXjXmMxBTdFpC8zDEYI=
+github.com/duckdb/duckdb-go-bindings/linux-amd64 v0.1.21/go.mod h1:1GOuk1PixiESxLaCGFhag+oFi7aP+9W8byymRAvunBk=
 github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.12 h1:YGSR7AFLw2gJ7IbgLE6DkKYmgKv1LaRSd/ZKF1yh2oE=
 github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.12/go.mod h1:o7crKMpT2eOIi5/FY6HPqaXcvieeLSqdXXaXbruGX7w=
 github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.18 h1:DWOTyzG9Li7Rq6N0rEW6nGdmwaQZfkevTUN19oXe0Dk=
@@ -100,6 +108,8 @@ github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.19 h1:CFcH+Bze2OgTaTLM94P3
 github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.19/go.mod h1:o7crKMpT2eOIi5/FY6HPqaXcvieeLSqdXXaXbruGX7w=
 github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.20 h1:SahHKRsqg3Nr5vCyXosbN1gtv26jw4JJUGShNJI3T/I=
 github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.20/go.mod h1:o7crKMpT2eOIi5/FY6HPqaXcvieeLSqdXXaXbruGX7w=
+github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.21 h1:eX2DhobAZOgjXkh8lPnKAyrxj8gXd2nm+K71f6KV/mo=
+github.com/duckdb/duckdb-go-bindings/linux-arm64 v0.1.21/go.mod h1:o7crKMpT2eOIi5/FY6HPqaXcvieeLSqdXXaXbruGX7w=
 github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.12 h1:2aduW6fnFnT2Q45PlIgHbatsPOxV9WSZ5B2HzFfxaxA=
 github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.12/go.mod h1:IlOhJdVKUJCAPj3QsDszUo8DVdvp1nBFp4TUJVdw99s=
 github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.18 h1:guNDushfSIrPfcmFe30UCG9QfQAPLCkj8hybkD/yYFg=
@@ -108,6 +118,8 @@ github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.19 h1:x/8t04sgCVU8JL0XLU
 github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.19/go.mod h1:IlOhJdVKUJCAPj3QsDszUo8DVdvp1nBFp4TUJVdw99s=
 github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.20 h1:0IJWGjcRYAX7aSNtIytGsR+X9C3MUGuku1KkV4cif3g=
 github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.20/go.mod h1:IlOhJdVKUJCAPj3QsDszUo8DVdvp1nBFp4TUJVdw99s=
+github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.21 h1:hhziFnGV7mpA+v5J5G2JnYQ+UWCCP3NQ+OTvxFX10D8=
+github.com/duckdb/duckdb-go-bindings/windows-amd64 v0.1.21/go.mod h1:IlOhJdVKUJCAPj3QsDszUo8DVdvp1nBFp4TUJVdw99s=
 github.com/frankban/quicktest v1.14.6 h1:7Xjx+VpznH+oBnejlPUj8oUpdxnVs4f8XU8WnHkI4W8=
 github.com/frankban/quicktest v1.14.6/go.mod h1:4ptaffx2x8+WTWXmUCuVU6aPUX1/Mz7zb5vbUoiM6w0=
 github.com/fsnotify/fsnotify v1.9.0 h1:2Ml+OJNzbYCTzsxtv8vKSFD9PbJjmhYF14k/jKC7S9k=
@@ -153,6 +165,8 @@ github.com/marcboeker/go-duckdb/arrowmapping v0.0.19 h1:kMxJBauR2+jwRoSFjiL/DysQ
 github.com/marcboeker/go-duckdb/arrowmapping v0.0.19/go.mod h1:19JWoch6I++gIrWUz1MLImIoFGri9yL54JaWn/Ujvbo=
 github.com/marcboeker/go-duckdb/arrowmapping v0.0.20 h1:VJ3wcHr1rFC/XgCQ2FpS/aHim4dnFrhlXq9ahBgE1es=
 github.com/marcboeker/go-duckdb/arrowmapping v0.0.20/go.mod h1:I/7TU+sG5WePL3yASm1MA7A6qDQM9PjcRFrSenelTeg=
+github.com/marcboeker/go-duckdb/arrowmapping v0.0.21 h1:geHnVjlsAJGczSWEqYigy/7ARuD+eBtjd0kLN80SPJQ=
+github.com/marcboeker/go-duckdb/arrowmapping v0.0.21/go.mod h1:flFTc9MSqQCh2Xm62RYvG3Kyj29h7OtsTb6zUx1CdK8=
 github.com/marcboeker/go-duckdb/mapping v0.0.11 h1:fusN1b1l7Myxafifp596I6dNLNhN5Uv/rw31qAqBwqw=
 github.com/marcboeker/go-duckdb/mapping v0.0.11/go.mod h1:aYBjFLgfKO0aJIbDtXPiaL5/avRQISveX/j9tMf9JhU=
 github.com/marcboeker/go-duckdb/mapping v0.0.18 h1:Qy5R9ptHMbA4AhN0eBqCtakhAyZ7oOBYjKTAgYJVbaE=
@@ -161,6 +175,8 @@ github.com/marcboeker/go-duckdb/mapping v0.0.19 h1:xZ7LCyFZZm/4X631lOZY74p3QHINM
 github.com/marcboeker/go-duckdb/mapping v0.0.19/go.mod h1:Kz9xYOkhhkgCaGgAg34ciKaks9ED2V7BzHzG6dnVo/o=
 github.com/marcboeker/go-duckdb/mapping v0.0.20 h1:USRyGoWOGEBS1owldvBvHw5/t+Sgb+d/QHWs6/56I1A=
 github.com/marcboeker/go-duckdb/mapping v0.0.20/go.mod h1:NrLL1bOu0XMiaUs1CGiB9z7/HAO8+LPgoK1KmWYGeyk=
+github.com/marcboeker/go-duckdb/mapping v0.0.21 h1:6woNXZn8EfYdc9Vbv0qR6acnt0TM1s1eFqnrJZVrqEs=
+github.com/marcboeker/go-duckdb/mapping v0.0.21/go.mod h1:q3smhpLyv2yfgkQd7gGHMd+H/Z905y+WYIUjrl29vT4=
 github.com/marcboeker/go-duckdb/v2 v2.3.6 h1:JRZUqdV0xXpkKdwukDqTMiNmVqJVaYmV2PWIe3TmOIw=
 github.com/marcboeker/go-duckdb/v2 v2.3.6/go.mod h1:8adNrftF4Ye29XMrpIl5NYNosTVsZu1mz3C82WdVvrk=
 github.com/marcboeker/go-duckdb/v2 v2.3.8 h1:a0Gu9iw3+vEqy/DCmGEXuZ9jaTC/h+2TDydKZ797jEI=
@@ -169,6 +185,8 @@ github.com/marcboeker/go-duckdb/v2 v2.4.0 h1:XztCDzB0fYvokiVer1myuFX4QvOdnicdTPR
 github.com/marcboeker/go-duckdb/v2 v2.4.0/go.mod h1:qpTBjqtTS5+cfD3o2Sl/W70cmxKj6zhjtvVxs1Wuy7k=
 github.com/marcboeker/go-duckdb/v2 v2.4.1 h1:bAigWyKFi5d7dm7aKXC2+/YWrdUqrzWJl7Hm8lOdzak=
 github.com/marcboeker/go-duckdb/v2 v2.4.1/go.mod h1:KeKr7Vcf6ioXU1ThoiOEPR8X+eRloI8/jMfzLpfVFpI=
+github.com/marcboeker/go-duckdb/v2 v2.4.2 h1:k/Q5ERaZMaDcW75A/W6m1ftj/z/b4c0Kb7dij2c/f1Y=
+github.com/marcboeker/go-duckdb/v2 v2.4.2/go.mod h1:8o739THmpsSJmW4w/VUhisZbiusd9iTU3pt/xafpB7A=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 h1:AMFGa4R4MiIpspGNG7Z948v4n35fFGB3RR3G/ry4FWs=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8/go.mod h1:mC1jAcsrzbxHt8iiaC+zU4b1ylILSosueou12R++wfY=
 github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 h1:+n/aFZefKZp7spd8DFdX7uMikMLXX4oubIzJF4kv/wI=
