@@ -62,6 +62,8 @@ github.com/go-echarts/go-echarts/v2 v2.6.2 h1:IDZHYbPOBhx3t/vewppVXtvSWkcpAieEXB
 github.com/go-echarts/go-echarts/v2 v2.6.2/go.mod h1:Z+spPygZRIEyqod69r0WMnkN5RV3MwhYDtw601w3G8w=
 github.com/go-echarts/go-echarts/v2 v2.6.3 h1:3bfcPIGzzyGe1s4fJECN0KO3F8VNYLFesRgV6iZWcHY=
 github.com/go-echarts/go-echarts/v2 v2.6.3/go.mod h1:Z+spPygZRIEyqod69r0WMnkN5RV3MwhYDtw601w3G8w=
+github.com/go-echarts/go-echarts/v2 v2.6.4 h1:PC10E2DxxmMwihgwDRz7BmCt+c0cLMa9x8x0vkNDmpI=
+github.com/go-echarts/go-echarts/v2 v2.6.4/go.mod h1:Z+spPygZRIEyqod69r0WMnkN5RV3MwhYDtw601w3G8w=
 github.com/go-echarts/snapshot-chromedp v0.0.5 h1:5I6/DjY86X8izeAup6auddLXJjxxeuAuuUAOewCi5vg=
 github.com/go-echarts/snapshot-chromedp v0.0.5/go.mod h1:E7ugvjSUoFjFi2CpACHK79QxH/R7HCuoqV8UC54LhrI=
 github.com/go-json-experiment/json v0.0.0-20250417205406-170dfdcf87d1 h1:+VexzzkMLb1tnvpuQdGT/DicIRW7MN8ozsXqBMgp0Hk=
