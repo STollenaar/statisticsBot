@@ -187,6 +187,8 @@ github.com/marcboeker/go-duckdb/v2 v2.4.1 h1:bAigWyKFi5d7dm7aKXC2+/YWrdUqrzWJl7H
 github.com/marcboeker/go-duckdb/v2 v2.4.1/go.mod h1:KeKr7Vcf6ioXU1ThoiOEPR8X+eRloI8/jMfzLpfVFpI=
 github.com/marcboeker/go-duckdb/v2 v2.4.2 h1:k/Q5ERaZMaDcW75A/W6m1ftj/z/b4c0Kb7dij2c/f1Y=
 github.com/marcboeker/go-duckdb/v2 v2.4.2/go.mod h1:8o739THmpsSJmW4w/VUhisZbiusd9iTU3pt/xafpB7A=
+github.com/marcboeker/go-duckdb/v2 v2.4.3 h1:bHUkphPsAp2Bh/VFEdiprGpUekxBNZiWWtK+Bv/ljRk=
+github.com/marcboeker/go-duckdb/v2 v2.4.3/go.mod h1:taim9Hktg2igHdNBmg5vgTfHAlV26z3gBI0QXQOcuyI=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 h1:AMFGa4R4MiIpspGNG7Z948v4n35fFGB3RR3G/ry4FWs=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8/go.mod h1:mC1jAcsrzbxHt8iiaC+zU4b1ylILSosueou12R++wfY=
 github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 h1:+n/aFZefKZp7spd8DFdX7uMikMLXX4oubIzJF4kv/wI=
