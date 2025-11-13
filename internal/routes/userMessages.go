@@ -26,18 +26,23 @@ func addGetUserMessages(r *gin.Engine) {
 
 func handleGetUserMessages(c *gin.Context) {
 
-	var json struct {
-		Value util.SQSObject
-	}
+	var json util.SQSObject
 
-	if c.Bind(&json) == nil {
-		switch json.Value.Type {
+	if c.BindJSON(&json) == nil {
+		switch json.Type {
 		case "user":
-			resp := handleUserObject(json.Value)
+			resp := handleUserObject(json)
 			c.JSON(http.StatusOK, resp)
+		case "message":
+			resp, err := handleMessageObject(json)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			} else {
+				c.JSON(http.StatusOK, resp)
+			}
 		default:
-			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", json.Value)
-			c.JSON(http.StatusBadRequest, gin.H{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", json.Value)})
+			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", json)
+			c.JSON(http.StatusBadRequest, gin.H{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", json)})
 		}
 	} else {
 		c.JSON(http.StatusBadRequest, gin.H{"status": "bad request"})
@@ -105,4 +110,8 @@ func filterNonTexts(messages []string) (result []string) {
 		}
 	}
 	return result
+}
+
+func handleMessageObject(sqsObject util.SQSObject) ([]util.MessageObject, error) {
+	return database.GetMessageBlock(sqsObject.Command)
 }

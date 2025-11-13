@@ -600,3 +600,78 @@ func CountFilterOccurences(filter, word string, params []interface{}) (messageOb
 	}
 	return
 }
+
+func GetMessageBlock(messageID string) ([]util.MessageObject, error) {
+	query := `
+		WITH RECURSIVE latest AS (
+			SELECT *
+			FROM messages
+			QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY version DESC) = 1
+		),
+		-- walk upward: start from given message, follow reply_message_id to parents
+		reply_chain AS (
+			SELECT *
+			FROM latest
+			WHERE id = ?
+
+			UNION ALL
+
+			SELECT parent.*
+			FROM latest parent
+			JOIN reply_chain child ON child.reply_message_id = parent.id
+		),
+		-- pick the earliest message in the upward chain as root
+		root AS (
+			SELECT * FROM reply_chain ORDER BY date LIMIT 1
+		),
+		-- walk downward from root to get entire subtree of replies
+		full_chain AS (
+			SELECT r.*
+			FROM root r
+
+			UNION ALL
+
+			SELECT child.*
+			FROM latest child
+			JOIN full_chain parent ON child.reply_message_id = parent.id
+		),
+		window_bounds AS (
+			SELECT MIN(date) AS min_date, MAX(date) AS max_date
+			FROM full_chain
+		),
+		context_messages AS (
+			SELECT *
+			FROM latest
+			WHERE channel_id = (SELECT channel_id FROM latest WHERE id = ?)
+			AND date BETWEEN
+					(SELECT min_date - INTERVAL 5 MINUTE FROM window_bounds)
+				AND (SELECT max_date + INTERVAL 5 MINUTE FROM window_bounds)
+		)
+		SELECT id, guild_id, channel_id, author_id, reply_message_id,
+			content, date, version
+		FROM context_messages
+		ORDER BY date;
+	`
+	rows, err := duckdbClient.Query(query, messageID, messageID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var result []util.MessageObject
+
+	for rows.Next() {
+		var m util.MessageObject
+		err := rows.Scan(
+			&m.MessageID, &m.GuildID, &m.ChannelID, &m.Author, &m.ReplyMessageID,
+			&m.Content, &m.Date, &m.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, m)
+	}
+
+	return result, nil
+}

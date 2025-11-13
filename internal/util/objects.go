@@ -1,6 +1,9 @@
 package util
 
-import "time"
+import (
+	"database/sql"
+	"time"
+)
 
 // CountGrouped Basic count group for the max command
 type CountGrouped struct {
@@ -10,12 +13,14 @@ type CountGrouped struct {
 
 // MessageObject general messageobject for functions
 type MessageObject struct {
-	GuildID   string    `milvus:"name:guild_id" json:"guild_id"`
-	ChannelID string    `milvus:"name:channel_id" json:"channel_id"`
-	MessageID string    `milvus:"name:id" json:"id"`
-	Author    string    `milvus:"name:author_id" json:"author_id"`
-	Content   string    `milvus:"name:content" json:"content"`
-	Date      time.Time `milvus:"name:date" json:"date"`
+	GuildID        string         `milvus:"name:guild_id" json:"guild_id"`
+	ChannelID      string         `milvus:"name:channel_id" json:"channel_id"`
+	MessageID      string         `milvus:"name:id" json:"id"`
+	Author         string         `milvus:"name:author_id" json:"author_id"`
+	Content        string         `milvus:"name:content" json:"content"`
+	ReplyMessageID sql.NullString `json:"reply_message_id"`
+	Date           time.Time      `milvus:"name:date" json:"date"`
+	Version        int            `json:"version"`
 }
 
 type WordCounted struct {
@@ -48,8 +53,8 @@ type OllamaGenerateResponse struct {
 }
 
 type OllamaGenerateRequest struct {
-	Model  string `json:"model"`
-	Prompt string `json:"prompt"`
+	Model  string                 `json:"model"`
+	Prompt string                 `json:"prompt"`
 	Format map[string]interface{} `json:"format"`
-	Stream bool   `json:"stream"`
+	Stream bool                   `json:"stream"`
 }
