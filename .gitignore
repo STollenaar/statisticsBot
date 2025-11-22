@@ -13,3 +13,4 @@ cmd/statisticsbot/__debug_*
 __pycache__/
 venv/
 tools/charts/chart.html
+vendor/

@@ -1,19 +1,23 @@
 module github.com/stollenaar/statisticsbot
 
-go 1.24.1
+go 1.25.0
 
 require (
+	github.com/aws/aws-sdk-go-v2 v1.39.0
+	github.com/aws/aws-sdk-go-v2/config v1.31.8
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/stollenaar/statisticsbot/internal/commands v0.0.0-20250710121330-eefca83bde47
-	github.com/stollenaar/statisticsbot/internal/database v0.0.0-20250710121330-eefca83bde47
-	github.com/stollenaar/statisticsbot/internal/routes v0.0.0-20250710121330-eefca83bde47
-	github.com/stollenaar/statisticsbot/internal/util v0.0.0-20250710121330-eefca83bde47
+	github.com/gin-gonic/gin v1.10.1
+	github.com/go-echarts/go-echarts/v2 v2.6.2
+	github.com/go-echarts/snapshot-chromedp v0.0.5
+	github.com/joho/godotenv v1.5.1
+	github.com/marcboeker/go-duckdb/v2 v2.3.6
+	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c
+	golang.org/x/text v0.29.0
 )
 
 require (
 	github.com/apache/arrow-go/v18 v18.4.0 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.39.0 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.31.8 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.12 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.7 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.7 // indirect
@@ -21,7 +25,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.64.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.29.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.34.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.38.4 // indirect
@@ -41,9 +44,6 @@ require (
 	github.com/fsnotify/fsnotify v1.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.9 // indirect
 	github.com/gin-contrib/sse v1.1.0 // indirect
-	github.com/gin-gonic/gin v1.10.1 // indirect
-	github.com/go-echarts/go-echarts/v2 v2.6.2 // indirect
-	github.com/go-echarts/snapshot-chromedp v0.0.5 // indirect
 	github.com/go-json-experiment/json v0.0.0-20250417205406-170dfdcf87d1 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
@@ -57,14 +57,12 @@ require (
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/cpuid/v2 v2.2.11 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/marcboeker/go-duckdb/arrowmapping v0.0.10 // indirect
 	github.com/marcboeker/go-duckdb/mapping v0.0.11 // indirect
-	github.com/marcboeker/go-duckdb/v2 v2.3.6 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
@@ -76,14 +74,6 @@ require (
 	github.com/spf13/cast v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/spf13/viper v1.20.1 // indirect
-	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand v0.0.0-20250710121330-eefca83bde47 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand v0.0.0-20250710121330-eefca83bde47 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand v0.0.0-20250710121330-eefca83bde47 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand v0.0.0-20250710121330-eefca83bde47 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/plotcommand v0.0.0-20250710121330-eefca83bde47 // indirect
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand v0.0.0-20250710121330-eefca83bde47 // indirect
-	github.com/stollenaar/statisticsbot/internal/util/charts v0.0.0-20250710121330-eefca83bde47 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
@@ -96,24 +86,9 @@ require (
 	golang.org/x/net v0.43.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
 	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-)
-
-replace (
-	github.com/stollenaar/statisticsbot/internal/commands => ../../internal/commands
-	github.com/stollenaar/statisticsbot/internal/commands/countcommand => ../../internal/commands/countcommand
-	github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand => ../../internal/commands/lastmessagecommand
-	github.com/stollenaar/statisticsbot/internal/commands/maxcommand => ../../internal/commands/maxcommand
-	github.com/stollenaar/statisticsbot/internal/commands/moodcommand => ../../internal/commands/moodcommand
-	github.com/stollenaar/statisticsbot/internal/commands/plotcommand => ../../internal/commands/plotcommand
-	github.com/stollenaar/statisticsbot/internal/commands/summarizecommand => ../../internal/commands/summarizecommand
-	github.com/stollenaar/statisticsbot/internal/database => ../../internal/database
-	github.com/stollenaar/statisticsbot/internal/routes => ../../internal/routes
-	github.com/stollenaar/statisticsbot/internal/util => ../../internal/util
-	github.com/stollenaar/statisticsbot/internal/util/charts => ../../internal/util/charts
 )
