@@ -3,10 +3,14 @@ package plotcommand
 import (
 	"fmt"
 	"log"
+	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/util"
 	"github.com/stollenaar/statisticsbot/internal/util/charts"
 )
@@ -28,22 +32,20 @@ type PlotCommand struct {
 type CommandParsed struct {
 }
 
-func (p PlotCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	if interaction.Type == discordgo.InteractionType(discordgo.InteractionApplicationCommand) {
-		p.interactionHandler(bot, interaction)
-	} else {
-		p.embedHandler(bot, interaction)
+func (p PlotCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
+	if event.Data.Type() == discord.ApplicationCommandTypeSlash {
+		p.interactionHandler(event)
 	}
 }
 
-func (p PlotCommand) ModalHandler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (p PlotCommand) ModalHandler(event *events.ModalSubmitInteractionCreate) {
 
-	chartTracker := cache[interaction.Interaction.Message.Interaction.ID]
-	submittedData := extractModalSubmitData(interaction.ModalSubmitData().Components)
+	chartTracker := cache[event.Message.Interaction.ID.String()]
+	submittedData := extractModalSubmitData(event.ModalSubmitInteraction.Data.Components)
 	errorCode := 0xff3300
-	errors := make(map[string][]discordgo.MessageComponent)
-	errContainer := discordgo.Container{
-		AccentColor: &errorCode,
+	errors := make(map[string][]discord.LayoutComponent)
+	errContainer := discord.ContainerComponent{
+		AccentColor: errorCode,
 	}
 	beforeStart, beforeEnd := chartTracker.CustomDateRange.Start, chartTracker.CustomDateRange.End
 
@@ -51,7 +53,7 @@ func (p PlotCommand) ModalHandler(bot *discordgo.Session, interaction *discordgo
 		chartTracker.CustomDateRange.Start = &start
 	} else {
 		errContainer.Components = append(errContainer.Components,
-			discordgo.TextDisplay{
+			discord.TextDisplayComponent{
 				Content: fmt.Sprintf("Error setting start date: %s", err),
 			},
 		)
@@ -61,75 +63,72 @@ func (p PlotCommand) ModalHandler(bot *discordgo.Session, interaction *discordgo
 		chartTracker.CustomDateRange.End = &end
 	} else {
 		errContainer.Components = append(errContainer.Components,
-			discordgo.TextDisplay{
+			discord.TextDisplayComponent{
 				Content: fmt.Sprintf("Error setting end date: %s", err),
 			},
 		)
 	}
 	if chartTracker.CustomDateRange.Start != nil && chartTracker.CustomDateRange.End != nil && chartTracker.CustomDateRange.Start.After(*chartTracker.CustomDateRange.End) {
 		errContainer.Components = append(errContainer.Components,
-			discordgo.TextDisplay{
+			discord.TextDisplayComponent{
 				Content: "Error setting start and end date. Start date cannot be after end",
 			},
 		)
 		chartTracker.CustomDateRange.End = beforeEnd
 		chartTracker.CustomDateRange.Start = beforeStart
 	}
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredMessageUpdate,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Loading...",
-		},
-	})
+	event.DeferCreateMessage(util.ConfigFile.SetEphemeral() == discord.MessageFlagEphemeral)
+
 	if len(errContainer.Components) > 0 {
 		errors["custom_date"] = append(errors["custom_date"], errContainer)
 	}
-	p.displayPlotSelection(bot, interaction, chartTracker, errors)
+	p.displayPlotSelection(event.GenericEvent, event.Token(), chartTracker, errors)
 }
 
-func (p PlotCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{}
+func (p PlotCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
+	return []discord.ApplicationCommandOption{}
 }
 func (p PlotCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
 	// parsedArguments := new(CommandParsed)
 	return nil
 }
 
-func (p PlotCommand) interactionHandler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
+func (p PlotCommand) interactionHandler(event *events.ApplicationCommandInteractionCreate) {
 	chartTracker := &charts.ChartTracker{
-		GuildID:       interaction.GuildID,
-		InteractionID: interaction.Interaction.ID,
-		UserID:        interaction.Member.User.ID,
+		GuildID:       event.GuildID().String(),
+		InteractionID: event.ID().String(),
+		UserID:        event.User().ID.String(),
 	}
 	cache[chartTracker.InteractionID] = chartTracker
 
-	title := discordgo.TextDisplay{
+	title := discord.TextDisplayComponent{
 		Content: "# Create a Chart\n Select the chart type, users to include, and provide a date range.",
 	}
-	components := []discordgo.MessageComponent{
+	components := []discord.LayoutComponent{
 		title,
 		util.GetSeparator(),
 	}
-	components = append(components, chartTracker.BuildComponents(make(map[string][]discordgo.MessageComponent))...)
-	err := bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Flags:      discordgo.MessageFlagsEphemeral | discordgo.MessageFlagsIsComponentsV2,
-			CustomID:   "plot_modal",
-			Title:      "Plotting modal form",
-			Components: components,
-		},
+	components = append(components, chartTracker.BuildComponents(make(map[string][]discord.LayoutComponent))...)
+
+	err := event.CreateMessage(discord.MessageCreate{
+		Flags: discord.MessageFlagEphemeral | discord.MessageFlagIsComponentsV2,
+		// CustomID:   "plot_modal",
+		// Title:      "Plotting modal form",
+		Components: components,
 	})
+	if err != nil {
+		slog.Error("Error editing the response:", slog.Any("err", err))
+	}
 	if err != nil {
 		log.Println(err)
 	}
 }
 
-func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	cID := strings.Split(interaction.Interaction.MessageComponentData().CustomID, ";")
-	chartTracker := cache[interaction.Interaction.Message.Interaction.ID]
+func (p PlotCommand) ComponentHandler(event *events.ComponentInteractionCreate) {
 
-	fmt.Println(cID[0])
+	cID := strings.Split(event.ComponentInteraction.Data.CustomID(), ";")
+	chartTracker := cache[event.Message.Interaction.ID.String()]
+
 	if cID[0] == "custom_date_range" {
 		var startDate, endDate string
 		if chartTracker.CustomDateRange.Start != nil {
@@ -139,39 +138,36 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 			endDate = chartTracker.CustomDateRange.End.Format("2006-01-02")
 		}
 
-		err := bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseModal,
-			Data: &discordgo.InteractionResponseData{
-				CustomID: "custom_date",
-				Title:    "Submit Custom Start and End Date",
-				Components: []discordgo.MessageComponent{
-					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{
-							discordgo.TextInput{
-								CustomID:    "start_date",
-								Label:       "Start Date (YYYY-MM-DD)",
-								Style:       discordgo.TextInputParagraph,
-								Placeholder: "e.g., 2024-01-01",
-								Value:       startDate,
-								Required:    true,
-								MinLength:   10,
-								MaxLength:   10,
-							},
+		err := event.Modal(discord.ModalCreate{
+			CustomID: "custom_date",
+			Title:    "Submit Custom Start and End Date",
+			Components: []discord.LayoutComponent{
+				discord.ActionRowComponent{
+					Components: []discord.InteractiveComponent{
+						discord.TextInputComponent{
+							CustomID: "start_date",
+							// Label:       "Start Date (YYYY-MM-DD)",
+							Style:       discord.TextInputStyleParagraph,
+							Placeholder: "e.g., 2024-01-01",
+							Value:       startDate,
+							Required:    true,
+							MinLength:   util.Pointer(10),
+							MaxLength:   10,
 						},
 					},
-					// 4. End Date Input
-					discordgo.ActionsRow{
-						Components: []discordgo.MessageComponent{
-							discordgo.TextInput{
-								CustomID:    "end_date",
-								Label:       "End Date (YYYY-MM-DD)",
-								Style:       discordgo.TextInputParagraph,
-								Placeholder: "e.g., 2024-12-31",
-								Value:       endDate,
-								Required:    true,
-								MinLength:   10,
-								MaxLength:   10,
-							},
+				},
+				// 4. End Date Input
+				discord.ActionRowComponent{
+					Components: []discord.InteractiveComponent{
+						discord.TextInputComponent{
+							CustomID: "end_date",
+							// Label:       "End Date (YYYY-MM-DD)",
+							Style:       discord.TextInputStyleParagraph,
+							Placeholder: "e.g., 2024-12-31",
+							Value:       endDate,
+							Required:    true,
+							MinLength:   util.Pointer(10),
+							MaxLength:   10,
 						},
 					},
 				},
@@ -181,84 +177,74 @@ func (p PlotCommand) embedHandler(bot *discordgo.Session, interaction *discordgo
 			fmt.Println(err)
 		}
 	} else if cID[0] != "submit_chart_form" {
-		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseDeferredMessageUpdate,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Loading...",
-			},
-		})
+		event.DeferUpdateMessage()
 
 		switch cID[0] {
 		case "chart_type":
-			chartTracker.ChartType = charts.GetChartType(interaction.Interaction.MessageComponentData().Values[0])
+			chartTracker.ChartType = charts.GetChartType(event.StringSelectMenuInteractionData().Values[0])
 		case "metric_type":
-			chartTracker.Metric = charts.GetMetricType(interaction.Interaction.MessageComponentData().Values[0])
+			chartTracker.Metric = charts.GetMetricType(event.StringSelectMenuInteractionData().Values[0])
 		case "user_select":
-			chartTracker.Users = interaction.Interaction.MessageComponentData().Values
+			chartTracker.Users = toString(event.UserSelectMenuInteractionData().Values)
 		case "channel_select":
-			chartTracker.Channels = interaction.Interaction.MessageComponentData().Values
+			chartTracker.Channels = toString(event.ChannelSelectMenuInteractionData().Values)
 		case "date_range_select":
-			chartTracker.DateRange = interaction.Interaction.MessageComponentData().Values[0]
+			chartTracker.DateRange = event.StringSelectMenuInteractionData().Values[0]
 		case "group_by":
-			chartTracker.GroupBy = charts.GetMetricType(interaction.Interaction.MessageComponentData().Values[0])
+			chartTracker.GroupBy = charts.GetMetricType(event.StringSelectMenuInteractionData().Values[0])
 		}
 
-		p.displayPlotSelection(bot, interaction, chartTracker, make(map[string][]discordgo.MessageComponent))
+		p.displayPlotSelection(event.GenericEvent, event.Token(), chartTracker, make(map[string][]discord.LayoutComponent))
 	} else if !chartTracker.CanGenerate() {
-		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseDeferredMessageUpdate,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Loading...",
-			},
-		})
-
+		event.DeferUpdateMessage()
 		e := "Not all required options have been selected"
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err := event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &e,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 	} else {
-		bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseDeferredMessageUpdate,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Loading...",
-			},
-		})
-
-		chart, err := chartTracker.GenerateChart(bot)
+		event.DeferUpdateMessage()
+		chart, err := chartTracker.GenerateChart(event.Client())
 		if err != nil {
 			fmt.Println(err)
 			e := "Error happened while processing selection"
-			bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 				Content: &e,
 			})
+			if err != nil {
+				slog.Error("Error editing the response:", slog.Any("err", err))
+			}
+
 		} else {
-			_, err = bot.FollowupMessageCreate(interaction.Interaction, false, &discordgo.WebhookParams{
-				Files: []*discordgo.File{chart},
+			err = event.Client().Rest.DeleteInteractionResponse(event.Client().ApplicationID, event.Token())
+			if err != nil {
+				fmt.Println(err)
+			}
+			_, err = event.Client().Rest.CreateFollowupMessage(event.Client().ApplicationID, event.Token(), discord.MessageCreate{
+				Files: []*discord.File{chart},
 				Flags: util.ConfigFile.SetEphemeral(),
 			})
 			if err != nil {
 				fmt.Println(err)
 			}
-			err = bot.InteractionResponseDelete(interaction.Interaction)
-			if err != nil {
-				fmt.Println(err)
-			}
 		}
 	}
 }
 
-func extractModalSubmitData(components []discordgo.MessageComponent) map[string]string {
+func extractModalSubmitData(components []discord.LayoutComponent) map[string]string {
 	formData := make(map[string]string)
 	for _, component := range components {
-		input := component.(*discordgo.ActionsRow).Components[0].(*discordgo.TextInput)
+		input := component.(*discord.ActionRowComponent).Components[0].(*discord.TextInputComponent)
 		formData[input.CustomID] = input.Value
 	}
 	return formData
 }
 
-func (p PlotCommand) displayPlotSelection(bot *discordgo.Session, interaction *discordgo.InteractionCreate, chartTracker *charts.ChartTracker, errors map[string][]discordgo.MessageComponent) {
-	var files []*discordgo.File
-	title := discordgo.TextDisplay{
+func (p PlotCommand) displayPlotSelection(event *events.GenericEvent, token string, chartTracker *charts.ChartTracker, errors map[string][]discord.LayoutComponent) {
+	var files []*discord.File
+	title := discord.TextDisplayComponent{
 		Content: "# Create a Chart\n Select the chart type, users to include, and provide a date range.",
 	}
 
@@ -267,21 +253,21 @@ func (p PlotCommand) displayPlotSelection(bot *discordgo.Session, interaction *d
 		util.GetSeparator(),
 	)
 	if chartTracker.CanGenerate() {
-		chart, err := chartTracker.GenerateChart(bot)
+		chart, err := chartTracker.GenerateChart(event.Client())
 		if err != nil {
 			fmt.Println(err)
-			components = append(components, discordgo.TextDisplay{
+			components = append(components, discord.TextDisplayComponent{
 				Content: "Error happened while processing selection",
 			})
 		} else {
 			files = append(files, chart)
-			components = []discordgo.MessageComponent{
-				discordgo.Section{
-					Components: []discordgo.MessageComponent{
+			components = []discord.LayoutComponent{
+				discord.SectionComponent{
+					Components: []discord.SectionSubComponent{
 						title,
 					},
-					Accessory: discordgo.Thumbnail{
-						Media: discordgo.UnfurledMediaItem{
+					Accessory: discord.ThumbnailComponent{
+						Media: discord.UnfurledMediaItem{
 							URL: fmt.Sprintf("attachment://%s", chart.Name),
 						},
 					},
@@ -293,16 +279,19 @@ func (p PlotCommand) displayPlotSelection(bot *discordgo.Session, interaction *d
 
 	components = append(components, chartTracker.BuildComponents(errors)...)
 
-	_, err := bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+	_, err := event.Client().Rest.UpdateInteractionResponse(event.Client().ApplicationID, token, discord.MessageUpdate{
 		Components:  &components,
 		Files:       files,
-		Attachments: &[]*discordgo.MessageAttachment{},
+		Attachments: &[]discord.AttachmentUpdate{},
 	})
 	if err != nil {
-		fmt.Println(err)
-		e := "Error happened while processing selection"
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-			Content: &e,
-		})
+		slog.Error("Error editing the response:", slog.Any("err", err))
 	}
+}
+
+func toString(in []snowflake.ID) (out []string) {
+	for _, i := range in {
+		out = append(out, i.String())
+	}
+	return
 }

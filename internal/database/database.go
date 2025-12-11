@@ -8,14 +8,15 @@ import (
 	"fmt"
 	"log"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
 	"github.com/stollenaar/statisticsbot/internal/util"
-
-	"github.com/bwmarrin/discordgo"
 
 	_ "github.com/marcboeker/go-duckdb/v2" // DuckDB Go driver
 )
@@ -178,17 +179,15 @@ func loadCache() {
 }
 
 // Init doing the initialization of all the messages
-func Init(bot *discordgo.Session, GuildID *string) {
-	guilds, err := bot.UserGuilds(100, "", "", false)
-	if err != nil {
-		fmt.Println(err)
-	}
+func Init(client *bot.Client, GuildID *string) {
+
+	guilds := slices.Collect(client.Caches.Guilds())
 
 	// TODO: Probably reformat this
 	if GuildID != nil {
 		for _, v := range guilds {
-			if v.ID == *GuildID {
-				guilds = []*discordgo.UserGuild{}
+			if v.ID.String() == *GuildID {
+				guilds = []discord.Guild{}
 				guilds = append(guilds, v)
 				break
 			}
@@ -197,18 +196,14 @@ func Init(bot *discordgo.Session, GuildID *string) {
 
 	var waitGroup sync.WaitGroup
 	for _, guild := range guilds {
-		channels, err := bot.GuildChannels(guild.ID)
-		if err != nil {
-			fmt.Println("Error loading channels ", err)
-			return
-		}
+		channels := slices.Collect(client.Caches.ChannelsForGuild(guild.ID))
 
 		// Async checking the channels of guild for new messages
 		waitGroup.Add(1)
-		go func(bot *discordgo.Session, channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
+		go func(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
 			defer waitGroup.Done()
-			initChannels(bot, channels, waitGroup)
-		}(bot, channels, &waitGroup)
+			initChannels(client, channels, waitGroup)
+		}(client, channels, &waitGroup)
 	}
 
 	// Waiting for all async calls to complete
@@ -217,25 +212,25 @@ func Init(bot *discordgo.Session, GuildID *string) {
 }
 
 // initChannels loading all the channels of the guild
-func initChannels(bot *discordgo.Session, channels []*discordgo.Channel, waitGroup *sync.WaitGroup) {
+func initChannels(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
 	for _, channel := range channels {
 		fmt.Printf("Checking %s \n", channel.Name)
 		// Check if channel is a guild text channel and not a voice or DM channel
-		if channel.Type != discordgo.ChannelTypeGuildText {
+		if channel.Type() != discord.ChannelTypeGuildText {
 			continue
 		}
 
 		// Async loading of the messages in that channnel
 		waitGroup.Add(1)
-		go func(bot *discordgo.Session, channel *discordgo.Channel) {
+		go func(client *bot.Client, channel discord.GuildChannel) {
 			defer waitGroup.Done()
-			loadMessages(bot, channel)
-		}(bot, channel)
+			loadMessages(client, channel)
+		}(client, channel)
 	}
 }
 
 // getLastMessage gets the last message in provided channel from the database
-func getLastMessage(channel *discordgo.Channel) (lastMessage util.MessageObject) {
+func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObject) {
 
 	// Query to find the most recent message per channel
 	query := `
@@ -279,17 +274,18 @@ func getLastMessage(channel *discordgo.Channel) (lastMessage util.MessageObject)
 }
 
 // loadMessages loading messages from the channel
-func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
-	fmt.Println("Loading ", channel.Name)
-	defer util.Elapsed(channel.Name)() // timing how long it took to collect the messages
+func loadMessages(client *bot.Client, channel discord.GuildChannel) {
+	fmt.Println("Loading ", channel.Name())
+	defer util.Elapsed(channel.Name())() // timing how long it took to collect the messages
 	// collection := client.Database("statistics_bot").Collection(channel.GuildID)
 	var operations int
 
 	// Getting last message and first 100
 	lastMessage := getLastMessage(channel)
-	messages, _ := Bot.ChannelMessages(channel.ID, int(100), "", "", "")
-	messages = util.FilterDiscordMessages(messages, func(message *discordgo.Message) bool {
-		messageTime, _ := util.SnowflakeToTimestamp(message.ID)
+	messages := slices.Collect(client.Caches.Messages(channel.ID()))
+	messages = util.FilterDiscordMessages(messages, func(message discord.Message) bool {
+
+		messageTime := message.ID.Time()
 
 		return messageTime.After(lastMessage.Date)
 	})
@@ -297,50 +293,50 @@ func loadMessages(Bot *discordgo.Session, channel *discordgo.Channel) {
 	// Constructing operations for first 100
 	for _, message := range messages {
 		operations++
-		ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
+		ConstructCreateMessageObject(message, channel.GuildID().String(), message.Author.Bot)
 		for _, reaction := range message.Reactions {
-			if reaction.Emoji.User == nil {
+			if reaction.Emoji.Creator == nil {
 				continue
 			}
 			ConstructMessageReactObject(MessageReact{
-				ID:        message.ID,
-				GuildID:   channel.GuildID,
-				ChannelID: message.ChannelID,
-				Author:    reaction.Emoji.User.ID,
+				ID:        message.ID.String(),
+				GuildID:   channel.GuildID().String(),
+				ChannelID: message.ChannelID.String(),
+				Author:    reaction.Emoji.Creator.ID.String(),
 				Reaction:  reaction.Emoji.Name,
 			}, false)
 		}
 	}
 
 	// Loading more messages if got 100 message the first time
-	if len(messages) == 100 {
-		lastMessageCollected := messages[len(messages)-1]
-		// Loading more messages, 100 at a time
-		for lastMessageCollected != nil {
-			moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
-			moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
-				messageTime, _ := util.SnowflakeToTimestamp(message.ID)
+	// if len(messages) == 100 {
+	// 	lastMessageCollected := messages[len(messages)-1]
+	// 	// Loading more messages, 100 at a time
+	// 	for lastMessageCollected != nil {
+	// 		moreMes, _ := client.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
+	// 		moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
+	// 			messageTime, _ := util.SnowflakeToTimestamp(message.ID)
 
-				return messageTime.After(lastMessage.Date)
-			})
+	// 			return messageTime.After(lastMessage.Date)
+	// 		})
 
-			for _, message := range moreMes {
-				operations++
-				ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
-			}
-			if len(moreMes) != 0 {
-				lastMessageCollected = moreMes[len(moreMes)-1]
-			} else {
-				break
-			}
-		}
-	}
+	// 		for _, message := range moreMes {
+	// 			operations++
+	// 			ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
+	// 		}
+	// 		if len(moreMes) != 0 {
+	// 			lastMessageCollected = moreMes[len(moreMes)-1]
+	// 		} else {
+	// 			break
+	// 		}
+	// 	}
+	// }
 
 	fmt.Printf("Done collecting messages for %s, found %d messages\n", channel.Name, operations)
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
-func ConstructCreateMessageObject(message *discordgo.Message, guildID string, isBot bool) {
+func ConstructCreateMessageObject(message discord.Message, guildID string, isBot bool) {
 
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
@@ -364,7 +360,7 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string, is
 
 	// Prepare the content as a single string (for simplicity, we join it)
 	contentStr := strings.Join(content, "\n")
-	timestamp, err := util.SnowflakeToTimestamp(message.ID)
+	timestamp, err := util.SnowflakeToTimestamp(message.ID.String())
 	if err != nil {
 		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
 	}
@@ -396,7 +392,7 @@ func ConstructCreateMessageObject(message *discordgo.Message, guildID string, is
 	}
 }
 
-func constructUpdateMessageObject(message *discordgo.Message, guildID string, isBot bool) {
+func constructUpdateMessageObject(message discord.Message, guildID string, isBot bool) {
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
 		for _, embed := range message.Embeds {
@@ -419,7 +415,7 @@ func constructUpdateMessageObject(message *discordgo.Message, guildID string, is
 
 	// Prepare the content as a single string (for simplicity, we join it)
 	contentStr := strings.Join(content, "\n")
-	timestamp, err := util.SnowflakeToTimestamp(message.ID)
+	timestamp, err := util.SnowflakeToTimestamp(message.ID.String())
 	if err != nil {
 		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
 	}

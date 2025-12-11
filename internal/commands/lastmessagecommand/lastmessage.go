@@ -2,9 +2,13 @@ package lastmessagecommand
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 
@@ -32,18 +36,16 @@ type CommandParsed struct {
 }
 
 // LastMessage find the last message of a person
-func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Loading Data...",
-			Flags:   util.ConfigFile.SetEphemeral(),
-		},
-	})
+func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
+	err := event.DeferCreateMessage(util.ConfigFile.SetEphemeral() == discord.MessageFlagEphemeral)
 
-	parsedArguments := l.ParseArguments(bot, interaction).(*CommandParsed)
+	if err != nil {
+		slog.Error("Error deferring: ", slog.Any("err", err))
+		return
+	}
+	sub := event.SlashCommandInteractionData()
 
-	filter, values := parsedArguments.GetFilter()
+	filter, values := getFilter(event.GuildID().String(), event.User().ID.String(), sub)
 
 	response := "Something went wrong.. maybe try again with something else?"
 
@@ -76,9 +78,12 @@ func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discord
 
 	filterResult, err := database.QueryDuckDB(fmt.Sprintf(query, filter), values)
 	if err != nil {
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &response,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 	var messageObject []*util.MessageObject
@@ -92,10 +97,10 @@ func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discord
 			break
 		}
 		lastMessage := &util.MessageObject{
-			GuildID:   parsedArguments.GuildID,
+			GuildID:   event.GuildID().String(),
 			ChannelID: channel_id,
 			MessageID: message_id,
-			Author:    parsedArguments.UserTarget.ID,
+			Author:    event.User().ID.String(),
 			Content:   content,
 			Date:      date,
 		}
@@ -103,32 +108,32 @@ func (l LastMessageCommand) Handler(bot *discordgo.Session, interaction *discord
 	}
 
 	lastMessage := messageObject[0]
-	channel, _ := bot.Channel(lastMessage.ChannelID)
 	messageLink := getMessageLink(lastMessage.GuildID, lastMessage.ChannelID, lastMessage.MessageID)
-	response = fmt.Sprintf("%s last has send something in %s, and %s", parsedArguments.UserTarget.Mention(), channel.Mention(), messageLink)
-	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+	response = fmt.Sprintf("%s last has send something in %s, and %s", 	discord.UserMention(sub.Options["user"].Snowflake()),discord.ChannelMention(snowflake.MustParse(lastMessage.ChannelID)), messageLink)
+
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
 	})
+	if err != nil {
+		slog.Error("Error editing the response:", slog.Any("err", err))
+	}
 }
 
-func (l LastMessageCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
-		{
+func (l LastMessageCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
+	return []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionString{
 			Name:        "user",
 			Description: "User to filter with",
-			Type:        discordgo.ApplicationCommandOptionUser,
 			Required:    true,
 		},
-		{
+		discord.ApplicationCommandOptionString{
 			Name:        "word",
 			Description: "Word to count",
-			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    false,
 		},
-		{
+		discord.ApplicationCommandOptionString{
 			Name:        "channel",
 			Description: "Channel to filter with",
-			Type:        discordgo.ApplicationCommandOptionChannel,
 			Required:    false,
 		},
 	}
@@ -169,18 +174,21 @@ func getMessageLink(GuildId, ChannelId, MessageId string) string {
 	return fmt.Sprintf("[here is the message](https://discordapp.com/channels/%s/%s/%s)", GuildId, ChannelId, MessageId)
 }
 
-func (c *CommandParsed) GetFilter() (string, []interface{}) {
+func getFilter(guildID, authorID string, sub discord.SlashCommandInteractionData) (string, []interface{}) {
 	filters := []string{"guild_id = ?"}
-	values := []interface{}{c.GuildID}
+	values := []interface{}{guildID}
 
-	if c.ChannelTarget != nil {
+	if channel, ok := sub.Options["channel"]; ok {
 		filters = append(filters, "channel_id = ?")
-		values = append(values, c.ChannelTarget.ID)
+		values = append(values, channel.Snowflake().String())
 	}
 
-	if c.UserTarget != nil {
+	if user, ok := sub.Options["user"]; ok {
 		filters = append(filters, "author_id = ?")
-		values = append(values, c.UserTarget.ID)
+		values = append(values, user.Snowflake().String())
+	} else {
+		filters = append(filters, "author_id = ?")
+		values = append(values, authorID)
 	}
 
 	return strings.Join(filters, " AND "), values

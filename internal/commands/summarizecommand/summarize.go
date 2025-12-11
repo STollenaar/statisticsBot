@@ -3,12 +3,16 @@ package summarizecommand
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -60,36 +64,40 @@ type SummaryBody struct {
 	Message string `json:"message"`
 }
 
-func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Summarizing Data...",
-			Flags:   util.ConfigFile.SetEphemeral(),
-		},
-	})
+func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
+	err := event.DeferCreateMessage(util.ConfigFile.SetEphemeral() == discord.MessageFlagEphemeral)
+	if err != nil {
+		slog.Error("Error deferring: ", slog.Any("err", err))
+		return
+	}
 
-	parsedArguments := s.ParseArguments(bot, interaction).(*CommandParsed)
+	sub := event.SlashCommandInteractionData()
 
-	unit, err := parsedArguments.parseTimeArg()
+	unit, err := parseTimeArg(sub.Options["unit"].String())
 	if err != nil {
 		eString := err.Error()
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
 	now := time.Now()
 
 	// Get all messages in the time frame
-	rs, err := database.QueryDuckDB(pastMessages, []interface{}{interaction.GuildID, interaction.ChannelID, now.Add(-unit), now})
+	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().ID().String(), now.Add(-unit), now})
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
-		fmt.Printf("summarize duckDB error: %e\n", err)
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		fmt.Printf("mood duckDB error: %e\n", err)
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
@@ -101,17 +109,21 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 		if err != nil {
 			eString := "error happened while trying to build summary body"
 			fmt.Printf("summarize duckDB error: %e\n", err)
-			bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 				Content: &eString,
 			})
+			if err != nil {
+				slog.Error("Error editing the response:", slog.Any("err", err))
+			}
 			return
 		}
 		var nickname string
-		member, err := bot.GuildMember(interaction.GuildID, author_id)
-		if err != nil || member.Nick == "" {
+
+		member, _ := event.Client().Caches.Member(*event.GuildID(), snowflake.MustParse(author_id))
+		if member.Nick == nil {
 			nickname = author_id
 		} else {
-			nickname = member.Nick
+			nickname = *member.Nick
 		}
 		messages = append(messages, SummaryBody{
 			Author:  nickname,
@@ -124,26 +136,31 @@ func (s SummarizeCommand) Handler(bot *discordgo.Session, interaction *discordgo
 	if err != nil {
 		eString := "error happened while trying to generate the summaries"
 		fmt.Printf("summarize error: %e\n", err)
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Title: fmt.Sprintf("Summary of the past %s", parsedArguments.Unit),
+	embed := discord.Embed{
+		Title: fmt.Sprintf("Summary of the past %s", sub.Options["unit"].String()),
 	}
 
 	for _, summary := range summaries.Summaries {
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+		embed.Fields = append(embed.Fields, discord.EmbedField{
 			Name:  summary.Topic,
 			Value: summary.Summary,
 		})
 	}
-
-	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-		Embeds: &[]*discordgo.MessageEmbed{embed},
+	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+		Embeds: &[]discord.Embed{embed},
 	})
+	if err != nil {
+		slog.Error("Error editing the response:", slog.Any("err", err))
+	}
 }
 
 func (s SummarizeCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
@@ -165,23 +182,22 @@ func (s SummarizeCommand) ParseArguments(bot *discordgo.Session, interaction *di
 	return parsedArguments
 }
 
-func (s SummarizeCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
-		{
+func (s SummarizeCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
+	return []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionString{
 			Name:        "unit",
 			Description: "How far back to summarize the messages",
-			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    true,
 		},
 	}
 }
 
-func (c *CommandParsed) parseTimeArg() (time.Duration, error) {
+func parseTimeArg(timeUnit string) (time.Duration, error) {
 	// Regular expression to match a number followed by a unit
 	re := regexp.MustCompile(`^(\d+)([smhd])$`)
-	matches := re.FindStringSubmatch(c.Unit)
+	matches := re.FindStringSubmatch(timeUnit)
 	if matches == nil {
-		return 0, fmt.Errorf("invalid time format: %s", c.Unit)
+		return 0, fmt.Errorf("invalid time format: %s", timeUnit)
 	}
 
 	value, err := strconv.Atoi(matches[1])

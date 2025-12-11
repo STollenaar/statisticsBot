@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
@@ -27,40 +28,38 @@ func (c *ChartTracker) getDateRange() (time.Time, time.Time, error) {
 	}
 }
 
-func (c *ChartTracker) getSelectMenuDefaultValue(st discordgo.SelectMenuType) (response []discordgo.SelectMenuDefaultValue) {
+func (c *ChartTracker) getSelectMenuDefaultValue(st discord.SelectMenuDefaultValueType) (response []discord.SelectMenuDefaultValue) {
 	switch st {
-	case discordgo.UserSelectMenu:
+	case discord.SelectMenuDefaultValueTypeUser:
 		for _, i := range c.Users {
-			response = append(response, discordgo.SelectMenuDefaultValue{
-				ID:   i,
-				Type: discordgo.SelectMenuDefaultValueUser,
+			response = append(response, discord.SelectMenuDefaultValue{
+				ID:   snowflake.MustParse(i),
+				Type: discord.SelectMenuDefaultValueTypeUser,
 			})
 		}
-	case discordgo.ChannelSelectMenu:
+	case discord.SelectMenuDefaultValueTypeChannel:
 		for _, i := range c.Channels {
-			response = append(response, discordgo.SelectMenuDefaultValue{
-				ID:   i,
-				Type: discordgo.SelectMenuDefaultValueChannel,
+			response = append(response, discord.SelectMenuDefaultValue{
+				ID:   snowflake.MustParse(i),
+				Type: discord.SelectMenuDefaultValueTypeChannel,
 			})
 		}
 	}
 	return
 }
 
-func (c *ChartTracker) BuildComponents(errors map[string][]discordgo.MessageComponent) []discordgo.MessageComponent {
-	var components []discordgo.MessageComponent
+func (c *ChartTracker) BuildComponents(errors map[string][]discord.LayoutComponent) []discord.LayoutComponent {
+	var components []discord.LayoutComponent
 	components = append(components,
-		discordgo.TextDisplay{
+		discord.TextDisplayComponent{
 			Content: "Required Settings",
 		},
-		discordgo.ActionsRow{
-			Components: []discordgo.MessageComponent{
-				discordgo.SelectMenu{
-
-					MenuType:    discordgo.StringSelectMenu,
+		discord.ActionRowComponent{
+			Components: []discord.InteractiveComponent{
+				discord.StringSelectMenuComponent{
 					CustomID:    "chart_type",
 					Placeholder: "Select chart type",
-					Options: []discordgo.SelectMenuOption{
+					Options: []discord.StringSelectMenuOption{
 						{
 							Label:   "Pie",
 							Value:   "pie",
@@ -90,12 +89,12 @@ func (c *ChartTracker) BuildComponents(errors map[string][]discordgo.MessageComp
 				},
 			},
 		},
-		discordgo.ActionsRow{
-			Components: []discordgo.MessageComponent{
-				discordgo.SelectMenu{
+		discord.ActionRowComponent{
+			Components: []discord.InteractiveComponent{
+				discord.StringSelectMenuComponent{
 					CustomID:    "metric_type",
 					Placeholder: "Choose a metric to chart...",
-					Options: []discordgo.SelectMenuOption{
+					Options: []discord.StringSelectMenuOption{
 						{
 							Label:       "Reaction Count",
 							Value:       "reaction;count",
@@ -148,11 +147,11 @@ func (c *ChartTracker) BuildComponents(errors map[string][]discordgo.MessageComp
 
 	components = append(components, c.getOptionalSettings()...)
 
-	components = append(components, discordgo.ActionsRow{
-		Components: []discordgo.MessageComponent{
-			discordgo.Button{
+	components = append(components, discord.ActionRowComponent{
+		Components: []discord.InteractiveComponent{
+			discord.ButtonComponent{
 				Label:    "Submit",
-				Style:    discordgo.PrimaryButton,
+				Style:    discord.ButtonStylePrimary,
 				CustomID: "submit_chart_form",
 			},
 		},
@@ -161,32 +160,30 @@ func (c *ChartTracker) BuildComponents(errors map[string][]discordgo.MessageComp
 	return components
 }
 
-func (c *ChartTracker) getOptionalSettings() []discordgo.MessageComponent {
-	return []discordgo.MessageComponent{
-		discordgo.TextDisplay{
+func (c *ChartTracker) getOptionalSettings() []discord.LayoutComponent {
+	return []discord.LayoutComponent{
+		discord.TextDisplayComponent{
 			Content: "Optional Settings",
 		},
-		discordgo.ActionsRow{
-			Components: []discordgo.MessageComponent{
-				discordgo.SelectMenu{
+		discord.ActionRowComponent{
+			Components: []discord.InteractiveComponent{
+				discord.UserSelectMenuComponent{
 					CustomID:      "user_select",
-					MenuType:      discordgo.UserSelectMenu,
 					Placeholder:   "Select users for the chart",
 					MaxValues:     5, // or however many users you want to allow
-					DefaultValues: c.getSelectMenuDefaultValue(discordgo.UserSelectMenu),
+					DefaultValues: c.getSelectMenuDefaultValue(discord.SelectMenuDefaultValueTypeUser),
 				},
 			},
 		},
-		discordgo.ActionsRow{
-			Components: []discordgo.MessageComponent{
-				discordgo.SelectMenu{
+		discord.ActionRowComponent{
+			Components: []discord.InteractiveComponent{
+				discord.ChannelSelectMenuComponent{
 					CustomID:      "channel_select",
-					MenuType:      discordgo.ChannelSelectMenu,
 					Placeholder:   "Select channels for the chart",
 					MaxValues:     5, // or however many users you want to allow
-					DefaultValues: c.getSelectMenuDefaultValue(discordgo.ChannelSelectMenu),
-					ChannelTypes: []discordgo.ChannelType{
-						discordgo.ChannelTypeGuildText,
+					DefaultValues: c.getSelectMenuDefaultValue(discord.SelectMenuDefaultValueTypeChannel),
+					ChannelTypes: []discord.ChannelType{
+						discord.ChannelTypeGuildText,
 					},
 				},
 			},
@@ -195,14 +192,14 @@ func (c *ChartTracker) getOptionalSettings() []discordgo.MessageComponent {
 	}
 }
 
-func (c *ChartTracker) getDate() []discordgo.MessageComponent {
-	return []discordgo.MessageComponent{
-		discordgo.ActionsRow{
-			Components: []discordgo.MessageComponent{
-				discordgo.SelectMenu{
+func (c *ChartTracker) getDate() []discord.LayoutComponent {
+	return []discord.LayoutComponent{
+		discord.ActionRowComponent{
+			Components: []discord.InteractiveComponent{
+				discord.StringSelectMenuComponent{
 					CustomID:    "date_range_select",
 					Placeholder: "Select a Date Range",
-					Options: []discordgo.SelectMenuOption{
+					Options: []discord.StringSelectMenuOption{
 						{
 							Label:   "Last 7 days",
 							Value:   "7d",
@@ -231,7 +228,7 @@ func (c *ChartTracker) getDate() []discordgo.MessageComponent {
 	}
 }
 
-func (c *ChartTracker) getCustomDate() []discordgo.MessageComponent {
+func (c *ChartTracker) getCustomDate() []discord.LayoutComponent {
 	startDate, endDate := "Not Set", "Not Set"
 	if c.CustomDateRange.Start != nil {
 		startDate = c.CustomDateRange.Start.Format("2006-01-02")
@@ -240,29 +237,29 @@ func (c *ChartTracker) getCustomDate() []discordgo.MessageComponent {
 		endDate = c.CustomDateRange.End.Format("2006-01-02")
 	}
 
-	return []discordgo.MessageComponent{
-		discordgo.Section{
-			Components: []discordgo.MessageComponent{
-				discordgo.TextDisplay{
+	return []discord.LayoutComponent{
+		discord.SectionComponent{
+			Components: []discord.SectionSubComponent{
+				discord.TextDisplayComponent{
 					Content: fmt.Sprintf("### Start Date: %s", startDate),
 				},
-				discordgo.TextDisplay{
+				discord.TextDisplayComponent{
 					Content: fmt.Sprintf("### End Date: %s", endDate),
 				},
 			},
-			Accessory: discordgo.Button{
+			Accessory: discord.ButtonComponent{
 				Label:    "Set Date Range",
 				CustomID: "custom_date_range",
-				Style:    discordgo.PrimaryButton,
+				Style:    discord.ButtonStylePrimary,
 			},
 		},
 		util.GetSeparator(),
 	}
 }
 
-func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
+func (c *ChartTracker) getGroupBy() *discord.ActionRowComponent {
 
-	var options []discordgo.SelectMenuOption
+	var options []discord.StringSelectMenuOption
 
 	switch c.ChartType {
 	default:
@@ -288,9 +285,9 @@ func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
 		return nil
 	}
 
-	return &discordgo.ActionsRow{
-		Components: []discordgo.MessageComponent{
-			discordgo.SelectMenu{
+	return &discord.ActionRowComponent{
+		Components: []discord.InteractiveComponent{
+			discord.StringSelectMenuComponent{
 				CustomID:    "group_by",
 				Placeholder: "Group chart data by...",
 				Options:     options,
@@ -299,10 +296,10 @@ func (c *ChartTracker) getGroupBy() *discordgo.ActionsRow {
 	}
 }
 
-func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
+func (c *ChartTracker) getSingleGroupBy() []discord.StringSelectMenuOption {
 	switch c.Metric.Category {
 	case "interaction":
-		return []discordgo.SelectMenuOption{
+		return []discord.StringSelectMenuOption{
 			{
 				Label:       "User",
 				Value:       "interaction;user",
@@ -319,7 +316,7 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 	case "message":
 		fallthrough
 	case "reaction":
-		return []discordgo.SelectMenuOption{
+		return []discord.StringSelectMenuOption{
 			{
 				Label:       "User",
 				Value:       "single;user",
@@ -340,15 +337,15 @@ func (c *ChartTracker) getSingleGroupBy() []discordgo.SelectMenuOption {
 			},
 		}
 	default:
-		return []discordgo.SelectMenuOption{}
+		return []discord.StringSelectMenuOption{}
 	}
 }
 
-func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
+func (c *ChartTracker) getMultiGroupBy() 	[]discord.StringSelectMenuOption {
 	switch c.Metric.Category {
 	case "message":
 		c.GroupBy = MetricType{Category: "channel", Metric: "user", MultiAxes: true}
-		return []discordgo.SelectMenuOption{
+		return []discord.StringSelectMenuOption{
 			{
 				Label:       "Channel & User",
 				Value:       "channel;user;true",
@@ -357,7 +354,7 @@ func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 			},
 		}
 	case "reaction":
-		return []discordgo.SelectMenuOption{
+		return []discord.StringSelectMenuOption{
 			{
 				Label:       "Reaction & User",
 				Value:       "reaction;user;true",
@@ -373,7 +370,7 @@ func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 		}
 	case "interaction":
 		c.GroupBy = MetricType{Category: "interaction", Metric: "user", MultiAxes: true}
-		return []discordgo.SelectMenuOption{
+		return []discord.StringSelectMenuOption{
 			{
 				Label:       "Bot & User",
 				Value:       "interaction;user;true",
@@ -382,11 +379,11 @@ func (c *ChartTracker) getMultiGroupBy() []discordgo.SelectMenuOption {
 			},
 		}
 	default:
-		return []discordgo.SelectMenuOption{}
+		return []discord.StringSelectMenuOption{}
 	}
 }
 
-func isOption(selected MetricType, options []discordgo.SelectMenuOption) bool {
+func isOption(selected MetricType, options []discord.StringSelectMenuOption) bool {
 	for _, option := range options {
 		if option.Value == selected.ToString() {
 			return true

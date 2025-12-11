@@ -10,7 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/discord"
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/opts"
 	"github.com/go-echarts/snapshot-chromedp/render"
@@ -22,8 +23,8 @@ var (
 	caser = cases.Title(language.AmericanEnglish)
 )
 
-func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, error) {
-	data, err := c.getData(bot)
+func (c *ChartTracker) GenerateChart(client *bot.Client) (*discord.File, error) {
+	data, err := c.getData(client)
 	fmt.Println(data)
 	t := time.Now()
 	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.Title(), c.GroupBy.Title()), "_", " "))
@@ -61,9 +62,8 @@ func (c *ChartTracker) GenerateChart(bot *discordgo.Session) (*discordgo.File, e
 	}
 	os.Remove(fileName)
 	imgReader := bytes.NewReader(image)
-	return &discordgo.File{
+	return &discord.File{
 		Name:        fileName,
-		ContentType: "image/png",
 		Reader:      imgReader,
 	}, nil
 }

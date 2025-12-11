@@ -2,9 +2,12 @@ package countcommand
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -30,92 +33,56 @@ type CommandParsed struct {
 }
 
 // CountCommand counts the amount of occurences of a certain word
-func (c CountCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Loading Data...",
-			Flags:   util.ConfigFile.SetEphemeral(),
-		},
-	})
+func (c CountCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
+	err := event.DeferCreateMessage(util.ConfigFile.SetEphemeral() == discord.MessageFlagEphemeral)
 
-	parsedArguments := c.ParseArguments(bot, interaction).(*CommandParsed)
-	if parsedArguments.UserTarget == nil {
-		parsedArguments.UserTarget = interaction.Member.User
+	if err != nil {
+		slog.Error("Error deferring: ", slog.Any("err", err))
+		return
 	}
-	amount := parsedArguments.FindSpecificWordOccurences()
+	sub := event.SlashCommandInteractionData()
+	amount := findSpecificWordOccurences(event.GuildID().String(), event.User().ID.String(), sub)
 
 	var response string
-	if parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID {
-		response = fmt.Sprintf("%s has used the word \"%s\" %d time(s) \n", parsedArguments.UserTarget.Mention(), parsedArguments.Word, amount)
+	if sub.Options["user"].Snowflake().String() != event.User().ID.String() {
+		response = fmt.Sprintf("%s has used the word \"%s\" %d time(s) \n", discord.UserMention(sub.Options["user"].Snowflake()), sub.Options["word"].String(), amount)
 	} else {
-		response = fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", parsedArguments.Word, amount)
+		response = fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", sub.Options["word"].String(), amount)
 	}
-	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
 	})
+	if err != nil {
+		slog.Error("Error editing the response:", slog.Any("err", err))
+	}
 }
 
-func (c CountCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
-		{
+func (c CountCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
+	return []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionString{
 			Name:        "word",
 			Description: "Word to count",
-			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    true,
 		},
-		{
+		discord.ApplicationCommandOptionString{
 			Name:        "user",
 			Description: "User to filter with",
-			Type:        discordgo.ApplicationCommandOptionUser,
 			Required:    false,
 		},
-		{
+		discord.ApplicationCommandOptionString{
 			Name:        "channel",
 			Description: "Channel to filter with",
-			Type:        discordgo.ApplicationCommandOptionChannel,
 			Required:    false,
 		},
 	}
 }
 
-func (c CountCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
-	parsedArguments := new(CommandParsed)
+// findSpecificWordOccurences finding the occurences of a word in the database
+func findSpecificWordOccurences(guildID, authorID string, sub discord.SlashCommandInteractionData) int {
 
-	// Access options in the order provided by the user.
-	options := interaction.ApplicationCommandData().Options
-	parsedArguments.GuildID = interaction.GuildID
-	// Or convert the slice into a map
-	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-	for _, opt := range options {
-		optionMap[opt.Name] = opt
-	}
+	filter, params := getFilter(guildID, authorID, sub)
 
-	if option, ok := optionMap["word"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.Word = option.StringValue()
-	}
-	if option, ok := optionMap["user"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.UserTarget = option.UserValue(bot)
-	}
-	if option, ok := optionMap["channel"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.ChannelTarget = option.ChannelValue(bot)
-	}
-
-	return parsedArguments
-}
-
-// FindSpecificWordOccurences finding the occurences of a word in the database
-func (c *CommandParsed) FindSpecificWordOccurences() int {
-
-	filter, params := c.GetFilter()
-
-	messages, err := database.CountFilterOccurences(filter, c.Word, params)
+	messages, err := database.CountFilterOccurences(filter, sub.Options["word"].String(), params)
 
 	if err != nil {
 		fmt.Println(err)
@@ -127,18 +94,21 @@ func (c *CommandParsed) FindSpecificWordOccurences() int {
 	return messages[0].Word.Count
 }
 
-func (c *CommandParsed) GetFilter() (string, []interface{}) {
+func getFilter(guildID, authorID string, sub discord.SlashCommandInteractionData) (string, []interface{}) {
 	filters := []string{"guild_id = ?"}
-	values := []interface{}{c.GuildID}
+	values := []interface{}{guildID}
 
-	if c.ChannelTarget != nil {
+	if channel, ok := sub.Options["channel"]; ok {
 		filters = append(filters, "channel_id = ?")
-		values = append(values, c.ChannelTarget.ID)
+		values = append(values, channel.Snowflake().String())
 	}
 
-	if c.UserTarget != nil {
+	if user, ok := sub.Options["user"]; ok {
 		filters = append(filters, "author_id = ?")
-		values = append(values, c.UserTarget.ID)
+		values = append(values, user.Snowflake().String())
+	} else {
+		filters = append(filters, "author_id = ?")
+		values = append(values, authorID)
 	}
 
 	return strings.Join(filters, " AND "), values

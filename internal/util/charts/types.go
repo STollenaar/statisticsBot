@@ -41,16 +41,16 @@ type DateRange struct {
 }
 
 type ChartTracker struct {
-	GuildID         string     `json:"guildID"`
-	InteractionID   string     `json:"interactionID"`
-	UserID          string     `json:"userID"`
-	ChartType       ChartType  `json:"chart"`
-	Metric          MetricType `json:"metrics"`
-	Users           []string   `json:"users"`
-	Channels        []string   `json:"channels"`
-	DateRange       string     `json:"date"`
-	CustomDateRange DateRange  `json:"customDate"`
-	GroupBy         MetricType `json:"groupBy"`
+	GuildID         string         `json:"guildID"`
+	InteractionID   string         `json:"interactionID"`
+	UserID          string         `json:"userID"`
+	ChartType       ChartType      `json:"chart"`
+	Metric          MetricType     `json:"metrics"`
+	Users           []string `json:"users"`
+	Channels        []string `json:"channels"`
+	DateRange       string         `json:"date"`
+	CustomDateRange DateRange      `json:"customDate"`
+	GroupBy         MetricType     `json:"groupBy"`
 }
 
 func (c *ChartTracker) Marshal() string {

@@ -3,17 +3,17 @@ package routes
 import (
 	"net/http"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/bot"
 	"github.com/gin-gonic/gin"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 var (
-	bot *discordgo.Session
+	client *bot.Client
 )
 
-func CreateRouter(b *discordgo.Session) {
-	bot = b
+func CreateRouter(c *bot.Client) {
+	client = c
 	if !util.ConfigFile.DEBUG {
 		gin.SetMode(gin.ReleaseMode)
 	}

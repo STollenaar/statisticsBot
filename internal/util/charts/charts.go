@@ -2,15 +2,17 @@ package charts
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
-func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err error) {
+func (c *ChartTracker) getData(client *bot.Client) (data []*ChartData, err error) {
 	// Start tracking execution time
 	startTime := time.Now()
 
@@ -47,43 +49,28 @@ func (c *ChartTracker) getData(bot *discordgo.Session) (data []*ChartData, err e
 
 	// Pre-fetch users if grouping by "user"
 	if c.GroupBy.Metric == "user" || c.GroupBy.Metric == "bot" {
-		lastID := "" // Discord API requires the last ID for pagination
 
-		for {
-			members, err := bot.GuildMembers(c.GuildID, lastID, 1000) // Fetch up to 1000 at a time
-			if err != nil {
-				fmt.Println("Error fetching guild members:", err)
-				break
-			}
+		members := slices.Collect(client.Caches.Members(snowflake.MustParse(c.GuildID))) // Fetch up to 1000 at a time
 
-			if len(members) == 0 {
-				break // No more members to fetch
-			}
-
-			for _, m := range members {
-				usernames[m.User.ID] = m.User.Username
-				lastID = m.User.ID // Set last ID for next batch
-			}
+		for _, m := range members {
+			usernames[m.User.ID.String()] = m.User.Username
 		}
 	}
 
 	// Pre-fetch channels if grouping by "channel"
 	if c.GroupBy.Metric == "channel" || c.GroupBy.Category == "channel" {
-		guildChannels, err := bot.GuildChannels(c.GuildID)
+		guildChannels := slices.Collect(client.Caches.ChannelsForGuild(snowflake.MustParse(c.GuildID)))
 		if err == nil {
 			for _, ch := range guildChannels {
-				channels[ch.ID] = ch.Name
+				channels[ch.ID().String()] = ch.Name()
 
 			}
 		} else {
 			fmt.Println("Error fetching guild channels:", err)
 		}
-		threads, err := bot.GuildThreadsActive(c.GuildID)
-		if err != nil {
-			fmt.Printf("Error fetching threads for %s: %e\n", c.GuildID, err)
-		}
-		for _, thread := range threads.Threads {
-			channels[thread.ID] = thread.Name
+		threads := client.Caches.GuildThreadsInChannel(snowflake.MustParse(c.GuildID))
+		for _, thread := range threads {
+			channels[thread.ID().String()] = thread.Name()
 		}
 	}
 

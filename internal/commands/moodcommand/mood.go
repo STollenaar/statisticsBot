@@ -3,11 +3,14 @@ package moodcommand
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -56,36 +59,40 @@ type MoodBody struct {
 	Message string    `json:"message"`
 }
 
-func (m MoodCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Calculating Mood...",
-			Flags:   util.ConfigFile.SetEphemeral(),
-		},
-	})
+func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
+	err := event.DeferCreateMessage(util.ConfigFile.SetEphemeral() == discord.MessageFlagEphemeral)
 
-	parsedArguments := m.ParseArguments(bot, interaction).(*CommandParsed)
+	if err != nil {
+		slog.Error("Error deferring: ", slog.Any("err", err))
+		return
+	}
+	sub := event.SlashCommandInteractionData()
 
-	unit, err := parsedArguments.parseTimeArg()
+	unit, err := parseTimeArg(sub.Options["unit"].String())
 	if err != nil {
 		eString := err.Error()
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
 	now := time.Now()
 
 	// Get all messages in the time frame
-	rs, err := database.QueryDuckDB(pastMessages, []interface{}{interaction.GuildID, interaction.ChannelID, now.Add(-unit), now})
+	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().String(), now.Add(-unit), now})
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
 		fmt.Printf("mood duckDB error: %e\n", err)
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
@@ -99,9 +106,12 @@ func (m MoodCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inte
 		if err != nil {
 			eString := "error happened while trying to build Mood body"
 			fmt.Printf("mood duckDB error: %e\n", err)
-			bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 				Content: &eString,
 			})
+			if err != nil {
+				slog.Error("Error editing the response:", slog.Any("err", err))
+			}
 			return
 		}
 		messagMap[id] = content
@@ -113,26 +123,32 @@ func (m MoodCommand) Handler(bot *discordgo.Session, interaction *discordgo.Inte
 	if err != nil {
 		eString := "error happened while trying to generate the mood"
 		fmt.Printf("mood error: %e\n", err)
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
-	embed := &discordgo.MessageEmbed{
-		Title: fmt.Sprintf("Mood of the past %s", parsedArguments.Unit),
+	embed := discord.Embed{
+		Title: fmt.Sprintf("Mood of the past %s", sub.Options["unit"].String()),
 	}
 
 	for topic, Mood := range mood.Mood {
-		embed.Fields = append(embed.Fields, &discordgo.MessageEmbedField{
+		embed.Fields = append(embed.Fields, discord.EmbedField{
 			Name:  topic,
 			Value: Mood,
 		})
 	}
 
-	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
-		Embeds: &[]*discordgo.MessageEmbed{embed},
+	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+		Embeds: &[]discord.Embed{embed},
 	})
+	if err != nil {
+		slog.Error("Error editing the response:", slog.Any("err", err))
+	}
 }
 
 func (m MoodCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
@@ -154,23 +170,22 @@ func (m MoodCommand) ParseArguments(bot *discordgo.Session, interaction *discord
 	return parsedArguments
 }
 
-func (m MoodCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
-		{
+func (m MoodCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
+	return []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionString{
 			Name:        "unit",
 			Description: "How far back to get the mood of a conversation",
-			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    true,
 		},
 	}
 }
 
-func (c *CommandParsed) parseTimeArg() (time.Duration, error) {
+func parseTimeArg(timeUnit string) (time.Duration, error) {
 	// Regular expression to match a number followed by a unit
 	re := regexp.MustCompile(`^(\d+)([smhd])$`)
-	matches := re.FindStringSubmatch(c.Unit)
+	matches := re.FindStringSubmatch(timeUnit)
 	if matches == nil {
-		return 0, fmt.Errorf("invalid time format: %s", c.Unit)
+		return 0, fmt.Errorf("invalid time format: %s", timeUnit)
 	}
 
 	value, err := strconv.Atoi(matches[1])

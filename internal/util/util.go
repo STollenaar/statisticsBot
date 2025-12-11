@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
 )
 
 const (
@@ -46,7 +46,7 @@ func Elapsed(channel string) func() {
 }
 
 // FilterDiscordMessages filtering specific messages out of message slice
-func FilterDiscordMessages(messages []*discordgo.Message, condition func(*discordgo.Message) bool) (result []*discordgo.Message) {
+func FilterDiscordMessages(messages []discord.Message, condition func(discord.Message) bool) (result []discord.Message) {
 	for _, message := range messages {
 		if condition(message) {
 			result = append(result, message)
@@ -114,12 +114,16 @@ func FetchDiscordEmojiImage(emojiID string, isAnimated bool) (string, error) {
 	return base64Data, nil
 }
 
-func GetSeparator() discordgo.Separator {
+func GetSeparator() discord.SeparatorComponent {
 	divider := true
-	spacing := discordgo.SeparatorSpacingSizeLarge
+	spacing := discord.SeparatorSpacingSizeLarge
 
-	return discordgo.Separator{
+	return discord.SeparatorComponent{
 		Divider: &divider,
-		Spacing: &spacing,
+		Spacing: spacing,
 	}
+}
+
+func Pointer[T any](d T) *T {
+	return &d
 }

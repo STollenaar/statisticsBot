@@ -2,8 +2,14 @@ package maxcommand
 
 import (
 	"fmt"
+	"log/slog"
+	"maps"
+	"slices"
 	"strings"
 
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 
@@ -31,77 +37,76 @@ type CommandParsed struct {
 }
 
 // MaxCommand counts the amount of occurences of a certain word
-func (m MaxCommand) Handler(bot *discordgo.Session, interaction *discordgo.InteractionCreate) {
-	bot.InteractionRespond(interaction.Interaction, &discordgo.InteractionResponse{
-		Type: discordgo.InteractionResponseDeferredChannelMessageWithSource,
-		Data: &discordgo.InteractionResponseData{
-			Content: "Loading Data...",
-			Flags:   util.ConfigFile.SetEphemeral(),
-		},
-	})
+func (m MaxCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
+	err := event.DeferCreateMessage(util.ConfigFile.SetEphemeral() == discord.MessageFlagEphemeral)
 
-	parsedArguments := m.ParseArguments(bot, interaction).(*CommandParsed)
-	if parsedArguments.UserTarget != nil && parsedArguments.Word != "" {
+	if err != nil {
+		slog.Error("Error deferring: ", slog.Any("err", err))
+		return
+	}
+	sub := event.SlashCommandInteractionData()
+
+	keys := slices.Collect(maps.Keys(sub.Options))
+	if slices.Contains(keys, "user") && slices.Contains(keys, "word") {
 		response := "Usage of both \"user\" and \"word\" at the same time is not correct. Please only specify either."
-		bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &response,
 		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
 		return
 	}
 
-	maxWord := parsedArguments.FindAllWordOccurences()
+	maxWord := findAllWordOccurences(event.GuildID().String(), event.User().ID.String(), sub)
 
 	var response string
 
-	targetUser, _ := bot.GuildMember(interaction.GuildID, maxWord.Author)
-
-	if parsedArguments.UserTarget != nil {
-		response = fmt.Sprintf("\"%s\" is the most common word used by %s.", maxWord.Word.Word, targetUser.Mention())
+	if _, ok := sub.Options["user"]; ok {
+		response = fmt.Sprintf("%s has used the word \"%s\" more than anyone else, a total of %d time(s)", discord.UserMention(snowflake.MustParse(maxWord.Author)), maxWord.Word.Word, maxWord.Word.Count)
 	} else {
-		response = fmt.Sprintf("%s has used the word \"%s\" more than anyone else, a total of %d time(s)", targetUser.Mention(), maxWord.Word.Word, maxWord.Word.Count)
+		response = fmt.Sprintf("\"%s\" is the most common word used by %s.", maxWord.Word.Word, discord.UserMention(snowflake.MustParse(maxWord.Author)))
 	}
 
-	if (parsedArguments.UserTarget != nil && parsedArguments.UserTarget.ID != interaction.Member.User.ID) || maxWord.Author != interaction.Member.User.ID {
-		targetUser := parsedArguments.UserTarget
-		if targetUser == nil {
-			t, _ := bot.GuildMember(interaction.GuildID, maxWord.Author)
-			if t == nil {
-				targetUser = &discordgo.User{Username: "Unknown User", ID: maxWord.Author}
-				// response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Author, maxWord.Word.Word, maxWord.Word.Count)
-			} else {
-				targetUser = t.User
-			}
+	if (sub.Options["user"].Snowflake().String() != event.User().ID.String()) || maxWord.Author != event.User().ID.String() {
+		var targetUser snowflake.ID
+		tgtUser, ok := sub.Options["user"]
+		if !ok {
+			targetUser = snowflake.MustParse(maxWord.Author)
+		} else {
+			targetUser = tgtUser.Snowflake()
 		}
-		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", targetUser.Mention(), maxWord.Word.Word, maxWord.Word.Count)
+		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", discord.UserMention(targetUser), maxWord.Word.Word, maxWord.Word.Count)
 	} else {
 		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
 	}
-	bot.InteractionResponseEdit(interaction.Interaction, &discordgo.WebhookEdit{
+
+	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
-		AllowedMentions: &discordgo.MessageAllowedMentions{
-			Users: []string{interaction.Member.User.ID},
+		AllowedMentions: &discord.AllowedMentions{
+			Users: []snowflake.ID{event.User().ID},
 		},
 	})
+	if err != nil {
+		slog.Error("Error editing the response:", slog.Any("err", err))
+	}
 }
 
-func (m MaxCommand) CreateCommandArguments() []*discordgo.ApplicationCommandOption {
-	return []*discordgo.ApplicationCommandOption{
-		{
+func (m MaxCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
+	return []discord.ApplicationCommandOption{
+		discord.ApplicationCommandOptionString{
 			Name:        "user",
 			Description: "User to filter with",
-			Type:        discordgo.ApplicationCommandOptionUser,
 			Required:    false,
 		},
-		{
+		discord.ApplicationCommandOptionString{
 			Name:        "word",
 			Description: "Word to count",
-			Type:        discordgo.ApplicationCommandOptionString,
 			Required:    false,
 		},
-		{
+		discord.ApplicationCommandOptionString{
 			Name:        "channel",
 			Description: "Channel to filter with",
-			Type:        discordgo.ApplicationCommandOptionChannel,
 			Required:    false,
 		},
 	}
@@ -138,11 +143,11 @@ func (m MaxCommand) ParseArguments(bot *discordgo.Session, interaction *discordg
 	return parsedArguments
 }
 
-// FindAllWordOccurences finding the occurences of a word in the database
-func (c *CommandParsed) FindAllWordOccurences() util.CountGrouped {
-	filter, params := c.GetFilter()
+// findAllWordOccurences finding the occurences of a word in the database
+func findAllWordOccurences(guildID, authorID string, sub discord.SlashCommandInteractionData) util.CountGrouped {
+	filter, params := getFilter(guildID, authorID, sub)
 
-	messageObject, err := database.CountFilterOccurences(filter, c.Word, params)
+	messageObject, err := database.CountFilterOccurences(filter, sub.Options["word"].String(), params)
 	if err != nil {
 		fmt.Println(err)
 		return util.CountGrouped{}
@@ -155,18 +160,21 @@ func (c *CommandParsed) FindAllWordOccurences() util.CountGrouped {
 	}
 }
 
-func (c *CommandParsed) GetFilter() (string, []interface{}) {
+func getFilter(guildID, authorID string, sub discord.SlashCommandInteractionData) (string, []interface{}) {
 	filters := []string{"guild_id = ?"}
-	values := []interface{}{c.GuildID}
+	values := []interface{}{guildID}
 
-	if c.ChannelTarget != nil {
+	if channel, ok := sub.Options["channel"]; ok {
 		filters = append(filters, "channel_id = ?")
-		values = append(values, c.ChannelTarget.ID)
+		values = append(values, channel.Snowflake().String())
 	}
 
-	if c.UserTarget != nil {
+	if user, ok := sub.Options["user"]; ok {
 		filters = append(filters, "author_id = ?")
-		values = append(values, c.UserTarget.ID)
+		values = append(values, user.Snowflake().String())
+	} else {
+		filters = append(filters, "author_id = ?")
+		values = append(values, authorID)
 	}
 
 	return strings.Join(filters, " AND "), values

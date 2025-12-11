@@ -1,25 +1,24 @@
 package database
 
 import (
-	"fmt"
-
-	"github.com/bwmarrin/discordgo"
-	"github.com/stollenaar/statisticsbot/internal/util"
+	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 )
 
 // MessageCreateListener registers a simpler handler on a discordgo session to automatically parse incoming messages for you.
-func MessageCreateListener(session *discordgo.Session, message *discordgo.MessageCreate) {
-	if message.Flags != discordgo.MessageFlagsLoading &&
-		message.Type != discordgo.MessageTypeGuildMemberJoin &&
-		message.Type != discordgo.MessageTypeChannelPinnedMessage &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscription &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierOne &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierTwo &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
+func MessageCreateListener(event *events.GuildMessageCreate) {
+	message := event.Message
+	if message.Flags != discord.MessageFlagLoading &&
+		message.Type != discord.MessageTypeUserJoin &&
+		message.Type != discord.MessageTypeChannelPinnedMessage &&
+		message.Type != discord.MessageTypeGuildBoost &&
+		message.Type != discord.MessageTypeGuildBoostTier1 &&
+		message.Type != discord.MessageTypeGuildBoostTier2 &&
+		message.Type != discord.MessageTypeGuildBoostTier3 &&
 		message.Thread == nil &&
 		message.Poll == nil &&
 		message.StickerItems == nil {
-		if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
+		if message.Type == discord.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 			return
 		}
 		if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
@@ -28,28 +27,25 @@ func MessageCreateListener(session *discordgo.Session, message *discordgo.Messag
 		if len(message.Attachments) > 0 {
 			return
 		}
-		guildID := message.GuildID
-		if guildID == "" {
-			channel, _ := session.Channel(message.ChannelID)
-			guildID = channel.GuildID
-		}
-		ConstructCreateMessageObject(message.Message, guildID, message.Author.Bot)
+		ConstructCreateMessageObject(message, message.GuildID.String(), message.Author.Bot)
 	}
 }
 
 // MessageUpdateListener registers a simpler handler on a discordgo session to automatically parse incoming messages for you.
-func MessageUpdateListener(session *discordgo.Session, message *discordgo.MessageUpdate) {
-	if message.Flags != discordgo.MessageFlagsLoading &&
-		message.Type != discordgo.MessageTypeGuildMemberJoin &&
-		message.Type != discordgo.MessageTypeChannelPinnedMessage &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscription &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierOne &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierTwo &&
-		message.Type != discordgo.MessageTypeUserPremiumGuildSubscriptionTierThree &&
+func MessageUpdateListener(event *events.GuildMessageUpdate) {
+	message := event.Message
+
+	if message.Flags != discord.MessageFlagLoading &&
+		message.Type != discord.MessageTypeUserJoin &&
+		message.Type != discord.MessageTypeChannelPinnedMessage &&
+		message.Type != discord.MessageTypeGuildBoost &&
+		message.Type != discord.MessageTypeGuildBoostTier1 &&
+		message.Type != discord.MessageTypeGuildBoostTier2 &&
+		message.Type != discord.MessageTypeGuildBoostTier3 &&
 		message.Thread == nil &&
 		message.Poll == nil &&
 		message.StickerItems == nil {
-		if message.Type == discordgo.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
+		if message.Type == discord.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
 			return
 		}
 		if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
@@ -58,60 +54,61 @@ func MessageUpdateListener(session *discordgo.Session, message *discordgo.Messag
 		if len(message.Attachments) > 0 {
 			return
 		}
-		guildID := message.GuildID
-		if guildID == "" {
-			channel, _ := session.Channel(message.ChannelID)
-			guildID = channel.GuildID
-		}
+		// guildID := message.GuildID
+		// if guildID == "" {
+		// 	channel, _ := session.Channel(message.ChannelID)
+		// 	guildID = channel.GuildID
+		// }
 
-		constructUpdateMessageObject(message.Message, guildID, message.Author.Bot)
+		constructUpdateMessageObject(message, message.GuildID.String(), message.Author.Bot)
 	}
 }
 
-func MessageReactAddListener(session *discordgo.Session, message *discordgo.MessageReactionAdd) {
-	guildID := message.GuildID
-	if guildID == "" {
-		channel, _ := session.Channel(message.ChannelID)
-		guildID = channel.GuildID
-	}
+func MessageReactAddListener(event *events.GuildMessageReactionAdd) {
+
+	// guildID := message.GuildID
+	// if guildID == "" {
+	// 	channel, _ := session.Channel(message.ChannelID)
+	// 	guildID = channel.GuildID
+	// }
 
 	ConstructMessageReactObject(MessageReact{
-		ID:        message.MessageID,
-		GuildID:   guildID,
-		ChannelID: message.ChannelID,
-		Author:    message.UserID,
-		Reaction:  message.Emoji.Name,
+		ID:        event.MessageID.String(),
+		GuildID:   event.GuildID.String(),
+		ChannelID: event.ChannelID.String(),
+		Author:    event.Member.User.ID.String(),
+		Reaction:  *event.Emoji.Name,
 	}, false)
 
-	if message.Emoji.ID != "" && CustomEmojiCache[message.Emoji.Name] == "" {
-		emoji, err := util.FetchDiscordEmojiImage(message.Emoji.ID, message.Emoji.Animated)
+	// if event.Emoji.ID != "" && CustomEmojiCache[*event.Emoji.Name] == "" {
+	// 	emoji, err := util.FetchDiscordEmojiImage(message.Emoji.ID, message.Emoji.Animated)
 
-		// emoji, err := session.GuildEmoji(guildID, message.Emoji.ID)
-		if err != nil {
-			fmt.Printf("error fetching emoji: %s\n", err)
-			return
-		}
-		ConstructEmojiObject(EmojiData{
-			ID:        message.Emoji.ID,
-			GuildID:   guildID,
-			Name:      message.Emoji.Name,
-			ImageData: emoji,
-		})
-	}
+	// 	// emoji, err := session.GuildEmoji(guildID, message.Emoji.ID)
+	// 	if err != nil {
+	// 		fmt.Printf("error fetching emoji: %s\n", err)
+	// 		return
+	// 	}
+	// 	ConstructEmojiObject(EmojiData{
+	// 		ID:        message.Emoji.ID,
+	// 		GuildID:   guildID,
+	// 		Name:      message.Emoji.Name,
+	// 		ImageData: emoji,
+	// 	})
+	// }
 }
 
-func MessageReactRemoveListener(session *discordgo.Session, message *discordgo.MessageReactionRemove) {
-	guildID := message.GuildID
-	if guildID == "" {
-		channel, _ := session.Channel(message.ChannelID)
-		guildID = channel.GuildID
-	}
+func MessageReactRemoveListener(event *events.GuildMessageReactionRemove) {
+	// guildID := message.GuildID
+	// if guildID == "" {
+	// 	channel, _ := session.Channel(message.ChannelID)
+	// 	guildID = channel.GuildID
+	// }
 
 	ConstructMessageReactObject(MessageReact{
-		ID:        message.MessageID,
-		GuildID:   guildID,
-		ChannelID: message.ChannelID,
-		Author:    message.UserID,
-		Reaction:  message.Emoji.ID,
+		ID:        event.MessageID.String(),
+		GuildID:   event.GuildID.String(),
+		ChannelID: event.ChannelID.String(),
+		Author:    event.UserID.String(),
+		Reaction:  *event.Emoji.Name,
 	}, true)
 }

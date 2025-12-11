@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssm"
-	"github.com/bwmarrin/discordgo"
+	"github.com/disgoorg/disgo/discord"
 	"github.com/joho/godotenv"
 	"github.com/stollenaar/aws-rotating-credentials-provider/credentials/filecreds"
 )
@@ -102,7 +102,7 @@ func init() {
 	}
 }
 
-func GetDiscordToken() string {
+func (c *Config) GetDiscordToken() string {
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
 		log.Fatal("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
 	}
@@ -152,9 +152,9 @@ func getAWSParameter(parameterName string) (string, error) {
 	return *out.Parameter.Value, err
 }
 
-func (c *Config) SetEphemeral() discordgo.MessageFlags {
+func (c *Config) SetEphemeral() discord.MessageFlags {
 	if c.DEBUG {
-		return discordgo.MessageFlagsEphemeral
+		return discord.MessageFlagEphemeral
 	} else {
 		return 0
 	}
