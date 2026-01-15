@@ -1,3 +1,3 @@
 output "persistent_volume_claim" {
-  value = kubernetes_persistent_volume_claim_v1.duckdb
+  value = kubernetes_persistent_volume_claim_v1.statisticsbot
 }
