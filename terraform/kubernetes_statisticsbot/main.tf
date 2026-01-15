@@ -1,12 +1,12 @@
 locals {
   name  = "statisticsbot"
-  image = var.docker_image != null ? var.docker_image : "${data.terraform_remote_state.discord_bots_cluster.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab8ea54"
+  image = var.docker_image != null ? var.docker_image : "${data.terraform_remote_state.ecr_repo.outputs.discord_bots_repo.repository_url}:${local.name}-1.1.16-SNAPSHOT-ab8ea54"
 }
 
 resource "kubernetes_deployment" "statisticsbot" {
   metadata {
     name      = "statisticsbot"
-    namespace = data.terraform_remote_state.kubernetes.outputs.namespace.metadata.0.name
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
     labels = {
       app = local.name
     }
@@ -36,7 +36,7 @@ resource "kubernetes_deployment" "statisticsbot" {
       spec {
 
         image_pull_secrets {
-          name = data.terraform_remote_state.kubernetes.outputs.external_secret.spec.target.name
+          name = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.secret_name
         }
         container {
           image = local.image

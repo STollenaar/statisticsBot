@@ -2,16 +2,10 @@ locals {
   name = "statisticsbot"
 }
 
-resource "kubernetes_namespace" "statisticsbot" {
-  metadata {
-    name = local.name
-  }
-}
-
 resource "kubernetes_service_v1" "statisticsbot" {
   metadata {
     name      = "statisticsbot"
-    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
   }
   spec {
     selector = {
@@ -28,7 +22,7 @@ resource "kubernetes_service_v1" "statisticsbot" {
 resource "kubernetes_persistent_volume_claim_v1" "duckdb" {
   metadata {
     name      = "duckdb"
-    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
   }
   spec {
     access_modes = ["ReadWriteOnce"]

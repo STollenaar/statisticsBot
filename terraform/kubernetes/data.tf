@@ -1,12 +1,3 @@
-data "terraform_remote_state" "discord_bots_cluster" {
-  backend = "s3"
-  config = {
-    region = "ca-central-1"
-    bucket = "stollenaar-terraform-states"
-    key    = "infrastructure/terraform.tfstate"
-  }
-}
-
 data "terraform_remote_state" "vault_setup" {
   backend = "s3"
   config = {

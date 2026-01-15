@@ -1,6 +1,6 @@
 
 locals {
-  host            = "http://${kubernetes_service_v1.statisticsbot.metadata.0.name}.${kubernetes_namespace.statisticsbot.metadata.0.name}.svc.cluster.local"
+  host            = "http://${kubernetes_service_v1.statisticsbot.metadata.0.name}.${data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name}.svc.cluster.local"
   image           = "curlimages/curl:7.85.0"
   history_success = 3
   history_fail    = 1
@@ -11,7 +11,7 @@ locals {
 resource "kubernetes_cron_job_v1" "delete_fix_messages" {
   metadata {
     name      = "delete-fix-messages"
-    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
   }
   spec {
     schedule                      = "0 * * * 6" # every hour at minute 5
@@ -45,7 +45,7 @@ resource "kubernetes_cron_job_v1" "delete_fix_messages" {
 resource "kubernetes_cron_job_v1" "put_fix_messages" {
   metadata {
     name      = "put-fix-messages"
-    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
   }
   spec {
     schedule                      = "2 * * * 6" # every hour at minute 10
@@ -79,7 +79,7 @@ resource "kubernetes_cron_job_v1" "put_fix_messages" {
 resource "kubernetes_cron_job_v1" "put_fix_emojis" {
   metadata {
     name      = "put-fix-emojis"
-    namespace = kubernetes_namespace.statisticsbot.metadata.0.name
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
   }
   spec {
     schedule                      = "2 * * * 6" # every hour at minute 15
