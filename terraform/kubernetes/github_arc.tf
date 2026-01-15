@@ -12,7 +12,7 @@ resource "helm_release" "github_arc_runner_statisticsbot" {
 
 resource "kubernetes_role_binding" "github_arc_admin" {
   metadata {
-    name      = "namespace-admin-binding"
+    name      = "namespace-arc-statisticsbot-admin-binding"
     namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
   }
 
