@@ -64,12 +64,12 @@ func (c CountCommand) CreateCommandArguments() []discord.ApplicationCommandOptio
 			Description: "Word to count",
 			Required:    true,
 		},
-		discord.ApplicationCommandOptionString{
+		discord.ApplicationCommandOptionUser{
 			Name:        "user",
 			Description: "User to filter with",
 			Required:    false,
 		},
-		discord.ApplicationCommandOptionString{
+		discord.ApplicationCommandOptionChannel{
 			Name:        "channel",
 			Description: "Channel to filter with",
 			Required:    false,

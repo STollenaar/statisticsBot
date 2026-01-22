@@ -94,7 +94,7 @@ func (m MaxCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
 
 func (m MaxCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
 	return []discord.ApplicationCommandOption{
-		discord.ApplicationCommandOptionString{
+		discord.ApplicationCommandOptionUser{
 			Name:        "user",
 			Description: "User to filter with",
 			Required:    false,
@@ -104,7 +104,7 @@ func (m MaxCommand) CreateCommandArguments() []discord.ApplicationCommandOption 
 			Description: "Word to count",
 			Required:    false,
 		},
-		discord.ApplicationCommandOptionString{
+		discord.ApplicationCommandOptionChannel{
 			Name:        "channel",
 			Description: "Channel to filter with",
 			Required:    false,

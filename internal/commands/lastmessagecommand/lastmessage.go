@@ -121,7 +121,7 @@ func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionC
 
 func (l LastMessageCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
 	return []discord.ApplicationCommandOption{
-		discord.ApplicationCommandOptionString{
+		discord.ApplicationCommandOptionUser{
 			Name:        "user",
 			Description: "User to filter with",
 			Required:    true,
@@ -131,7 +131,7 @@ func (l LastMessageCommand) CreateCommandArguments() []discord.ApplicationComman
 			Description: "Word to count",
 			Required:    false,
 		},
-		discord.ApplicationCommandOptionString{
+		discord.ApplicationCommandOptionChannel{
 			Name:        "channel",
 			Description: "Channel to filter with",
 			Required:    false,
