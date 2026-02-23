@@ -10,7 +10,7 @@ require (
 	github.com/disgoorg/disgo v0.19.2
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/gin-gonic/gin v1.11.0
-	github.com/go-echarts/go-echarts/v2 v2.6.7
+	github.com/go-echarts/go-echarts/v2 v2.7.0
 	github.com/go-echarts/snapshot-chromedp v0.0.5
 	github.com/joho/godotenv v1.5.1
 	github.com/marcboeker/go-duckdb/v2 v2.4.3
