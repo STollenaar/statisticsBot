@@ -241,25 +241,13 @@ func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
 		os.WriteFile("summary.json", d, 0644)
 	}
 	resp, err := util.CreateOllamaGeneration(util.OllamaGenerateRequest{
-		Model: "mistral:7b",
+		Model: "llama3.2:3b",
 		Prompt: fmt.Sprintf(
-			`You are an AI that outputs valid JSON only. 
-			Do not anonymize or replace author IDs.
-				Use the exact author ID provided in the input.
-			Summarize and group the following messages by topic. 
-
-			Return a JSON array of objects in this exact format:
-			{
-			"messages": [
-				{
-				"topic": "string",
-				"summary": "string"
-				}
-			]
-			}
-
-			Here is the input: 
-			%s`,
+			"You are an AI that outputs valid JSON only.\n"+
+				"Summarize and group the following Discord messages by topic.\n"+
+				"Use the exact author names provided in the input.\n"+
+				"Return a JSON object with a \"messages\" array where each element has a \"topic\" and \"summary\" field.\n\n"+
+				"Input:\n%s",
 			string(data)),
 		Format: map[string]interface{}{
 			"type": "object",
@@ -276,12 +264,16 @@ func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
 								"type": "string",
 							},
 						},
+						"required": []string{"topic", "summary"},
 					},
 				},
 			},
-			"required": []string{
-				"messages",
-			},
+			"required": []string{"messages"},
+		},
+		Options: map[string]interface{}{
+			"num_ctx":     4096,
+			"num_predict": 2048,
+			"temperature": 0.2,
 		},
 		Stream: false,
 	})

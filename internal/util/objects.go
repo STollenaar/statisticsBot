@@ -53,8 +53,9 @@ type OllamaGenerateResponse struct {
 }
 
 type OllamaGenerateRequest struct {
-	Model  string                 `json:"model"`
-	Prompt string                 `json:"prompt"`
-	Format map[string]interface{} `json:"format"`
-	Stream bool                   `json:"stream"`
+	Model   string                 `json:"model"`
+	Prompt  string                 `json:"prompt"`
+	Format  map[string]interface{} `json:"format"`
+	Stream  bool                   `json:"stream"`
+	Options map[string]interface{} `json:"options,omitempty"`
 }
