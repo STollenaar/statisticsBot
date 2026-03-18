@@ -18,6 +18,7 @@ type Config struct {
 	DEBUG         bool
 	DISCORD_TOKEN string
 	DUCKDB_PATH   string
+	ADMIN_USER_ID string
 
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
@@ -64,13 +65,13 @@ func init() {
 		OLLAMA_AUTH_PASSWORD:     os.Getenv("OLLAMA_AUTH_PASSWORD"),
 		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
 		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
+		ADMIN_USER_ID:            os.Getenv("ADMIN_USER_ID"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
 	}
 
 }
-
 
 func init() {
 

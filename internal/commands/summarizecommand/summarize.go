@@ -13,6 +13,7 @@ import (
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
+	"github.com/google/uuid"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -131,9 +132,17 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		})
 	}
 
+	// Save the invocation so it can be retried if the summary fails
+	messagesJSON, _ := json.Marshal(messages)
+	invID := uuid.New().String()
+	if saveErr := database.SaveSummaryInvocation(invID, event.GuildID().String(), event.Channel().ID().String(), sub.Options["unit"].String(), string(messagesJSON)); saveErr != nil {
+		slog.Warn("Failed to save summary invocation", slog.Any("err", saveErr))
+	}
+
 	// Get and create the summary
-	summaries, err := getSummary(messages)
+	summaries, rawResponse, err := GetSummary(messages)
 	if err != nil {
+		database.UpdateSummaryInvocation(invID, rawResponse, "failed")
 		eString := "error happened while trying to generate the summaries"
 		fmt.Printf("summarize error: %e\n", err)
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
@@ -144,6 +153,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		}
 		return
 	}
+	database.UpdateSummaryInvocation(invID, rawResponse, "success")
 
 	embed := discord.Embed{
 		Title: fmt.Sprintf("Summary of the past %s", sub.Options["unit"].String()),
@@ -231,10 +241,10 @@ func parseTimeArg(timeUnit string) (time.Duration, error) {
 	return duration, nil
 }
 
-func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
+func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string, err error) {
 	data, err := json.Marshal(messages)
 	if err != nil {
-		return SummaryResponse{}, err
+		return SummaryResponse{}, "", err
 	}
 	if util.ConfigFile.DEBUG {
 		d, _ := json.MarshalIndent(messages, "", "    ")
@@ -278,10 +288,11 @@ func getSummary(messages []SummaryBody) (out SummaryResponse, err error) {
 		Stream: false,
 	})
 	if err != nil {
-		return SummaryResponse{}, nil
+		return SummaryResponse{}, "", err
 	}
 
-	err = json.Unmarshal([]byte(resp.Response), &out)
-	fmt.Printf("Raw response for summarize: %s\n", resp.Response)
+	rawResponse = resp.Response
+	fmt.Printf("Raw response for summarize: %s\n", rawResponse)
+	err = json.Unmarshal([]byte(rawResponse), &out)
 	return
 }

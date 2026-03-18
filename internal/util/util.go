@@ -4,11 +4,13 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/disgo/events"
 )
 
 const (
@@ -126,4 +128,24 @@ func GetSeparator() discord.SeparatorComponent {
 
 func Pointer[T any](d T) *T {
 	return &d
+}
+
+func UpdateInteractionResponse(event *events.ApplicationCommandInteractionCreate, components []discord.LayoutComponent) {
+	_, err := event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+		Flags:      Pointer(discord.MessageFlagIsComponentsV2),
+		Components: &components,
+	})
+	if err != nil {
+		slog.Error("Error updating interaction response", slog.Any("err", err))
+	}
+}
+
+func UpdateComponentInteractionResponse(event *events.ComponentInteractionCreate, components []discord.LayoutComponent) {
+	_, err := event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+		Flags:      Pointer(discord.MessageFlagIsComponentsV2),
+		Components: &components,
+	})
+	if err != nil {
+		slog.Error("Error updating component interaction response", slog.Any("err", err))
+	}
 }

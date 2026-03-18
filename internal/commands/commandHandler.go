@@ -5,6 +5,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/stollenaar/statisticsbot/internal/commands/admincommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/countcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/maxcommand"
@@ -21,6 +22,7 @@ type CommandI interface {
 
 var (
 	Commands = []CommandI{
+		admincommand.AdminCmd,
 		countcommand.CountCmd,
 		lastmessagecommand.LastMessageCmd,
 		maxcommand.MaxCmd,
