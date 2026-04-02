@@ -41,6 +41,26 @@
                 "--debug",
                 "--rmcmd"
             ]
-        }
+        },
+        {
+            "name": "Purge statisticsbot commands",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "cwd": "${workspaceFolder}/cmd/statisticsbot",
+            "program": "${workspaceFolder}/cmd/statisticsbot/main.go",
+            "env": {
+                "CGO_ENABLED": "1",
+                "CC": "gcc",
+                "CGO_CFLAGS": "-g -O2",
+                "CGO_LDFLAGS": "-v"
+            },
+            "args": [
+                "--guild=497544520695808000",
+                "--debug",
+                "--rmcmd",
+                "--purgecmd"
+            ]
+        },
     ]
 }

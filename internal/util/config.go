@@ -20,6 +20,8 @@ type Config struct {
 	DUCKDB_PATH   string
 	ADMIN_USER_ID string
 
+	HEALTH_PORT string
+
 	AWS_REGION         string
 	AWS_PARAMETER_NAME string
 	TERMINAL_REGEX     string
@@ -65,6 +67,7 @@ func init() {
 		OLLAMA_AUTH_PASSWORD:     os.Getenv("OLLAMA_AUTH_PASSWORD"),
 		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
 		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
+		HEALTH_PORT:              os.Getenv("HEALTH_PORT"),
 		ADMIN_USER_ID:            os.Getenv("ADMIN_USER_ID"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {

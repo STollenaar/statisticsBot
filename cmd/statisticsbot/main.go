@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 
 	"github.com/disgoorg/disgo"
@@ -26,6 +28,8 @@ import (
 
 var (
 	client *bot.Client
+
+	gatewayReady atomic.Bool
 
 	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
 	Debug          = flag.Bool("debug", false, "Run in debug mode")
@@ -73,6 +77,37 @@ func init() {
 	util.ConfigFile.DEBUG = *Debug
 }
 
+func startHealthServer(port string) {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, err := w.Write([]byte("ok"))
+		if err != nil {
+			slog.Error("Error writing ok", slog.Any("err", err.Error()))
+		}
+	})
+	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
+		if gatewayReady.Load() {
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte("ok"))
+			if err != nil {
+				slog.Error("Error writing ok", slog.Any("err", err.Error()))
+			}
+		} else {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_, err := w.Write([]byte("not ready"))
+			if err != nil {
+				slog.Error("Error writing ready", slog.Any("err", err.Error()))
+			}
+
+		}
+	})
+	slog.Info("Health server listening", slog.String("port", port))
+	if err := http.ListenAndServe(":"+port, mux); err != nil {
+		slog.Error("Health server failed", slog.Any("err", err))
+	}
+}
+
 func main() {
 	defer client.Close(context.TODO())
 	var guilds []snowflake.ID
@@ -109,7 +144,10 @@ func main() {
 		return
 	}
 
+	go startHealthServer(util.ConfigFile.HEALTH_PORT)
+
 	slog.Info("Adding commands...")
+
 	registeredCommands := make([]discord.ApplicationCommand, len(commands.ApplicationCommands))
 	if *GuildID != "" {
 		if r, err := client.Rest.SetGuildCommands(client.ApplicationID, guilds[0], commands.ApplicationCommands); err != nil {
@@ -131,6 +169,8 @@ func main() {
 	if err := client.OpenGateway(context.TODO()); err != nil {
 		log.Fatal("error while connecting to gateway: ", err)
 	}
+
+	gatewayReady.Store(true)
 	slog.Info("Bot started")
 
 	database.Init(client, GuildID)
@@ -165,28 +205,6 @@ func main() {
 			}
 		}
 	}
-}
-
-func containsCommand(cmd *discordgo.ApplicationCommand, commands []*discordgo.ApplicationCommand) *discordgo.ApplicationCommand {
-	for _, c := range commands {
-		if cmd.Name == c.Name {
-			return c
-		}
-	}
-	return nil
-}
-
-// optionsEqual compares the Options slices of two ApplicationCommands.
-func optionsEqual(cmd, registered *discordgo.ApplicationCommand) bool {
-	if len(cmd.Options) != len(registered.Options) {
-		return false
-	}
-	for i := range cmd.Options {
-		if !optionEqual(cmd.Options[i], registered.Options[i]) {
-			return false
-		}
-	}
-	return true
 }
 
 // optionEqual compares two ApplicationCommandOption objects recursively.
