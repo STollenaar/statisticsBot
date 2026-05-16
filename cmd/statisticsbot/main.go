@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync/atomic"
 	"syscall"
 
@@ -55,7 +56,7 @@ func init() {
 			}
 		}),
 		bot.WithEventListenerFunc(func(event *events.ComponentInteractionCreate) {
-			commands.ComponentHandlers[event.Message.Interaction.Name](event)
+			commands.ComponentHandlers[strings.Split(event.Message.Interaction.Name, " ")[0]](event)
 		}),
 		bot.WithEventListenerFunc(func(event *events.ModalSubmitInteractionCreate) {
 			commands.ModalSubmitHandlers[event.Data.CustomID](event)
