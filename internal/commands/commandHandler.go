@@ -7,6 +7,7 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/stollenaar/statisticsbot/internal/commands/admincommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/countcommand"
+	"github.com/stollenaar/statisticsbot/internal/commands/helpcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/lastmessagecommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/maxcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/moodcommand"
@@ -24,10 +25,11 @@ var (
 	Commands = []CommandI{
 		admincommand.AdminCmd,
 		countcommand.CountCmd,
+		helpcommand.HelpCmd,
 		lastmessagecommand.LastMessageCmd,
 		maxcommand.MaxCmd,
-		summarizecommand.SummarizeCmd,
 		moodcommand.MoodCmd,
+		summarizecommand.SummarizeCmd,
 		plotcommand.PlotCmd,
 	}
 	ApplicationCommands    []discord.ApplicationCommandCreate
@@ -71,6 +73,8 @@ func init() {
 	)
 
 	CommandHandlers["ping"] = PingCommand
+
+	helpcommand.HelpCmd.ApplicationCommands = &ApplicationCommands
 }
 
 // PingCommand sends back the pong
