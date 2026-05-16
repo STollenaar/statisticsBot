@@ -77,6 +77,11 @@ resource "kubernetes_deployment" "statisticsbot" {
             name  = "AWS_OLLAMA_AUTH_PASSWORD"
             value = "/ollama/dan_password"
           }
+          env {
+            name  = "ADMIN_USER_ID"
+            value = "134337759446958081"
+          }
+
           port {
             container_port = 8080
             name           = "router"
