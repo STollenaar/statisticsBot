@@ -263,7 +263,9 @@ func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string
 			"type": "object",
 			"properties": map[string]interface{}{
 				"messages": map[string]interface{}{
-					"type": "array",
+					"type":     "array",
+					"minItems": 1,
+					"maxItems": 20,
 					"items": map[string]interface{}{
 						"type": "object",
 						"properties": map[string]interface{}{
@@ -281,9 +283,10 @@ func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string
 			"required": []string{"messages"},
 		},
 		Options: map[string]interface{}{
-			"num_ctx":     4096,
-			"num_predict": 2048,
-			"temperature": 0.2,
+			"num_ctx":        4096,
+			"num_predict":    2048,
+			"temperature":    0.2,
+			"repeat_penalty": 1.3,
 		},
 		Stream: false,
 	})
