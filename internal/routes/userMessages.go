@@ -1,13 +1,13 @@
 package routes
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -20,32 +20,32 @@ func init() {
 	reTarget = regexp.MustCompile(`[\<>@#&!]`)
 }
 
-func addGetUserMessages(r *gin.Engine) {
-	r.POST("/userMessages", handleGetUserMessages)
+func addGetUserMessages(mux *http.ServeMux) {
+	mux.HandleFunc("POST /userMessages", handleGetUserMessages)
 }
 
-func handleGetUserMessages(c *gin.Context) {
+func handleGetUserMessages(w http.ResponseWriter, r *http.Request) {
 
-	var json util.SQSObject
+	var sqsObject util.SQSObject
 
-	if c.BindJSON(&json) == nil {
-		switch json.Type {
+	if err := json.NewDecoder(r.Body).Decode(&sqsObject); err == nil{
+		switch sqsObject.Type {
 		case "user":
-			resp := handleUserObject(json)
-			c.JSON(http.StatusOK, resp)
+			resp := handleUserObject(sqsObject)
+			writeJSON(w, http.StatusOK, resp)
 		case "message":
-			resp, err := handleMessageObject(json)
+			resp, err := handleMessageObject(sqsObject)
 			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			} else {
-				c.JSON(http.StatusOK, resp)
+				writeJSON(w, http.StatusOK, resp)
 			}
 		default:
-			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", json)
-			c.JSON(http.StatusBadRequest, gin.H{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", json)})
+			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)
+			writeJSON(w, http.StatusBadRequest, map[string]string{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)})
 		}
 	} else {
-		c.JSON(http.StatusBadRequest, gin.H{"status": "bad request"})
+		writeJSON(w, http.StatusBadRequest, map[string]string{"status": "bad request"})
 	}
 }
 

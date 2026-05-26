@@ -2,20 +2,20 @@ package routes
 
 import (
 	"fmt"
+	"net/http"
 	"slices"
 	"sync"
 
 	"github.com/disgoorg/disgo/discord"
-	"github.com/gin-gonic/gin"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
-func addFixEmojis(r *gin.Engine) {
-	r.PUT("/fixEmojis", addMissingEmojis)
+func addFixEmojis(mux *http.ServeMux) {
+	mux.HandleFunc("PUT /fixEmojis", addMissingEmojis)
 }
 
-func addMissingEmojis(c *gin.Context) {
+func addMissingEmojis(w http.ResponseWriter, r *http.Request) {
 
 	guilds := slices.Collect(client.Caches.Guilds())
 
@@ -41,9 +41,7 @@ func addMissingEmojis(c *gin.Context) {
 		database.ConstructEmojiObject(*emoji)
 		missed++
 	}
-	c.JSON(200, gin.H{
-		"message": fmt.Sprintf("done, added %d emojis", missed),
-	})
+	writeJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("done, added %d emojis", missed)})
 }
 
 func doEmojis(emojis []discord.Emoji, guildID string) (result []*database.EmojiData) {

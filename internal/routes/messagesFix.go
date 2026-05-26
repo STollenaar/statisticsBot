@@ -3,6 +3,7 @@ package routes
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"slices"
 	"sync"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/snowflake/v2"
-	"github.com/gin-gonic/gin"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -29,12 +29,12 @@ type MessageBody struct {
 	AuthorID      string
 }
 
-func addFixMessages(r *gin.Engine) {
-	r.DELETE("/fixMessages", deleteBadMessages)
-	r.PUT("/fixMessages", addMissingMessages)
+func addFixMessages(mux *http.ServeMux) {
+	mux.HandleFunc("DELETE /fixMessages", deleteBadMessages)
+	mux.HandleFunc("PUT /fixMessages", addMissingMessages)
 }
 
-func deleteBadMessages(c *gin.Context) {
+func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 	query := `
 	SELECT id AS message_id,
 	channel_id,
@@ -63,16 +63,12 @@ func deleteBadMessages(c *gin.Context) {
 	`
 	rs, err := database.QueryDuckDB(query, []interface{}{})
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error": err.Error(),
-		})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	tx, err := database.StartTX()
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error": err.Error(),
-		})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 	}
 
 	response := deleteBadEntriesResponse{
@@ -100,9 +96,7 @@ func deleteBadMessages(c *gin.Context) {
 			response.Updates["date"] = response.Updates["date"] + 1
 			if err != nil {
 				fmt.Println(err)
-				c.JSON(500, gin.H{
-					"error": err.Error(),
-				})
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				tx.Rollback()
 				return
 			}
@@ -121,9 +115,7 @@ func deleteBadMessages(c *gin.Context) {
 			response.Updates["guild"] = response.Updates["guild"] + 1
 			if err != nil {
 				fmt.Println(err)
-				c.JSON(500, gin.H{
-					"error": err.Error(),
-				})
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				tx.Rollback()
 				return
 			}
@@ -135,9 +127,7 @@ func deleteBadMessages(c *gin.Context) {
 				var apiErr *discordgo.RESTError
 				if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
 					fmt.Println(err)
-					c.JSON(500, gin.H{
-						"error": err.Error(),
-					})
+					writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 					tx.Rollback()
 					return
 				} else {
@@ -202,18 +192,13 @@ func deleteBadMessages(c *gin.Context) {
 
 	err = tx.Commit()
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error":   err.Error(),
-			"message": response,
-		})
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error(), "message": response})
 	} else {
-		c.JSON(200, gin.H{
-			"message": response,
-		})
+		writeJSON(w, http.StatusOK, map[string]deleteBadEntriesResponse{"message": response})
 	}
 }
 
-func addMissingMessages(c *gin.Context) {
+func addMissingMessages(w http.ResponseWriter, r *http.Request) {
 	query := `
 		SELECT id FROM messages
 		UNION ALL
@@ -226,9 +211,7 @@ func addMissingMessages(c *gin.Context) {
 
 	rs, err := database.QueryDuckDB(query, nil)
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error": err.Error(),
-		})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 	var ids []string
@@ -243,9 +226,7 @@ func addMissingMessages(c *gin.Context) {
 
 	rs, err = database.QueryDuckDB(reactions, nil)
 	if err != nil {
-		c.JSON(500, gin.H{
-			"error": err.Error(),
-		})
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
 
@@ -279,10 +260,7 @@ func addMissingMessages(c *gin.Context) {
 	}
 	// Waiting for all async calls to complete
 	waitGroup.Wait()
-
-	c.JSON(200, gin.H{
-		"message": fmt.Sprintf("done, added %d messages", missed),
-	})
+	writeJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("done, added %d messages", missed)})
 }
 func doChannels(client *bot.Client, channels []discord.GuildChannel, IDs []string, reactionTable map[string]bool) (missed int) {
 	var waitGroup sync.WaitGroup
@@ -340,14 +318,14 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel, IDs []string
 		for _, reaction := range message.Reactions {
 			// users, _ := client.MessageReactions(message.ChannelID.String(), message.ID.String(), reaction.Emoji.Name, 100, "", "")
 			// for _, user := range users {
-				if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.Creator.ID.String(), reaction.Emoji.Name)]; !ok {
-					database.ConstructMessageReactObject(database.MessageReact{
-						ID:        message.ID.String(),
-						GuildID:   message.GuildID.String(),
-						ChannelID: message.ChannelID.String(),
-						Author:    reaction.Emoji.Creator.ID.String(),
-						Reaction:  reaction.Emoji.Name,
-					}, false)
+			if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.Creator.ID.String(), reaction.Emoji.Name)]; !ok {
+				database.ConstructMessageReactObject(database.MessageReact{
+					ID:        message.ID.String(),
+					GuildID:   message.GuildID.String(),
+					ChannelID: message.ChannelID.String(),
+					Author:    reaction.Emoji.Creator.ID.String(),
+					Reaction:  reaction.Emoji.Name,
+				}, false)
 				// }
 			}
 		}
