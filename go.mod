@@ -3,9 +3,9 @@ module github.com/stollenaar/statisticsbot
 go 1.25.0
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.41.9
+	github.com/aws/aws-sdk-go-v2 v1.41.10
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.8
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.69.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/disgoorg/disgo v0.19.4
 	github.com/disgoorg/snowflake/v2 v2.0.3
@@ -22,8 +22,8 @@ require (
 	github.com/apache/arrow-go/v18 v18.4.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.19 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.25 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.25 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.25 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.26 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.25 // indirect
