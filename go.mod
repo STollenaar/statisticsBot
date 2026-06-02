@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.20
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.68.8
 	github.com/bwmarrin/discordgo v0.29.0
-	github.com/disgoorg/disgo v0.19.3
+	github.com/disgoorg/disgo v0.19.4
 	github.com/disgoorg/snowflake/v2 v2.0.3
 	github.com/go-echarts/go-echarts/v2 v2.7.2
 	github.com/go-echarts/snapshot-chromedp v0.0.5
