@@ -283,7 +283,7 @@ func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string
 			"required": []string{"messages"},
 		},
 		Options: map[string]interface{}{
-			"num_ctx":        4096,
+			"num_ctx":        len(data) + 1000,
 			"num_predict":    2048,
 			"temperature":    0.2,
 			"repeat_penalty": 1.3,
