@@ -112,7 +112,7 @@ func summaryListComponents(page int) []discord.LayoutComponent {
 				discord.ButtonComponent{
 					Style:    discord.ButtonStyleSecondary,
 					Label:    "⏮ First",
-					CustomID: "admin_summary_page_1",
+					CustomID: "admin_summary_page_first",
 				},
 				discord.ButtonComponent{
 					Style:    discord.ButtonStyleSecondary,
@@ -131,7 +131,7 @@ func summaryListComponents(page int) []discord.LayoutComponent {
 				discord.ButtonComponent{
 					Style:    discord.ButtonStyleSecondary,
 					Label:    "Last ⏭",
-					CustomID: fmt.Sprintf("admin_summary_page_%d", totalPages),
+					CustomID: "admin_summary_page_last",
 				},
 			)
 		}
