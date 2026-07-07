@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/aws/aws-sdk-go-v2 v1.42.1
 	github.com/aws/aws-sdk-go-v2/config v1.32.28
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.70.0
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.71.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/disgoorg/disgo v0.19.6
 	github.com/disgoorg/snowflake/v2 v2.0.3
