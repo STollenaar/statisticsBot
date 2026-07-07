@@ -153,6 +153,17 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		}
 		return
 	}
+	if len(summaries.Summaries) == 0 {
+		database.UpdateSummaryInvocation(invID, rawResponse, "empty")
+		eString := "summarize returned empty, clanker likely had an oopsie"
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+			Content: &eString,
+		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
+		return
+	}
 	database.UpdateSummaryInvocation(invID, rawResponse, "success")
 
 	embed := discord.Embed{

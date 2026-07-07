@@ -264,6 +264,8 @@ func statusEmoji(status string) string {
 		return "✅"
 	case "failed":
 		return "❌"
+	case "empty":
+		return "⭕"
 	default:
 		return "⏳"
 	}
