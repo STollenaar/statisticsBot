@@ -9,7 +9,6 @@ import (
 	"net/http"
 )
 
-
 func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateResponse, error) {
 
 	data, err := json.Marshal(prompt)
@@ -18,7 +17,7 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	}
 	// os.WriteFile("req.json", data, 0644)
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s/api/generate", ConfigFile.OLLAMA_URL), bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s", ConfigFile.OLLAMA_URL), bytes.NewBuffer(data))
 
 	if err != nil {
 		fmt.Println(err)
@@ -42,6 +41,13 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 
 		token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
 		req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
+	case "api_key":
+		token, err := GetOllamaAPIKey()
+		if err != nil {
+			fmt.Println(err)
+			return OllamaGenerateResponse{}, err
+		}
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
 	}
 
 	client := &http.Client{}

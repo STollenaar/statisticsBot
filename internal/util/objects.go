@@ -23,6 +23,11 @@ type MessageObject struct {
 	Version        int            `json:"version"`
 }
 
+type SummaryBody struct {
+	Author  string `json:"author"`
+	Message string `json:"message"`
+}
+
 type WordCounted struct {
 	Word  string `json:"Word"`
 	Count int    `json:"Count"`
@@ -38,24 +43,46 @@ type SQSObject struct {
 	ApplicationID string `json:"applicationID"`
 }
 
+type OllamaGenerateResponseChoiceMessage struct {
+	Content string `json:"content"`
+}
+
+type OllamaGenerateResponseChoice struct {
+	Message OllamaGenerateResponseChoiceMessage `json:"message"`
+}
+
 type OllamaGenerateResponse struct {
-	Model              string    `json:"model"`
-	Created            time.Time `json:"created_at"`
-	Response           string    `json:"response"`
-	Done               bool      `json:"done"`
-	Context            []int     `json:"context"`
-	TotalDuration      int       `json:"total_duration"`
-	LoadDuration       int       `json:"load_duration"`
-	PromptEvalCount    int       `json:"prompt_eval_count"`
-	PromptEvalDuration int       `json:"prompt_eval_duration"`
-	EvalCount          int       `json:"eval_count"`
-	EvalDuration       int       `json:"eval_duration"`
+	Model              string                         `json:"model"`
+	Created            time.Time                      `json:"created_at"`
+	Choices            []OllamaGenerateResponseChoice `json:"choices"`
+	Done               bool                           `json:"done"`
+	Context            []int                          `json:"context"`
+	TotalDuration      int                            `json:"total_duration"`
+	LoadDuration       int                            `json:"load_duration"`
+	PromptEvalCount    int                            `json:"prompt_eval_count"`
+	PromptEvalDuration int                            `json:"prompt_eval_duration"`
+	EvalCount          int                            `json:"eval_count"`
+	EvalDuration       int                            `json:"eval_duration"`
 }
 
 type OllamaGenerateRequest struct {
-	Model   string                 `json:"model"`
-	Prompt  string                 `json:"prompt"`
-	Format  map[string]interface{} `json:"format"`
-	Stream  bool                   `json:"stream"`
-	Options map[string]interface{} `json:"options,omitempty"`
+	Model            string              `json:"model"`
+	Messages         []map[string]string `json:"messages"`
+	Temperature      float32             `json:"temperature"`
+	MaxTokens        int                 `json:"max_tokens"`
+	FrequencePenalty float32             `json:"frequency_penalty"`
+	PresencePenalty  float32             `json:"presence_penalty"`
+	ResponseFormat   any                 `json:"response_format"`
+	Stream           bool                `json:"stream"`
 }
+
+// payload := map[string]any{
+// 	"model":             model,
+// 	"messages":          []map[string]string{{"role": "user", "content": prompt}},
+// 	"temperature":       0.2,
+// 	"max_tokens":        llmMaxTokens(),
+// 	"stream":            false,
+// 	"frequency_penalty": freqPenalty,
+// 	"presence_penalty":  presPenalty,
+// 	"response_format":   responseFormat(n),
+// }

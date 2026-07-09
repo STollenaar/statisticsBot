@@ -43,7 +43,9 @@ func (a AdminCommand) Handler(event *events.ApplicationCommandInteractionCreate)
 	case "summary":
 		components = summaryHandler(sub)
 	}
-	util.UpdateInteractionResponse(event, components)
+	if len(components) != 0 {
+		util.UpdateInteractionResponse(event, components)
+	}
 }
 
 func (a AdminCommand) ComponentHandler(event *events.ComponentInteractionCreate) {
@@ -71,7 +73,9 @@ func (a AdminCommand) ComponentHandler(event *events.ComponentInteractionCreate)
 			},
 		})
 	}
-	util.UpdateComponentInteractionResponse(event, components)
+	if len(components) != 0 {
+		util.UpdateComponentInteractionResponse(event, components)
+	}
 }
 
 func (a AdminCommand) CreateCommandArguments() []discord.ApplicationCommandOption {

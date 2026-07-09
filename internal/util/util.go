@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -17,6 +18,21 @@ const (
 	DISCORD_EMOJI_URL       = "https://cdn.discordapp.com/emojis/%s.%s"
 	DiscordEpoch      int64 = 1420070400000
 )
+
+// The mention alternative comes first so existing mentions are matched whole
+// and skipped, rather than having their inner snowflake rewrapped.
+var userIDPattern = regexp.MustCompile(`<@!?\d{17,20}>|\b\d{17,20}\b`)
+
+// MentionifyIDs wraps bare Discord user IDs in a mention so they render as the
+// user instead of a raw snowflake. Already formatted mentions are left as-is.
+func MentionifyIDs(s string) string {
+	return userIDPattern.ReplaceAllStringFunc(s, func(match string) string {
+		if match[0] == '<' {
+			return match
+		}
+		return fmt.Sprintf("<@%s>", match)
+	})
+}
 
 // Contains check slice contains want string
 func Contains(slice []string, want string) bool {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/stollenaar/statisticsbot/internal/commands/summarizecommand"
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
 const summaryPageSize = 5
@@ -21,14 +23,14 @@ func summaryHandler(sub discord.SlashCommandInteractionData) []discord.LayoutCom
 	case "list":
 		return summaryListComponents(1)
 	}
-	return errorComponents("Unknown summary subcommand")
+	return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Unknown summary subcommand")}}
 }
 
 func summaryButtonHandler(event *events.ComponentInteractionCreate) []discord.LayoutComponent {
 	// Custom ID format: admin_summary_<action>_<payload>
 	parts := strings.SplitN(event.Data.CustomID(), "_", 4)
 	if len(parts) < 4 {
-		return errorComponents("Malformed button ID")
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Malformed button ID")}}
 	}
 	action, payload := parts[2], parts[3]
 
@@ -37,6 +39,8 @@ func summaryButtonHandler(event *events.ComponentInteractionCreate) []discord.La
 		return summaryRetryComponents(payload)
 	case "download":
 		return summaryDownloadComponents(event, payload)
+	case "post":
+		return summaryPostComponents(event, payload)
 	case "page":
 		page, err := strconv.Atoi(payload)
 		if err != nil || page < 1 {
@@ -44,14 +48,14 @@ func summaryButtonHandler(event *events.ComponentInteractionCreate) []discord.La
 		}
 		return summaryListComponents(page)
 	}
-	return errorComponents("Unknown summary action")
+	return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Unknown summary action")}}
 }
 
 func summaryListComponents(page int) []discord.LayoutComponent {
 	total, err := database.CountSummaryInvocations()
 	if err != nil {
 		slog.Error("Failed to count summary invocations", slog.Any("err", err))
-		return errorComponents("Failed to fetch invocation count")
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Failed to fetch invocation count")}}
 	}
 
 	totalPages := (total + summaryPageSize - 1) / summaryPageSize
@@ -65,7 +69,7 @@ func summaryListComponents(page int) []discord.LayoutComponent {
 	invocations, err := database.ListSummaryInvocations(page, summaryPageSize)
 	if err != nil {
 		slog.Error("Failed to list summary invocations", slog.Any("err", err))
-		return errorComponents("Failed to fetch invocations")
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Failed to fetch invocations")}}
 	}
 
 	var rows []discord.ContainerSubComponent
@@ -145,22 +149,22 @@ func summaryDownloadComponents(event *events.ComponentInteractionCreate, id stri
 	inv, err := database.GetSummaryInvocation(id)
 	if err != nil {
 		slog.Error("Failed to fetch summary invocation for download", slog.Any("err", err))
-		return errorComponents("Invocation not found")
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Invocation not found")}}
 	}
 
 	// Unmarshal the stored messages JSON so the combined file is pretty-printed
-	var messages []summarizecommand.SummaryBody
+	var messages []util.SummaryBody
 	json.Unmarshal([]byte(inv.MessagesJSON), &messages)
 
 	export := struct {
-		ID          string                         `json:"id"`
-		GuildID     string                         `json:"guild_id"`
-		ChannelID   string                         `json:"channel_id"`
-		Unit        string                         `json:"unit"`
-		RequestedAt string                         `json:"requested_at"`
-		Status      string                         `json:"status"`
-		Messages    []summarizecommand.SummaryBody `json:"messages"`
-		RawResponse string                         `json:"raw_response"`
+		ID          string             `json:"id"`
+		GuildID     string             `json:"guild_id"`
+		ChannelID   string             `json:"channel_id"`
+		Unit        string             `json:"unit"`
+		RequestedAt string             `json:"requested_at"`
+		Status      string             `json:"status"`
+		Messages    []util.SummaryBody `json:"messages"`
+		RawResponse string             `json:"raw_response"`
 	}{
 		ID:          inv.ID,
 		GuildID:     inv.GuildID,
@@ -175,7 +179,7 @@ func summaryDownloadComponents(event *events.ComponentInteractionCreate, id stri
 	fileBytes, err := json.MarshalIndent(export, "", "  ")
 	if err != nil {
 		slog.Error("Failed to marshal invocation export", slog.Any("err", err))
-		return errorComponents("Failed to build JSON export")
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Failed to build JSON export")}}
 	}
 
 	fileName := fmt.Sprintf("invocation_%s.json", inv.ID)
@@ -187,7 +191,7 @@ func summaryDownloadComponents(event *events.ComponentInteractionCreate, id stri
 	})
 	if err != nil {
 		slog.Error("Failed to send follow-up with JSON file", slog.Any("err", err))
-		return errorComponents("Failed to send file")
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Failed to send file")}}
 	}
 
 	return []discord.LayoutComponent{
@@ -212,35 +216,39 @@ func summaryDownloadComponents(event *events.ComponentInteractionCreate, id stri
 
 func summaryRetryComponents(id string) []discord.LayoutComponent {
 	inv, err := database.GetSummaryInvocation(id)
+	var rows []discord.ContainerSubComponent
+
 	if err != nil {
 		slog.Error("Failed to fetch summary invocation", slog.Any("err", err))
-		return errorComponents("Invocation not found")
-	}
+		rows = errorComponents("Invocation not found")
+	} else {
+		var messages []util.SummaryBody
 
-	var messages []summarizecommand.SummaryBody
-	if err := json.Unmarshal([]byte(inv.MessagesJSON), &messages); err != nil {
-		slog.Error("Failed to unmarshal messages JSON", slog.Any("err", err))
-		return errorComponents("Failed to parse stored messages")
-	}
+		if err := json.Unmarshal([]byte(inv.MessagesJSON), &messages); err != nil {
+			slog.Error("Failed to unmarshal messages JSON", slog.Any("err", err))
+			rows = errorComponents("Failed to parse stored messages")
+		} else {
 
-	summaries, rawResponse, err := summarizecommand.GetSummary(messages)
-	if err != nil {
-		database.UpdateSummaryInvocation(id, rawResponse, "failed")
-		return errorComponents(fmt.Sprintf("Retry failed: %s", err.Error()))
-	}
-	database.UpdateSummaryInvocation(id, rawResponse, "success")
+			summaries, rawResponse, err := summarizecommand.GetSummary(messages)
+			if err != nil {
+				database.UpdateSummaryInvocation(id, rawResponse, "failed")
+				rows = errorComponents(fmt.Sprintf("Retry failed: %s", err.Error()))
+			} else {
+				database.UpdateSummaryInvocation(id, rawResponse, "success")
 
-	var rows []discord.ContainerSubComponent
-	rows = append(rows, discord.TextDisplayComponent{
-		Content: fmt.Sprintf("**Retry succeeded** for invocation `%s`", id),
-	})
-	for _, s := range summaries.Summaries {
-		rows = append(rows,
-			discord.SeparatorComponent{},
-			discord.TextDisplayComponent{
-				Content: fmt.Sprintf("**%s**\n%s", s.Topic, s.Summary),
-			},
-		)
+				rows = append(rows, discord.TextDisplayComponent{
+					Content: fmt.Sprintf("**Retry succeeded** for invocation `%s`", id),
+				})
+				for _, s := range summaries.Summaries {
+					rows = append(rows,
+						discord.SeparatorComponent{},
+						discord.TextDisplayComponent{
+							Content: fmt.Sprintf("**%s**\n%s", s.Topic, s.Summary),
+						},
+					)
+				}
+			}
+		}
 	}
 	rows = append(rows,
 		discord.SeparatorComponent{},
@@ -251,11 +259,73 @@ func summaryRetryComponents(id string) []discord.LayoutComponent {
 					Label:    "← Back to list",
 					CustomID: "admin_summary_page_1",
 				},
+				discord.ButtonComponent{
+					Style:    discord.ButtonStyleSecondary,
+					Label:    "Post",
+					CustomID: fmt.Sprintf("admin_summary_post_%s", id),
+				},
 			},
 		},
 	)
 
 	return []discord.LayoutComponent{discord.ContainerComponent{Components: rows}}
+}
+
+func summaryPostComponents(event *events.ComponentInteractionCreate, id string) []discord.LayoutComponent {
+	layouts := event.ComponentInteraction.Message.Components
+	if len(layouts) == 0 {
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Nothing to post")}}
+	}
+	container, ok := layouts[0].(discord.ContainerComponent)
+	if !ok {
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Nothing to post")}}
+	}
+
+	if len(container.Components) < 4 {
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Nothing to post")}}
+	}
+	// Copied rather than resliced, so appending below cannot clobber the
+	// trailing separator and action row of the source message.
+	body := slices.Clone(container.Components[2 : len(container.Components)-2])
+
+	inv, err := database.GetSummaryInvocation(id)
+	if err != nil {
+		slog.Warn("Failed to fetch summary invocation for post", slog.Any("err", err))
+	} else if inv.MessageID != "" {
+		body = append(body,
+			discord.SeparatorComponent{},
+			discord.TextDisplayComponent{
+				Content: fmt.Sprintf("Original summary: https://discord.com/channels/%s/%s/%s", inv.GuildID, inv.ChannelID, inv.MessageID),
+			},
+		)
+	}
+
+	_, err = event.Client().Rest.CreateFollowupMessage(event.ApplicationID(), event.Token(), discord.MessageCreate{
+		Flags:           discord.MessageFlagIsComponentsV2,
+		Components:      []discord.LayoutComponent{discord.ContainerComponent{Components: body}},
+		AllowedMentions: &discord.AllowedMentions{},
+	})
+	if err != nil {
+		slog.Error("Failed to send follow-up", slog.Any("err", err))
+		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Failed to post summary")}}
+	}
+
+	return []discord.LayoutComponent{
+		discord.ContainerComponent{
+			Components: []discord.ContainerSubComponent{
+				discord.TextDisplayComponent{Content: "Summary posted to the channel."},
+				discord.ActionRowComponent{
+					Components: []discord.InteractiveComponent{
+						discord.ButtonComponent{
+							Style:    discord.ButtonStyleSecondary,
+							Label:    "← Back to list",
+							CustomID: "admin_summary_page_1",
+						},
+					},
+				},
+			},
+		},
+	}
 }
 
 func statusEmoji(status string) string {
@@ -271,12 +341,8 @@ func statusEmoji(status string) string {
 	}
 }
 
-func errorComponents(msg string) []discord.LayoutComponent {
-	return []discord.LayoutComponent{
-		discord.ContainerComponent{
-			Components: []discord.ContainerSubComponent{
-				discord.TextDisplayComponent{Content: msg},
-			},
-		},
+func errorComponents(msg string) []discord.ContainerSubComponent {
+	return []discord.ContainerSubComponent{
+		discord.TextDisplayComponent{Content: msg},
 	}
 }

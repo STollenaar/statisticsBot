@@ -8,6 +8,7 @@ type SummaryInvocation struct {
 	ID           string
 	GuildID      string
 	ChannelID    string
+	MessageID    string
 	Unit         string
 	RequestedAt  time.Time
 	MessagesJSON string
@@ -32,6 +33,16 @@ func UpdateSummaryInvocation(id, rawResponse, status string) error {
 	return err
 }
 
+// SetSummaryInvocationMessage records the Discord message the summary was
+// delivered in, so it can be linked back to later.
+func SetSummaryInvocationMessage(id, messageID string) error {
+	_, err := duckdbClient.Exec(
+		`UPDATE summary_invocations SET message_id = ? WHERE id = ?`,
+		messageID, id,
+	)
+	return err
+}
+
 func CountSummaryInvocations() (int, error) {
 	var count int
 	err := duckdbClient.QueryRow(`SELECT COUNT(*) FROM summary_invocations`).Scan(&count)
@@ -41,7 +52,7 @@ func CountSummaryInvocations() (int, error) {
 func ListSummaryInvocations(page, pageSize int) ([]SummaryInvocation, error) {
 	offset := (page - 1) * pageSize
 	rows, err := duckdbClient.Query(`
-		SELECT id, guild_id, channel_id, unit, requested_at, messages_json, COALESCE(raw_response, ''), status
+		SELECT id, guild_id, channel_id, COALESCE(message_id, ''), unit, requested_at, messages_json, COALESCE(raw_response, ''), status
 		FROM summary_invocations
 		ORDER BY requested_at DESC
 		LIMIT ? OFFSET ?`,
@@ -55,7 +66,7 @@ func ListSummaryInvocations(page, pageSize int) ([]SummaryInvocation, error) {
 	var result []SummaryInvocation
 	for rows.Next() {
 		var inv SummaryInvocation
-		err := rows.Scan(&inv.ID, &inv.GuildID, &inv.ChannelID, &inv.Unit, &inv.RequestedAt, &inv.MessagesJSON, &inv.RawResponse, &inv.Status)
+		err := rows.Scan(&inv.ID, &inv.GuildID, &inv.ChannelID, &inv.MessageID, &inv.Unit, &inv.RequestedAt, &inv.MessagesJSON, &inv.RawResponse, &inv.Status)
 		if err != nil {
 			return nil, err
 		}
@@ -67,10 +78,10 @@ func ListSummaryInvocations(page, pageSize int) ([]SummaryInvocation, error) {
 func GetSummaryInvocation(id string) (SummaryInvocation, error) {
 	var inv SummaryInvocation
 	err := duckdbClient.QueryRow(`
-		SELECT id, guild_id, channel_id, unit, requested_at, messages_json, COALESCE(raw_response, ''), status
+		SELECT id, guild_id, channel_id, COALESCE(message_id, ''), unit, requested_at, messages_json, COALESCE(raw_response, ''), status
 		FROM summary_invocations WHERE id = ?`,
 		id,
-	).Scan(&inv.ID, &inv.GuildID, &inv.ChannelID, &inv.Unit, &inv.RequestedAt, &inv.MessagesJSON, &inv.RawResponse, &inv.Status)
+	).Scan(&inv.ID, &inv.GuildID, &inv.ChannelID, &inv.MessageID, &inv.Unit, &inv.RequestedAt, &inv.MessagesJSON, &inv.RawResponse, &inv.Status)
 	return inv, err
 }
 

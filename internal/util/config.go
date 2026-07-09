@@ -31,11 +31,15 @@ type Config struct {
 
 	OLLAMA_URL       string
 	OLLAMA_AUTH_TYPE string
+	OLLAMA_MODEL     string
 
 	AWS_OLLAMA_AUTH_USERNAME string
 	OLLAMA_AUTH_USERNAME     string
 	AWS_OLLAMA_AUTH_PASSWORD string
 	OLLAMA_AUTH_PASSWORD     string
+
+	OLLAMA_API_KEY     string
+	AWS_OLLAMA_API_KEY string
 }
 
 var (
@@ -62,16 +66,23 @@ func init() {
 		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
 		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
 		OLLAMA_URL:               os.Getenv("OLLAMA_URL"),
+		OLLAMA_MODEL:             os.Getenv("OLLAMA_MODEL"),
 		OLLAMA_AUTH_TYPE:         os.Getenv("OLLAMA_AUTH_TYPE"),
 		OLLAMA_AUTH_USERNAME:     os.Getenv("OLLAMA_AUTH_USERNAME"),
 		OLLAMA_AUTH_PASSWORD:     os.Getenv("OLLAMA_AUTH_PASSWORD"),
+		OLLAMA_API_KEY:           os.Getenv("OLLAMA_API_KEY"),
 		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
 		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
+		AWS_OLLAMA_API_KEY:       os.Getenv("AWS_OLLAMA_API_KEY"),
 		HEALTH_PORT:              os.Getenv("HEALTH_PORT"),
 		ADMIN_USER_ID:            os.Getenv("ADMIN_USER_ID"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
+	}
+
+	if ConfigFile.OLLAMA_MODEL == "" {
+		ConfigFile.OLLAMA_MODEL = "llama3.2:3b"
 	}
 
 }
@@ -142,6 +153,18 @@ func GetOllamaPassword() (string, error) {
 	}
 
 	return getAWSParameter(ConfigFile.AWS_OLLAMA_AUTH_PASSWORD)
+}
+
+func GetOllamaAPIKey() (string, error) {
+	if ConfigFile.OLLAMA_API_KEY == "" && ConfigFile.AWS_OLLAMA_API_KEY == "" {
+		log.Fatal("OLLAMA_API_KEY or OLLAMA_API_KEY is not set")
+	}
+
+	if ConfigFile.OLLAMA_API_KEY != "" {
+		return ConfigFile.OLLAMA_API_KEY, nil
+	}
+
+	return getAWSParameter(ConfigFile.AWS_OLLAMA_API_KEY)
 }
 
 func getAWSParameter(parameterName string) (string, error) {

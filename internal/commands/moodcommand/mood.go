@@ -224,16 +224,23 @@ func getMood(messages []MoodBody) (out MoodResponse, err error) {
 	if err != nil {
 		return MoodResponse{}, err
 	}
+
+	prompt := fmt.Sprintf("group the following messages together and analyze the mood. Make sure to return both the topic of the grouped messages, and mood analysis. Return it as a json string of this format {\"messages\":[{\"topic\", \"mood\"}]}: %s", string(data))
+
 	resp, err := util.CreateOllamaGeneration(util.OllamaGenerateRequest{
-		Model:  "mistral:7b",
-		Prompt: fmt.Sprintf("group the following messages together and analyze the mood. Make sure to return both the topic of the grouped messages, and mood analysis. Return it as a json string of this format {\"messages\":[{\"topic\", \"mood\"}]}: %s", string(data)),
-		Format: map[string]interface{}{
-			"type": "object",
+		Model:            util.ConfigFile.OLLAMA_MODEL,
+		Temperature:      0.2,
+		FrequencePenalty: 1.8,
+		PresencePenalty:  1.2,
+		MaxTokens:        len(data) + 1000,
+		Messages:         []map[string]string{{"role": "user", "content": prompt}},
+		ResponseFormat: map[string]interface{}{
+			"type": "json_object",
 			"properties": map[string]interface{}{
 				"messages": map[string]interface{}{
 					"type": "array",
 					"items": map[string]interface{}{
-						"type": "object",
+						"type": "json_object",
 						"properties": map[string]interface{}{
 							"topic": map[string]interface{}{
 								"type": "string",
@@ -257,6 +264,6 @@ func getMood(messages []MoodBody) (out MoodResponse, err error) {
 		return MoodResponse{}, nil
 	}
 
-	err = json.Unmarshal([]byte(resp.Response), &out)
+	err = json.Unmarshal([]byte(resp.Choices[0].Message.Content), &out)
 	return
 }

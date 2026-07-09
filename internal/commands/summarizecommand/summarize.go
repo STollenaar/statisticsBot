@@ -57,12 +57,7 @@ type SummaryResponseBody struct {
 }
 
 type SummaryRequest struct {
-	SummaryBodies []SummaryBody `json:"messages"`
-}
-
-type SummaryBody struct {
-	Author  string `json:"author"`
-	Message string `json:"message"`
+	SummaryBodies []util.SummaryBody `json:"messages"`
 }
 
 func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
@@ -102,7 +97,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		return
 	}
 
-	var messages []SummaryBody
+	var messages []util.SummaryBody
 
 	for rs.Next() {
 		var author_id, content string
@@ -126,7 +121,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		} else {
 			nickname = *member.Nick
 		}
-		messages = append(messages, SummaryBody{
+		messages = append(messages, util.SummaryBody{
 			Author:  nickname,
 			Message: content,
 		})
@@ -176,11 +171,17 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 			Value: summary.Summary,
 		})
 	}
-	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+	message, err := event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Embeds: &[]discord.Embed{embed},
 	})
 	if err != nil {
 		slog.Error("Error editing the response:", slog.Any("err", err))
+		return
+	}
+
+	// Track where the summary landed so the admin command can link back to it
+	if saveErr := database.SetSummaryInvocationMessage(invID, message.ID.String()); saveErr != nil {
+		slog.Warn("Failed to save summary message ID", slog.Any("err", saveErr))
 	}
 }
 
@@ -252,7 +253,7 @@ func parseTimeArg(timeUnit string) (time.Duration, error) {
 	return duration, nil
 }
 
-func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string, err error) {
+func GetSummary(messages []util.SummaryBody) (out SummaryResponse, rawResponse string, err error) {
 	data, err := json.Marshal(messages)
 	if err != nil {
 		return SummaryResponse{}, "", err
@@ -261,24 +262,29 @@ func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string
 		d, _ := json.MarshalIndent(messages, "", "    ")
 		os.WriteFile("summary.json", d, 0644)
 	}
+	prompt := fmt.Sprintf(
+		"You are an AI that outputs valid JSON only.\n"+
+			"Summarize and group the following Discord messages by topic.\n"+
+			"Use the exact author names provided in the input.\n"+
+			"Return a JSON object with a \"messages\" array where each element has a \"topic\" and \"summary\" field.\n\n"+
+			"Input:\n%s",
+		string(data))
 	resp, err := util.CreateOllamaGeneration(util.OllamaGenerateRequest{
-		Model: "llama3.2:3b",
-		Prompt: fmt.Sprintf(
-			"You are an AI that outputs valid JSON only.\n"+
-				"Summarize and group the following Discord messages by topic.\n"+
-				"Use the exact author names provided in the input.\n"+
-				"Return a JSON object with a \"messages\" array where each element has a \"topic\" and \"summary\" field.\n\n"+
-				"Input:\n%s",
-			string(data)),
-		Format: map[string]interface{}{
-			"type": "object",
+		Model:            util.ConfigFile.OLLAMA_MODEL,
+		Temperature:      0.2,
+		FrequencePenalty: 1.8,
+		PresencePenalty:  1.2,
+		MaxTokens:        len(data) + 1000,
+		Messages:         []map[string]string{{"role": "user", "content": prompt}},
+		ResponseFormat: map[string]interface{}{
+			"type": "json_object",
 			"properties": map[string]interface{}{
 				"messages": map[string]interface{}{
 					"type":     "array",
 					"minItems": 1,
 					"maxItems": 20,
 					"items": map[string]interface{}{
-						"type": "object",
+						"type": "json_object",
 						"properties": map[string]interface{}{
 							"topic": map[string]interface{}{
 								"type": "string",
@@ -293,20 +299,23 @@ func GetSummary(messages []SummaryBody) (out SummaryResponse, rawResponse string
 			},
 			"required": []string{"messages"},
 		},
-		Options: map[string]interface{}{
-			"num_ctx":        len(data) + 1000,
-			"num_predict":    2048,
-			"temperature":    0.2,
-			"repeat_penalty": 1.3,
-		},
 		Stream: false,
 	})
 	if err != nil {
 		return SummaryResponse{}, "", err
 	}
 
-	rawResponse = resp.Response
+	rawResponse = resp.Choices[0].Message.Content
 	fmt.Printf("Raw response for summarize: %s\n", rawResponse)
-	err = json.Unmarshal([]byte(rawResponse), &out)
+	if err = json.Unmarshal([]byte(rawResponse), &out); err != nil {
+		return
+	}
+
+	// Members without a nickname are passed to the model by ID, so any that come
+	// back have to be turned into mentions before they reach Discord.
+	for i, summary := range out.Summaries {
+		out.Summaries[i].Topic = util.MentionifyIDs(summary.Topic)
+		out.Summaries[i].Summary = util.MentionifyIDs(summary.Summary)
+	}
 	return
 }
