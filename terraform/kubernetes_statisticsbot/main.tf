@@ -57,26 +57,30 @@ resource "kubernetes_deployment" "statisticsbot" {
             name  = "DUCKDB_PATH"
             value = "/duckdb"
           }
-          #   env {
-          #     name  = "OLLAMA_URL"
-          #     value = "ollama.ollama.svc.cluster.local:11434"
-          #   }
-          env {
-            name  = "OLLAMA_URL"
-            value = "llm.ops.bootleg.technology/chat/completions"
-          }
-          env {
-            name  = "OLLAMA_AUTH_TYPE"
-            value = "api_key"
-          }
+            env {
+              name  = "OLLAMA_URL"
+              value = "ollama.ollama.svc.cluster.local:11434"
+            }
           env {
             name  = "OLLAMA_MODEL"
-            value = "openai/gpt-oss-120b"
+            value = "llama3.2:3b"
           }
-          env {
-            name  = "AWS_OLLAMA_API_KEY"
-            value = "/ollama/nint_api_key"
-          }
+        #   env {
+        #     name  = "OLLAMA_URL"
+        #     value = "llm.ops.bootleg.technology/chat/completions"
+        #   }
+        #   env {
+        #     name  = "OLLAMA_AUTH_TYPE"
+        #     value = "api_key"
+        #   }
+        #   env {
+        #     name  = "OLLAMA_MODEL"
+        #     value = "openai/gpt-oss-120b"
+        #   }
+        #   env {
+        #     name  = "AWS_OLLAMA_API_KEY"
+        #     value = "/ollama/nint_api_key"
+        #   }
           env {
             name  = "ADMIN_USER_ID"
             value = "134337759446958081"
