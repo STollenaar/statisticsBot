@@ -28,6 +28,15 @@ type SummaryBody struct {
 	Message string `json:"message"`
 }
 
+type SummaryResponse struct {
+	Summaries []SummaryResponseBody `json:"messages"`
+}
+
+type SummaryResponseBody struct {
+	Topic   string `json:"topic"`
+	Summary string `json:"summary"`
+}
+
 type WordCounted struct {
 	Word  string `json:"Word"`
 	Count int    `json:"Count"`

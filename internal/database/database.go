@@ -214,7 +214,7 @@ func Init(client *bot.Client, GuildID *string) {
 // initChannels loading all the channels of the guild
 func initChannels(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
 	for _, channel := range channels {
-		fmt.Printf("Checking %s \n", channel.Name)
+		fmt.Printf("Checking %s \n", channel.Name())
 		// Check if channel is a guild text channel and not a voice or DM channel
 		if channel.Type() != discord.ChannelTypeGuildText {
 			continue
@@ -261,7 +261,7 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 	err := row.Scan(&id, &date)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Printf("No messages found for channel_id: %s\n", channel.ID)
+			fmt.Printf("No messages found for channel_id: %s\n", channel.ID())
 		} else {
 			log.Fatalf("Query failed: %v", err)
 		}
@@ -332,7 +332,7 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel) {
 	// 	}
 	// }
 
-	fmt.Printf("Done collecting messages for %s, found %d messages\n", channel.Name, operations)
+	fmt.Printf("Done collecting messages for %s, found %d messages\n", channel.Name(), operations)
 }
 
 // constructing the message object from the received discord message, ready for inserting into database

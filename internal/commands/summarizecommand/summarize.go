@@ -47,15 +47,6 @@ type CommandParsed struct {
 	Unit string
 }
 
-type SummaryResponse struct {
-	Summaries []SummaryResponseBody `json:"messages"`
-}
-
-type SummaryResponseBody struct {
-	Topic   string `json:"topic"`
-	Summary string `json:"summary"`
-}
-
 type SummaryRequest struct {
 	SummaryBodies []util.SummaryBody `json:"messages"`
 }
@@ -253,10 +244,10 @@ func parseTimeArg(timeUnit string) (time.Duration, error) {
 	return duration, nil
 }
 
-func GetSummary(messages []util.SummaryBody) (out SummaryResponse, rawResponse string, err error) {
+func GetSummary(messages []util.SummaryBody) (out util.SummaryResponse, rawResponse string, err error) {
 	data, err := json.Marshal(messages)
 	if err != nil {
-		return SummaryResponse{}, "", err
+		return util.SummaryResponse{}, "", err
 	}
 	if util.ConfigFile.DEBUG {
 		d, _ := json.MarshalIndent(messages, "", "    ")
@@ -302,7 +293,7 @@ func GetSummary(messages []util.SummaryBody) (out SummaryResponse, rawResponse s
 		Stream: false,
 	})
 	if err != nil {
-		return SummaryResponse{}, "", err
+		return util.SummaryResponse{}, "", err
 	}
 
 	rawResponse = resp.Choices[0].Message.Content
