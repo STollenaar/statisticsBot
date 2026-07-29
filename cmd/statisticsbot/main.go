@@ -44,7 +44,7 @@ func init() {
 	c, err := disgo.New(util.ConfigFile.GetDiscordToken(),
 		bot.WithGatewayConfigOpts(
 			gateway.WithIntents(
-				gateway.IntentGuildMessages|gateway.IntentGuildMembers|gateway.IntentMessageContent|gateway.IntentGuildMessageReactions,
+				gateway.IntentGuilds|gateway.IntentGuildMessages|gateway.IntentGuildMembers|gateway.IntentMessageContent|gateway.IntentGuildMessageReactions,
 			),
 		),
 		bot.WithEventListenerFunc(func(event *events.ApplicationCommandInteractionCreate) {
