@@ -15,6 +15,11 @@ on:
           - snapshot
           - release
           - pre-release
+      skip_quiet_period:
+        description: "Skip the quiet period wait before building"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,6 +45,9 @@ jobs:
       image: ${{ steps.build-image.outputs.image }}
     steps:
       - name: Wait for quiet period
+        # Skip via the workflow_dispatch input, or by including [skip-wait] in
+        # the triggering commit message on a push.
+        if: ${{ github.event.inputs.skip_quiet_period != 'true' && !contains(github.event.head_commit.message, '[skip-wait]') }}
         run: sleep 600
 
       - name: Checkout repository
