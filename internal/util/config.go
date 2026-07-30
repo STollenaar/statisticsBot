@@ -2,8 +2,7 @@ package util
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"log/slog"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -53,7 +52,8 @@ func init() {
 	if err == nil {
 		err = godotenv.Load(".env")
 		if err != nil {
-			log.Fatal("Error loading environment variables")
+			slog.Error("Error loading environment variables", slog.Any("err", err))
+			os.Exit(1)
 		}
 	}
 
@@ -109,7 +109,8 @@ func init() {
 				)
 			}
 			if err != nil {
-				log.Fatal("Error loading AWS config:", err)
+				slog.Error("Error loading AWS config", slog.Any("err", err))
+				os.Exit(1)
 			}
 		}
 
@@ -119,7 +120,8 @@ func init() {
 
 func (c *Config) GetDiscordToken() string {
 	if ConfigFile.DISCORD_TOKEN == "" && ConfigFile.AWS_PARAMETER_NAME == "" {
-		log.Fatal("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
+		slog.Error("DISCORD_TOKEN or AWS_PARAMETER_NAME is not set")
+		os.Exit(1)
 	}
 
 	if ConfigFile.DISCORD_TOKEN != "" {
@@ -127,14 +129,16 @@ func (c *Config) GetDiscordToken() string {
 	}
 	out, err := getAWSParameter(ConfigFile.AWS_PARAMETER_NAME)
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("Error fetching Discord token parameter", slog.Any("err", err))
+		os.Exit(1)
 	}
 	return out
 }
 
 func GetOllamaUsername() (string, error) {
 	if ConfigFile.OLLAMA_AUTH_USERNAME == "" && ConfigFile.AWS_OLLAMA_AUTH_USERNAME == "" {
-		log.Fatal("OLLAMA_AUTH_USERNAME or AWS_OLLAMA_AUTH_USERNAME is not set")
+		slog.Error("OLLAMA_AUTH_USERNAME or AWS_OLLAMA_AUTH_USERNAME is not set")
+		os.Exit(1)
 	}
 
 	if ConfigFile.OLLAMA_AUTH_USERNAME != "" {
@@ -145,7 +149,8 @@ func GetOllamaUsername() (string, error) {
 
 func GetOllamaPassword() (string, error) {
 	if ConfigFile.OLLAMA_AUTH_PASSWORD == "" && ConfigFile.AWS_OLLAMA_AUTH_PASSWORD == "" {
-		log.Fatal("OLLAMA_AUTH_PASSWORD or AWS_OLLAMA_AUTH_PASSWORD is not set")
+		slog.Error("OLLAMA_AUTH_PASSWORD or AWS_OLLAMA_AUTH_PASSWORD is not set")
+		os.Exit(1)
 	}
 
 	if ConfigFile.OLLAMA_AUTH_PASSWORD != "" {
@@ -157,7 +162,8 @@ func GetOllamaPassword() (string, error) {
 
 func GetOllamaAPIKey() (string, error) {
 	if ConfigFile.OLLAMA_API_KEY == "" && ConfigFile.AWS_OLLAMA_API_KEY == "" {
-		log.Fatal("OLLAMA_API_KEY or OLLAMA_API_KEY is not set")
+		slog.Error("OLLAMA_API_KEY or OLLAMA_API_KEY is not set")
+		os.Exit(1)
 	}
 
 	if ConfigFile.OLLAMA_API_KEY != "" {
@@ -173,7 +179,7 @@ func getAWSParameter(parameterName string) (string, error) {
 		WithDecryption: aws.Bool(true),
 	})
 	if err != nil {
-		fmt.Println(fmt.Errorf("error from fetching parameter %s. With error: %w", parameterName, err))
+		slog.Error("error fetching parameter", slog.String("parameter", parameterName), slog.Any("err", err))
 		return "", err
 	}
 	return *out.Parameter.Value, err

@@ -2,6 +2,7 @@ package charts
 
 import (
 	"fmt"
+	"log/slog"
 	"slices"
 	"strings"
 	"time"
@@ -20,13 +21,13 @@ func (c *ChartTracker) getData(client *bot.Client) (data []*ChartData, err error
 		// Calculate total execution time
 		duration := time.Since(startTime)
 		if util.ConfigFile.DEBUG {
-			fmt.Printf("getData total execution time: %s\n", duration)
+			slog.Debug("getData total execution time", slog.Duration("duration", duration))
 		}
 	}()
 
 	start, end, err := c.getDateRange()
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error getting date range", slog.Any("err", err))
 		return nil, err
 	}
 
@@ -42,7 +43,7 @@ func (c *ChartTracker) getData(client *bot.Client) (data []*ChartData, err error
 		return nil, err
 	}
 	if util.ConfigFile.DEBUG {
-		fmt.Printf("Database query execution time: %s\n", time.Since(queryStartTime))
+		slog.Debug("Database query execution time", slog.Duration("duration", time.Since(queryStartTime)))
 	}
 
 	usernames, channels := make(map[string]string), make(map[string]string) // Cache for user and channel IDs
@@ -66,7 +67,7 @@ func (c *ChartTracker) getData(client *bot.Client) (data []*ChartData, err error
 
 			}
 		} else {
-			fmt.Println("Error fetching guild channels:", err)
+			slog.Error("Error fetching guild channels", slog.Any("err", err))
 		}
 		threads := client.Caches.GuildThreadsInChannel(snowflake.MustParse(c.GuildID))
 		for _, thread := range threads {
@@ -154,7 +155,7 @@ func (c *ChartTracker) getData(client *bot.Client) (data []*ChartData, err error
 		})
 	}
 	if util.ConfigFile.DEBUG {
-		fmt.Printf("Data scanning execution time: %s\n", time.Since(scanStartTime))
+		slog.Debug("Data scanning execution time", slog.Duration("duration", time.Since(scanStartTime)))
 	}
 
 	// Process top 14 and "Other" category

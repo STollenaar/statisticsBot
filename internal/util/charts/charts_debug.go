@@ -2,6 +2,7 @@ package charts
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -17,13 +18,13 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		// Calculate total execution time
 		duration := time.Since(startTime)
 		if util.ConfigFile.DEBUG {
-			fmt.Printf("getData total execution time: %s\n", duration)
+			slog.Debug("getData total execution time", slog.Duration("duration", duration))
 		}
 	}()
 
 	start, end, err := c.getDateRange()
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error getting date range", slog.Any("err", err))
 		return nil, err
 	}
 
@@ -39,7 +40,7 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		return nil, err
 	}
 	if util.ConfigFile.DEBUG {
-		fmt.Printf("Database query execution time: %s\n", time.Since(queryStartTime))
+		slog.Debug("Database query execution time", slog.Duration("duration", time.Since(queryStartTime)))
 	}
 
 	var allData []*ChartData
@@ -68,7 +69,7 @@ func (c *ChartTracker) getDebugData() (data []*ChartData, err error) {
 		})
 	}
 	if util.ConfigFile.DEBUG {
-		fmt.Printf("Data scanning execution time: %s\n", time.Since(scanStartTime))
+		slog.Debug("Data scanning execution time", slog.Duration("duration", time.Since(scanStartTime)))
 	}
 
 	// Process top 14 and "Other" category

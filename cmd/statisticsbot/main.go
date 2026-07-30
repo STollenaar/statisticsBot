@@ -4,17 +4,19 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"syscall"
+	"time"
 
 	"github.com/disgoorg/disgo"
 	"github.com/disgoorg/disgo/bot"
+	"github.com/disgoorg/disgo/cache"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/disgo/gateway"
@@ -32,6 +34,11 @@ var (
 
 	gatewayReady atomic.Bool
 
+	// guildsReady is closed once disgo has loaded every guild into its cache
+	// after login, so we don't read an empty cache immediately after connecting.
+	guildsReady     = make(chan struct{})
+	guildsReadyOnce sync.Once
+
 	GuildID        = flag.String("guild", "", "Test guild ID. If not passed - bot registers commands globally")
 	Debug          = flag.Bool("debug", false, "Run in debug mode")
 	RemoveCommands = flag.Bool("rmcmd", true, "Remove all commands after shutdowning or not")
@@ -45,6 +52,13 @@ func init() {
 		bot.WithGatewayConfigOpts(
 			gateway.WithIntents(
 				gateway.IntentGuilds|gateway.IntentGuildMessages|gateway.IntentGuildMembers|gateway.IntentMessageContent|gateway.IntentGuildMessageReactions,
+			),
+		),
+		bot.WithCacheConfigOpts(
+			cache.WithCaches(
+				cache.FlagGuilds,
+				cache.FlagChannels,
+				cache.FlagMessages,
 			),
 		),
 		bot.WithEventListenerFunc(func(event *events.ApplicationCommandInteractionCreate) {
@@ -62,6 +76,10 @@ func init() {
 			commands.ModalSubmitHandlers[event.Data.CustomID](event)
 		}),
 
+		bot.WithEventListenerFunc(func(event *events.GuildsReady) {
+			guildsReadyOnce.Do(func() { close(guildsReady) })
+		}),
+
 		bot.WithEventListenerFunc(database.MessageCreateListener),
 		bot.WithEventListenerFunc(database.MessageUpdateListener),
 		bot.WithEventListenerFunc(database.MessageReactAddListener),
@@ -72,7 +90,8 @@ func init() {
 	)
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to create Discord client", slog.Any("err", err))
+		os.Exit(1)
 	}
 	client = c
 	util.ConfigFile.DEBUG = *Debug
@@ -110,7 +129,13 @@ func startHealthServer(port string) {
 }
 
 func main() {
+	// Deferred LIFO: database.Exit runs before the gateway is closed, and both
+	// run on every return path (including the PurgeCommands early return).
+	// database.Exit is idempotent, so the explicit call during signal shutdown
+	// below does not double-close.
 	defer client.Close(context.TODO())
+	defer database.Exit()
+
 	var guilds []snowflake.ID
 	if sn, err := snowflake.Parse(*GuildID); err == nil {
 		guilds = append(guilds, sn)
@@ -120,7 +145,8 @@ func main() {
 		if *GuildID != "" {
 			cmds, err := client.Rest.GetGuildCommands(client.ApplicationID, guilds[0], false)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("failed to fetch guild commands", slog.Any("err", err))
+				os.Exit(1)
 			}
 			for _, cmd := range cmds {
 				err := client.Rest.DeleteGuildCommand(cmd.ApplicationID(), *cmd.GuildID(), cmd.ID())
@@ -132,7 +158,8 @@ func main() {
 		} else {
 			cmds, err := client.Rest.GetGlobalCommands(client.ApplicationID, false)
 			if err != nil {
-				log.Fatal(err)
+				slog.Error("failed to fetch global commands", slog.Any("err", err))
+				os.Exit(1)
 			}
 			for _, cmd := range cmds {
 				err := client.Rest.DeleteGlobalCommand(cmd.ApplicationID(), cmd.ID())
@@ -168,11 +195,19 @@ func main() {
 	// }
 
 	if err := client.OpenGateway(context.TODO()); err != nil {
-		log.Fatal("error while connecting to gateway: ", err)
+		slog.Error("error while connecting to gateway", slog.Any("err", err))
+		os.Exit(1)
+	}
+
+	slog.Info("Bot started, waiting for guilds to load...")
+	select {
+	case <-guildsReady:
+		slog.Info("Guilds loaded")
+	case <-time.After(30 * time.Second):
+		slog.Warn("Timed out waiting for guilds to load; continuing anyway")
 	}
 
 	gatewayReady.Store(true)
-	slog.Info("Bot started")
 
 	database.Init(client, GuildID)
 	go routes.CreateRouter(client)
@@ -181,8 +216,14 @@ func main() {
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-sc
 
+	slog.Info("Shutting down...")
+
+	// Close the database first so it is flushed even if the (potentially slow)
+	// command cleanup below runs long enough for the platform to send SIGKILL.
+	database.Exit()
+
 	if *RemoveCommands {
-		log.Println("Removing commands...")
+		slog.Info("Removing commands...")
 		// We need to fetch the commands, since deleting requires the command ID.
 		// We are doing this from the returned commands on line 375, because using
 		// this will delete all the commands, which might not be desirable, so we

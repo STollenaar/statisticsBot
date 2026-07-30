@@ -3,6 +3,7 @@ package charts
 import (
 	"bytes"
 	"fmt"
+	"log/slog"
 	"math"
 	"os"
 	"slices"
@@ -25,7 +26,7 @@ var (
 
 func (c *ChartTracker) GenerateChart(client *bot.Client) (*discord.File, error) {
 	data, err := c.getData(client)
-	fmt.Println(data)
+	slog.Debug("generating chart", slog.Any("data", data))
 	t := time.Now()
 	title := caser.String(strings.ReplaceAll(fmt.Sprintf("%s by %s", c.Metric.Title(), c.GroupBy.Title()), "_", " "))
 	fileName := fmt.Sprintf("%d.png", t.UnixNano())
@@ -75,7 +76,7 @@ func (c *ChartTracker) GenerateDebugChart() {
 	f, _ := os.Create("chart.html")
 
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error getting debug chart data", slog.Any("err", err))
 	}
 	switch c.ChartType {
 	case BarChart:

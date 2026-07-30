@@ -78,7 +78,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().ID().String(), now.Add(-unit), now})
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
-		fmt.Printf("mood duckDB error: %e\n", err)
+		slog.Error("summarize duckDB error", slog.Any("err", err))
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
@@ -95,7 +95,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		err := rs.Scan(&author_id, &content)
 		if err != nil {
 			eString := "error happened while trying to build summary body"
-			fmt.Printf("summarize duckDB error: %e\n", err)
+			slog.Error("summarize duckDB error", slog.Any("err", err))
 			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 				Content: &eString,
 			})
@@ -130,7 +130,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 	if err != nil {
 		database.UpdateSummaryInvocation(invID, rawResponse, "failed")
 		eString := "error happened while trying to generate the summaries"
-		fmt.Printf("summarize error: %e\n", err)
+		slog.Error("summarize error", slog.Any("err", err))
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
@@ -297,7 +297,7 @@ func GetSummary(messages []util.SummaryBody) (out util.SummaryResponse, rawRespo
 	}
 
 	rawResponse = resp.Choices[0].Message.Content
-	fmt.Printf("Raw response for summarize: %s\n", rawResponse)
+	slog.Debug("Raw response for summarize", slog.String("rawResponse", rawResponse))
 	if err = json.Unmarshal([]byte(rawResponse), &out); err != nil {
 		return
 	}

@@ -2,6 +2,7 @@ package routes
 
 import (
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"sync"
@@ -49,7 +50,7 @@ func doEmojis(emojis []discord.Emoji, guildID string) (result []*database.EmojiD
 		if database.CustomEmojiCache[emoji.Name] == "" {
 			e, err := util.FetchDiscordEmojiImage(emoji.ID.String(), emoji.Animated)
 			if err != nil {
-				fmt.Printf("Error fetching emoji data: %v\n", err)
+				slog.Error("Error fetching emoji data", slog.Any("err", err))
 				continue
 			}
 			result = append(result, &database.EmojiData{

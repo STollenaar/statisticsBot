@@ -2,7 +2,6 @@ package plotcommand
 
 import (
 	"fmt"
-	"log"
 	"log/slog"
 	"strings"
 	"time"
@@ -120,7 +119,7 @@ func (p PlotCommand) interactionHandler(event *events.ApplicationCommandInteract
 		slog.Error("Error editing the response:", slog.Any("err", err))
 	}
 	if err != nil {
-		log.Println(err)
+		slog.Error("plot error", slog.Any("err", err))
 	}
 }
 
@@ -174,7 +173,7 @@ func (p PlotCommand) ComponentHandler(event *events.ComponentInteractionCreate) 
 			},
 		})
 		if err != nil {
-			fmt.Println(err)
+			slog.Error("plot error", slog.Any("err", err))
 		}
 	} else if cID[0] != "submit_chart_form" {
 		event.DeferUpdateMessage()
@@ -208,7 +207,7 @@ func (p PlotCommand) ComponentHandler(event *events.ComponentInteractionCreate) 
 		event.DeferUpdateMessage()
 		chart, err := chartTracker.GenerateChart(event.Client())
 		if err != nil {
-			fmt.Println(err)
+			slog.Error("plot error", slog.Any("err", err))
 			e := "Error happened while processing selection"
 			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 				Content: &e,
@@ -220,14 +219,14 @@ func (p PlotCommand) ComponentHandler(event *events.ComponentInteractionCreate) 
 		} else {
 			err = event.Client().Rest.DeleteInteractionResponse(event.Client().ApplicationID, event.Token())
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("plot error", slog.Any("err", err))
 			}
 			_, err = event.Client().Rest.CreateFollowupMessage(event.Client().ApplicationID, event.Token(), discord.MessageCreate{
 				Files: []*discord.File{chart},
 				Flags: util.ConfigFile.SetEphemeral(),
 			})
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("plot error", slog.Any("err", err))
 			}
 		}
 	}
@@ -255,7 +254,7 @@ func (p PlotCommand) displayPlotSelection(event *events.GenericEvent, token stri
 	if chartTracker.CanGenerate() {
 		chart, err := chartTracker.GenerateChart(event.Client())
 		if err != nil {
-			fmt.Println(err)
+			slog.Error("plot error", slog.Any("err", err))
 			components = append(components, discord.TextDisplayComponent{
 				Content: "Error happened while processing selection",
 			})

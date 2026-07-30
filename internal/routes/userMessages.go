@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"regexp"
 	"strings"
@@ -41,7 +42,7 @@ func handleGetUserMessages(w http.ResponseWriter, r *http.Request) {
 				writeJSON(w, http.StatusOK, resp)
 			}
 		default:
-			fmt.Printf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)
+			slog.Warn("Unknown type has been sent to queue", slog.Any("sqsObject", sqsObject))
 			writeJSON(w, http.StatusBadRequest, map[string]string{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)})
 		}
 	} else {

@@ -149,7 +149,7 @@ func findAllWordOccurences(guildID, authorID string, sub discord.SlashCommandInt
 
 	messageObject, err := database.CountFilterOccurences(filter, sub.Options["word"].String(), params)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("error counting word occurrences", slog.Any("err", err))
 		return util.CountGrouped{}
 	}
 

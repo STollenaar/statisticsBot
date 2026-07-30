@@ -3,6 +3,7 @@ package routes
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"sync"
@@ -89,13 +90,13 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 		if date == nil {
 			snflk, err := util.SnowflakeToTimestamp(message_id)
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("messagesFix error", slog.Any("err", err))
 				continue
 			}
 			_, err = tx.Exec(updateDate, snflk, message_id)
 			response.Updates["date"] = response.Updates["date"] + 1
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("messagesFix error", slog.Any("err", err))
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				tx.Rollback()
 				return
@@ -114,7 +115,7 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 			_, err = tx.Exec(updateGuild, guild, message_id)
 			response.Updates["guild"] = response.Updates["guild"] + 1
 			if err != nil {
-				fmt.Println(err)
+				slog.Error("messagesFix error", slog.Any("err", err))
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 				tx.Rollback()
 				return
@@ -126,7 +127,7 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				var apiErr *discordgo.RESTError
 				if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
-					fmt.Println(err)
+					slog.Error("messagesFix error", slog.Any("err", err))
 					writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 					tx.Rollback()
 					return
@@ -135,7 +136,7 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 					response.Updates["deleted"] = response.Updates["deleted"] + 1
 
 					if err != nil {
-						fmt.Println(err)
+						slog.Error("messagesFix error", slog.Any("err", err))
 					}
 					continue
 				}
@@ -154,7 +155,7 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 				_, err := tx.Exec(deleteMessage, message_id)
 				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
-					fmt.Println(err)
+					slog.Error("messagesFix error", slog.Any("err", err))
 				}
 				continue
 			}
@@ -162,7 +163,7 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 				_, err := tx.Exec(deleteMessage, message_id)
 				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
-					fmt.Println(err)
+					slog.Error("messagesFix error", slog.Any("err", err))
 				}
 				continue
 			}
@@ -170,7 +171,7 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 				_, err := tx.Exec(deleteMessage, message_id)
 				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
-					fmt.Println(err)
+					slog.Error("messagesFix error", slog.Any("err", err))
 				}
 				continue
 			}
@@ -178,14 +179,14 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 				_, err := tx.Exec(deleteMessage, message_id)
 				response.Updates["deleted"] = response.Updates["deleted"] + 1
 				if err != nil {
-					fmt.Println(err)
+					slog.Error("messagesFix error", slog.Any("err", err))
 				}
 				continue
 			}
 			response.BadMessages = append(response.BadMessages, message)
 			if util.ConfigFile.DEBUG {
 				discordLink := fmt.Sprintf("https://discord.com/channels/%s/%s/%s", guild_id, channel_id, message.ID)
-				fmt.Println("Discord link to the message:", discordLink)
+				slog.Debug("Discord link to the message", slog.String("link", discordLink))
 			}
 		}
 	}
@@ -287,37 +288,34 @@ func doChannels(client *bot.Client, channels []discord.GuildChannel, IDs []strin
 
 // loadMessages loading messages from the channel
 func loadMessages(client *bot.Client, channel discord.GuildChannel, IDs []string, reactionTable map[string]bool) (missed int) {
-	fmt.Printf("DatabaseFix: loading %s", channel.Name)
+	slog.Info("DatabaseFix: loading channel", slog.String("channel", channel.Name()))
 
 	var result []discord.Message
-	// Getting last message and first 100
-	messages := slices.Collect(client.Caches.Messages(channel.ID()))
-
-	// Constructing operations for first 100
-	result = append(result, messages...)
-	// Loading more messages if got 100 message the first time
-	// if len(messages) == 100 {
-	// 	lastMessageCollected := messages[len(messages)-1]
-	// 	// Loading more messages, 100 at a time
-	// 	for lastMessageCollected != nil {
-	// 		moreMes, _ := Bot.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
-
-	// 		result = append(result, moreMes...)
-
-	// 		if len(moreMes) != 0 {
-	// 			lastMessageCollected = moreMes[len(moreMes)-1]
-	// 		} else {
-	// 			break
-	// 		}
-	// 	}
-	// }
-	fmt.Printf("DatabaseFix: done collecting messages for %s, found: %d messages\n", channel.Name, len(result))
+	var before snowflake.ID
+	for {
+		batch, err := client.Rest.GetMessages(channel.ID(), 0, before, 0, 100)
+		if err != nil {
+			slog.Error("DatabaseFix: failed to fetch messages", slog.String("channel", channel.Name()), slog.Any("err", err))
+			break
+		}
+		if len(batch) == 0 {
+			break
+		}
+		result = append(result, batch...)
+		// The last element is the oldest message in the batch; continue from it.
+		before = batch[len(batch)-1].ID
+		if len(batch) < 100 {
+			break
+		}
+	}
+	slog.Info("DatabaseFix: done collecting messages", slog.String("channel", channel.Name()), slog.Int("found", len(result)))
 	filtered := filterSlice(result, IDs)
 
 	for _, message := range filtered {
 		for _, reaction := range message.Reactions {
-			// users, _ := client.MessageReactions(message.ChannelID.String(), message.ID.String(), reaction.Emoji.Name, 100, "", "")
-			// for _, user := range users {
+			if reaction.Emoji.Creator == nil {
+				continue
+			}
 			if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.Creator.ID.String(), reaction.Emoji.Name)]; !ok {
 				database.ConstructMessageReactObject(database.MessageReact{
 					ID:        message.ID.String(),
@@ -326,7 +324,6 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel, IDs []string
 					Author:    reaction.Emoji.Creator.ID.String(),
 					Reaction:  reaction.Emoji.Name,
 				}, false)
-				// }
 			}
 		}
 		if message.Flags != discord.MessageFlagLoading &&

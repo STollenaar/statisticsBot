@@ -86,7 +86,7 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().String(), now.Add(-unit), now})
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
-		fmt.Printf("mood duckDB error: %e\n", err)
+		slog.Error("mood duckDB error", slog.Any("err", err))
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})
@@ -105,7 +105,7 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 		err := rs.Scan(&id, &content)
 		if err != nil {
 			eString := "error happened while trying to build Mood body"
-			fmt.Printf("mood duckDB error: %e\n", err)
+			slog.Error("mood duckDB error", slog.Any("err", err))
 			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 				Content: &eString,
 			})
@@ -122,7 +122,7 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 	mood, err := getMood(messages)
 	if err != nil {
 		eString := "error happened while trying to generate the mood"
-		fmt.Printf("mood error: %e\n", err)
+		slog.Error("mood error", slog.Any("err", err))
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &eString,
 		})

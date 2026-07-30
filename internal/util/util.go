@@ -59,7 +59,7 @@ func DeleteEmpty(s []string) []string {
 func Elapsed(channel string) func() {
 	start := time.Now()
 	return func() {
-		fmt.Printf("Loading %s took %v to complete\n", channel, time.Since(start))
+		slog.Info("Loading channel complete", slog.String("channel", channel), slog.Duration("took", time.Since(start)))
 	}
 }
 

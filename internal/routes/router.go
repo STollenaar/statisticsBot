@@ -3,7 +3,7 @@ package routes
 import (
 	"bufio"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -28,7 +28,7 @@ func CreateRouter(c *bot.Client) {
 	addFixMessages(mux)
 	addFixEmojis(mux)
 
-	log.Println("starting server on :8080")
+	slog.Info("starting server on :8080")
 	_ = http.ListenAndServe(":8080", withMiddleware(mux))
 }
 
@@ -41,9 +41,9 @@ func withMiddleware(next http.Handler) http.Handler {
 		start := time.Now()
 		defer func() {
 			if rec := recover(); rec != nil {
-				log.Printf("panic %s %s: %v", r.Method, r.URL.Path, rec)
+				slog.Error("panic recovered", slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Any("panic", rec))
 			}
-			log.Printf("%d %s %s (%s)", lw.status, r.Method, r.URL.Path, time.Since(start).Round(time.Millisecond))
+			slog.Info("request", slog.Int("status", lw.status), slog.String("method", r.Method), slog.String("path", r.URL.Path), slog.Duration("took", time.Since(start).Round(time.Millisecond)))
 		}()
 		next.ServeHTTP(lw, r)
 	})

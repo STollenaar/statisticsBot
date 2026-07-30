@@ -6,7 +6,8 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"path/filepath"
 	"slices"
 	"sort"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/util"
 
 	_ "github.com/marcboeker/go-duckdb/v2" // DuckDB Go driver
@@ -23,6 +25,7 @@ import (
 
 var (
 	duckdbClient *sql.DB
+	exitOnce     sync.Once
 
 	CustomEmojiCache = make(map[string]string)
 
@@ -55,8 +58,15 @@ func init() {
 	loadCache()
 }
 
+// Exit closes the underlying DuckDB connection. It is safe to call more than
+// once; only the first call closes the database.
 func Exit() {
-	duckdbClient.Close()
+	exitOnce.Do(func() {
+		slog.Info("Closing DB")
+		if err := duckdbClient.Close(); err != nil {
+			slog.Error("error closing DB", slog.Any("err", err))
+		}
+	})
 }
 
 func initDuckDB() {
@@ -65,7 +75,8 @@ func initDuckDB() {
 	duckdbClient, err = sql.Open("duckdb", fmt.Sprintf("%s/statsbot.db", util.ConfigFile.DUCKDB_PATH)) // Create or connect to messages.db
 
 	if err != nil {
-		log.Fatal(err)
+		slog.Error("failed to open DuckDB", slog.Any("err", err))
+		os.Exit(1)
 	}
 
 	// Ensure changelog table exists
@@ -80,14 +91,16 @@ func initDuckDB() {
 	`)
 
 	if err != nil {
-		log.Fatalf("failed to create changelog table: %v", err)
+		slog.Error("failed to create changelog table", slog.Any("err", err))
+		os.Exit(1)
 	}
 
 	if err := runMigrations(); err != nil {
-		log.Fatalf("migration failed: %v", err)
+		slog.Error("migration failed", slog.Any("err", err))
+		os.Exit(1)
 	}
 
-	log.Println("All migrations applied successfully.")
+	slog.Info("All migrations applied successfully.")
 }
 
 func runMigrations() error {
@@ -122,7 +135,7 @@ func runMigrations() error {
 			if appliedChecksum != checksumHex {
 				return fmt.Errorf("checksum mismatch for migration %s (id=%d). File has changed", file, id)
 			}
-			log.Printf("Skipping already applied migration %s", file)
+			slog.Info("Skipping already applied migration", slog.String("file", file))
 			continue
 		}
 
@@ -154,7 +167,7 @@ func runMigrations() error {
 			return fmt.Errorf("failed to record migration %s: %w", file, err)
 		}
 
-		log.Printf("Applied migration %s", file)
+		slog.Info("Applied migration", slog.String("file", file))
 	}
 
 	return nil
@@ -165,13 +178,14 @@ func loadCache() {
 		SELECT name,image_data AS image FROM emojis;
 	`)
 	if err != nil {
-		log.Fatalf("Failed to initialize cache: %v", err)
+		slog.Error("Failed to initialize cache", slog.Any("err", err))
+		os.Exit(1)
 	}
 	for rs.Next() {
 		var name, image string
 		err = rs.Scan(&name, &image)
 		if err != nil {
-			fmt.Printf("Error parsing: %v\n", err)
+			slog.Error("Error parsing emoji row", slog.Any("err", err))
 			continue
 		}
 		CustomEmojiCache[name] = image
@@ -208,13 +222,13 @@ func Init(client *bot.Client, GuildID *string) {
 
 	// Waiting for all async calls to complete
 	waitGroup.Wait()
-	fmt.Println("Done loading guilds")
+	slog.Info("Done loading guilds")
 }
 
 // initChannels loading all the channels of the guild
 func initChannels(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
 	for _, channel := range channels {
-		fmt.Printf("Checking %s \n", channel.Name())
+		slog.Info("Checking channel", slog.String("channel", channel.Name()))
 		// Check if channel is a guild text channel and not a voice or DM channel
 		if channel.Type() != discord.ChannelTypeGuildText {
 			continue
@@ -251,7 +265,7 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 	`
 
 	// Execute the query'
-	row := duckdbClient.QueryRow(query, channel.ID, channel.ID)
+	row := duckdbClient.QueryRow(query, channel.ID().String(), channel.ID().String())
 
 	var (
 		id   string
@@ -261,9 +275,10 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 	err := row.Scan(&id, &date)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Printf("No messages found for channel_id: %s\n", channel.ID())
+			slog.Info("No messages found for channel", slog.String("channel_id", channel.ID().String()))
 		} else {
-			log.Fatalf("Query failed: %v", err)
+			slog.Error("Query failed", slog.Any("err", err))
+			os.Exit(1)
 		}
 		return
 	}
@@ -275,64 +290,55 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 
 // loadMessages loading messages from the channel
 func loadMessages(client *bot.Client, channel discord.GuildChannel) {
-	fmt.Println("Loading ", channel.Name())
+	slog.Info("Loading channel", slog.String("channel", channel.Name()))
 	defer util.Elapsed(channel.Name())() // timing how long it took to collect the messages
 	// collection := client.Database("statistics_bot").Collection(channel.GuildID)
 	var operations int
 
-	// Getting last message and first 100
+	// Getting last stored message so we only ingest newer ones
 	lastMessage := getLastMessage(channel)
-	messages := slices.Collect(client.Caches.Messages(channel.ID()))
-	messages = util.FilterDiscordMessages(messages, func(message discord.Message) bool {
+	before, _ := snowflake.Parse(lastMessage.MessageID)
 
-		messageTime := message.ID.Time()
+	stopped := false
+	for !stopped {
+		batch, err := client.Rest.GetMessages(channel.ID(), 0, before, 0, 100)
+		if err != nil {
+			slog.Error("failed to fetch messages", slog.String("channel", channel.Name()), slog.Any("err", err))
+			break
+		}
+		if len(batch) == 0 {
+			break
+		}
 
-		return messageTime.After(lastMessage.Date)
-	})
-
-	// Constructing operations for first 100
-	for _, message := range messages {
-		operations++
-		ConstructCreateMessageObject(message, channel.GuildID().String(), message.Author.Bot)
-		for _, reaction := range message.Reactions {
-			if reaction.Emoji.Creator == nil {
-				continue
+		for _, message := range batch {
+			if !message.ID.Time().After(lastMessage.Date) {
+				stopped = true
+				break
 			}
-			ConstructMessageReactObject(MessageReact{
-				ID:        message.ID.String(),
-				GuildID:   channel.GuildID().String(),
-				ChannelID: message.ChannelID.String(),
-				Author:    reaction.Emoji.Creator.ID.String(),
-				Reaction:  reaction.Emoji.Name,
-			}, false)
+			operations++
+			ConstructCreateMessageObject(message, channel.GuildID().String(), message.Author.Bot)
+			for _, reaction := range message.Reactions {
+				if reaction.Emoji.Creator == nil {
+					continue
+				}
+				ConstructMessageReactObject(MessageReact{
+					ID:        message.ID.String(),
+					GuildID:   channel.GuildID().String(),
+					ChannelID: message.ChannelID.String(),
+					Author:    reaction.Emoji.Creator.ID.String(),
+					Reaction:  reaction.Emoji.Name,
+				}, false)
+			}
+		}
+
+		// The last element is the oldest message in the batch; page from it.
+		before = batch[len(batch)-1].ID
+		if len(batch) < 100 {
+			break
 		}
 	}
 
-	// Loading more messages if got 100 message the first time
-	// if len(messages) == 100 {
-	// 	lastMessageCollected := messages[len(messages)-1]
-	// 	// Loading more messages, 100 at a time
-	// 	for lastMessageCollected != nil {
-	// 		moreMes, _ := client.ChannelMessages(channel.ID, int(100), lastMessageCollected.ID, "", "")
-	// 		moreMes = util.FilterDiscordMessages(moreMes, func(message *discordgo.Message) bool {
-	// 			messageTime, _ := util.SnowflakeToTimestamp(message.ID)
-
-	// 			return messageTime.After(lastMessage.Date)
-	// 		})
-
-	// 		for _, message := range moreMes {
-	// 			operations++
-	// 			ConstructCreateMessageObject(message, channel.GuildID, message.Author.Bot)
-	// 		}
-	// 		if len(moreMes) != 0 {
-	// 			lastMessageCollected = moreMes[len(moreMes)-1]
-	// 		} else {
-	// 			break
-	// 		}
-	// 	}
-	// }
-
-	fmt.Printf("Done collecting messages for %s, found %d messages\n", channel.Name(), operations)
+	slog.Info("Done collecting messages", slog.String("channel", channel.Name()), slog.Int("found", operations))
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
@@ -362,7 +368,7 @@ func ConstructCreateMessageObject(message discord.Message, guildID string, isBot
 	contentStr := strings.Join(content, "\n")
 	timestamp, err := util.SnowflakeToTimestamp(message.ID.String())
 	if err != nil {
-		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
+		slog.Error("Error converting snowflake to timestamp", slog.Any("err", err))
 	}
 	table := "messages"
 	if isBot {
@@ -388,7 +394,7 @@ func ConstructCreateMessageObject(message discord.Message, guildID string, isBot
 	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s) 
                                 VALUES (%s)`, table, strings.Join(columns, ","), strings.Join(values, ",")), args...)
 	if err != nil {
-		fmt.Printf("Error inserting into duckdb: %s\n", err)
+		slog.Error("Error inserting into DuckDB", slog.Any("err", err))
 	}
 }
 
@@ -417,7 +423,7 @@ func constructUpdateMessageObject(message discord.Message, guildID string, isBot
 	contentStr := strings.Join(content, "\n")
 	timestamp, err := util.SnowflakeToTimestamp(message.ID.String())
 	if err != nil {
-		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
+		slog.Error("Error converting snowflake to timestamp", slog.Any("err", err))
 	}
 
 	table := "messages"
@@ -430,7 +436,7 @@ func constructUpdateMessageObject(message discord.Message, guildID string, isBot
     SELECT COALESCE(MAX(version) + 1, 1) FROM %s WHERE id = ? AND guild_id = ?`, table), message.ID, guildID).Scan(&maxVersion)
 
 	if err != nil {
-		fmt.Println("Error fetching max version:", err)
+		slog.Error("Error fetching max version", slog.Any("err", err))
 	}
 
 	columns := []string{"id", "guild_id", "channel_id", "author_id", "content", "date", "version"}
@@ -453,14 +459,14 @@ func constructUpdateMessageObject(message discord.Message, guildID string, isBot
                                 VALUES (%s)`, table, strings.Join(columns, ","), strings.Join(values, ",")), args...)
 
 	if err != nil {
-		fmt.Printf("Error inserting updated message into DuckDB: %s\n", err)
+		slog.Error("Error inserting updated message into DuckDB", slog.Any("err", err))
 	}
 }
 
 func ConstructMessageReactObject(message MessageReact, delete bool) {
 	timestamp, err := util.SnowflakeToTimestamp(message.ID)
 	if err != nil {
-		fmt.Printf("Error converting snowflake to timestamp: %s\n", err)
+		slog.Error("Error converting snowflake to timestamp", slog.Any("err", err))
 	}
 	if !delete {
 
@@ -470,14 +476,14 @@ func ConstructMessageReactObject(message MessageReact, delete bool) {
 			message.ID, message.GuildID, message.ChannelID, message.Author, message.Reaction, timestamp)
 
 		if err != nil {
-			fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
+			slog.Error("Error inserting reaction into DuckDB", slog.Any("err", err))
 		}
 	} else {
 		// insert the reaction to the message
 		_, err := duckdbClient.Exec(`DELETE FROM reactions WHERE id = ? AND author_id = ? AND reaction = ?`,
 			message.ID, message.Author, message.Reaction)
 		if err != nil {
-			fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
+			slog.Error("Error inserting reaction into DuckDB", slog.Any("err", err))
 		}
 	}
 }
@@ -490,7 +496,7 @@ func ConstructEmojiObject(message EmojiData) {
 		message.ID, message.GuildID, message.Name, message.ImageData)
 
 	if err != nil {
-		fmt.Printf("Error inserting reaction add into DuckDB: %s\n", err)
+		slog.Error("Error inserting emoji into DuckDB", slog.Any("err", err))
 	}
 	CustomEmojiCache[message.Name] = message.ImageData
 }
@@ -515,7 +521,7 @@ func QueryDuckDB(query string, params []interface{}) (results *sql.Rows, err err
 			interpolatedQuery = strings.Replace(interpolatedQuery, "?", paramStr, 1)
 		}
 
-		fmt.Println("Executing query:", interpolatedQuery)
+		slog.Debug("Executing query", slog.String("query", interpolatedQuery))
 	}
 
 	return duckdbClient.Query(query, params...)

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 )
 
@@ -20,7 +21,7 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s", ConfigFile.OLLAMA_URL), bytes.NewBuffer(data))
 
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("ollama request error", slog.Any("err", err))
 		return OllamaGenerateResponse{}, err
 	}
 	req.Header.Add("Content-Type", "application/json")
@@ -29,13 +30,13 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	case "basic":
 		username, err := GetOllamaUsername()
 		if err != nil {
-			fmt.Println(err)
+			slog.Error("ollama request error", slog.Any("err", err))
 			return OllamaGenerateResponse{}, err
 		}
 
 		password, err := GetOllamaPassword()
 		if err != nil {
-			fmt.Println(err)
+			slog.Error("ollama request error", slog.Any("err", err))
 			return OllamaGenerateResponse{}, err
 		}
 
@@ -44,7 +45,7 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	case "api_key":
 		token, err := GetOllamaAPIKey()
 		if err != nil {
-			fmt.Println(err)
+			slog.Error("ollama request error", slog.Any("err", err))
 			return OllamaGenerateResponse{}, err
 		}
 		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
@@ -53,7 +54,7 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("ollama request error", slog.Any("err", err))
 		return OllamaGenerateResponse{}, err
 	}
 
@@ -64,7 +65,7 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 		bodyData = buf.String()
 	}
 	if resp.StatusCode != 200 {
-		fmt.Println(bodyData)
+		slog.Error("ollama request returned non-200", slog.Int("status", resp.StatusCode), slog.String("body", bodyData))
 		return OllamaGenerateResponse{}, errors.New(bodyData)
 	}
 
