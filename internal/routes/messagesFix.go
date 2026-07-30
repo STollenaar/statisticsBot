@@ -288,14 +288,14 @@ func doChannels(client *bot.Client, channels []discord.GuildChannel, IDs []strin
 
 // loadMessages loading messages from the channel
 func loadMessages(client *bot.Client, channel discord.GuildChannel, IDs []string, reactionTable map[string]bool) (missed int) {
-	slog.Info("DatabaseFix: loading channel", slog.String("channel", channel.Name()))
+	slog.Info("DatabaseFix: loading channel", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()))
 
 	var result []discord.Message
 	var before snowflake.ID
 	for {
 		batch, err := client.Rest.GetMessages(channel.ID(), 0, before, 0, 100)
 		if err != nil {
-			slog.Error("DatabaseFix: failed to fetch messages", slog.String("channel", channel.Name()), slog.Any("err", err))
+			slog.Error("DatabaseFix: failed to fetch messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Any("err", err))
 			break
 		}
 		if len(batch) == 0 {
@@ -308,7 +308,7 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel, IDs []string
 			break
 		}
 	}
-	slog.Info("DatabaseFix: done collecting messages", slog.String("channel", channel.Name()), slog.Int("found", len(result)))
+	slog.Info("DatabaseFix: done collecting messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Int("found", len(result)))
 	filtered := filterSlice(result, IDs)
 
 	for _, message := range filtered {

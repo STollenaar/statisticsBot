@@ -228,7 +228,7 @@ func Init(client *bot.Client, GuildID *string) {
 // initChannels loading all the channels of the guild
 func initChannels(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
 	for _, channel := range channels {
-		slog.Info("Checking channel", slog.String("channel", channel.Name()))
+		slog.Info("Checking", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()))
 		// Check if channel is a guild text channel and not a voice or DM channel
 		if channel.Type() != discord.ChannelTypeGuildText {
 			continue
@@ -275,7 +275,7 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 	err := row.Scan(&id, &date)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			slog.Info("No messages found for channel", slog.String("channel_id", channel.ID().String()))
+			slog.Info("No messages found for", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.ID().String()))
 		} else {
 			slog.Error("Query failed", slog.Any("err", err))
 			os.Exit(1)
@@ -290,7 +290,7 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 
 // loadMessages loading messages from the channel
 func loadMessages(client *bot.Client, channel discord.GuildChannel) {
-	slog.Info("Loading channel", slog.String("channel", channel.Name()))
+	slog.Info("Loading", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()))
 	defer util.Elapsed(channel.Name())() // timing how long it took to collect the messages
 	// collection := client.Database("statistics_bot").Collection(channel.GuildID)
 	var operations int
@@ -303,7 +303,7 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel) {
 	for !stopped {
 		batch, err := client.Rest.GetMessages(channel.ID(), 0, before, 0, 100)
 		if err != nil {
-			slog.Error("failed to fetch messages", slog.String("channel", channel.Name()), slog.Any("err", err))
+			slog.Error("failed to fetch messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Any("err", err))
 			break
 		}
 		if len(batch) == 0 {
@@ -338,7 +338,7 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel) {
 		}
 	}
 
-	slog.Info("Done collecting messages", slog.String("channel", channel.Name()), slog.Int("found", operations))
+	slog.Info("Done collecting messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Int("found", operations))
 }
 
 // constructing the message object from the received discord message, ready for inserting into database
