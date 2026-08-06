@@ -84,7 +84,6 @@ func init() {
 	if ConfigFile.OLLAMA_MODEL == "" {
 		ConfigFile.OLLAMA_MODEL = "llama3.2:3b"
 	}
-
 }
 
 func init() {

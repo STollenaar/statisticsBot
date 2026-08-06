@@ -27,6 +27,7 @@ func CreateRouter(c *bot.Client) {
 	addGetUserMessages(mux)
 	addFixMessages(mux)
 	addFixEmojis(mux)
+	addFixEmbeddings(mux)
 
 	slog.Info("starting server on :8080")
 	_ = http.ListenAndServe(":8080", withMiddleware(mux))

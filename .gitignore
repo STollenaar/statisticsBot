@@ -14,3 +14,4 @@ __pycache__/
 venv/
 tools/charts/chart.html
 vendor/
+cmd/statisticsbot/models/

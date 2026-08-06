@@ -12,6 +12,7 @@ import (
 	"github.com/stollenaar/statisticsbot/internal/commands/maxcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/moodcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/plotcommand"
+	"github.com/stollenaar/statisticsbot/internal/commands/semanticcommand"
 	"github.com/stollenaar/statisticsbot/internal/commands/summarizecommand"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -29,6 +30,7 @@ var (
 		lastmessagecommand.LastMessageCmd,
 		maxcommand.MaxCmd,
 		moodcommand.MoodCmd,
+		semanticcommand.SemanticCmd,
 		summarizecommand.SummarizeCmd,
 		plotcommand.PlotCmd,
 	}

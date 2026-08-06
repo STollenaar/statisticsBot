@@ -26,29 +26,9 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	}
 	req.Header.Add("Content-Type", "application/json")
 
-	switch ConfigFile.OLLAMA_AUTH_TYPE {
-	case "basic":
-		username, err := GetOllamaUsername()
-		if err != nil {
-			slog.Error("ollama request error", slog.Any("err", err))
-			return OllamaGenerateResponse{}, err
-		}
-
-		password, err := GetOllamaPassword()
-		if err != nil {
-			slog.Error("ollama request error", slog.Any("err", err))
-			return OllamaGenerateResponse{}, err
-		}
-
-		token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
-		req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
-	case "api_key":
-		token, err := GetOllamaAPIKey()
-		if err != nil {
-			slog.Error("ollama request error", slog.Any("err", err))
-			return OllamaGenerateResponse{}, err
-		}
-		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	if err := setOllamaAuth(req); err != nil {
+		slog.Error("ollama request error", slog.Any("err", err))
+		return OllamaGenerateResponse{}, err
 	}
 
 	client := &http.Client{}
@@ -73,3 +53,28 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	json.Unmarshal([]byte(bodyData), &r)
 	return r, nil
 }
+
+// setOllamaAuth applies the configured auth scheme to an Ollama request.
+func setOllamaAuth(req *http.Request) error {
+	switch ConfigFile.OLLAMA_AUTH_TYPE {
+	case "basic":
+		username, err := GetOllamaUsername()
+		if err != nil {
+			return err
+		}
+		password, err := GetOllamaPassword()
+		if err != nil {
+			return err
+		}
+		token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+		req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
+	case "api_key":
+		token, err := GetOllamaAPIKey()
+		if err != nil {
+			return err
+		}
+		req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", token))
+	}
+	return nil
+}
+

@@ -28,6 +28,10 @@ func MessageCreateListener(event *events.GuildMessageCreate) {
 			return
 		}
 		ConstructCreateMessageObject(message, message.GuildID.String(), message.Author.Bot)
+
+		// Embed newly ingested messages so they become searchable. Best-effort
+		// and off the hot path; history is backfilled via the /fixEmbeddings route.
+		go EmbedMessage(message.ID.String(), message.Content)
 	}
 }
 
@@ -61,6 +65,10 @@ func MessageUpdateListener(event *events.GuildMessageUpdate) {
 		// }
 
 		constructUpdateMessageObject(message, message.GuildID.String(), message.Author.Bot)
+
+		// Re-embed the edited message so semantic search reflects the new
+		// content. SaveMessageEmbedding upserts, overwriting the old vector.
+		go EmbedMessage(message.ID.String(), message.Content)
 	}
 }
 
