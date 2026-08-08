@@ -108,3 +108,40 @@ resource "kubernetes_cron_job_v1" "put_fix_emojis" {
     }
   }
 }
+
+# PUT /fixEmbeddings; generate embeddings for messages missing them
+resource "kubernetes_cron_job_v1" "put_fix_embeddings" {
+  metadata {
+    name      = "put-fix-embeddings"
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
+  }
+  spec {
+    schedule                      = "2 * * * 6" # every hour at minute 20
+    suspend                       = true
+    successful_jobs_history_limit = local.history_success
+    failed_jobs_history_limit     = local.history_fail
+
+    job_template {
+      metadata {}
+      spec {
+        backoff_limit = local.backoff_limit
+        # Backfilling embeds every missing message synchronously within the
+        # request, so give it plenty of time before it is killed.
+        active_deadline_seconds = 7200
+
+        template {
+          metadata {}
+          spec {
+            restart_policy = "OnFailure"
+
+            container {
+              name  = "curl-put-embeddings"
+              image = local.image
+              args  = ["-X", "PUT", "--max-time", "7200", "${local.host}/fixEmbeddings"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
