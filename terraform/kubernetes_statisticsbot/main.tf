@@ -98,6 +98,22 @@ resource "kubernetes_deployment" "statisticsbot" {
             name  = "ADMIN_USER_ID"
             value = "134337759446958081"
           }
+          env {
+            name  = "B2_BUCKET"
+            value = "stollenaar-discordbots"
+          }
+          env {
+            name  = "B2_REGION"
+            value = "ca-east-006"
+          }
+          env {
+            name  = "AWS_B2_KEY_ID"
+            value = "/backblaze/${local.name}/key_id"
+          }
+          env {
+            name  = "AWS_B2_APPLICATION_KEY"
+            value = "/backblaze/${local.name}/application_key"
+          }
 
           port {
             container_port = 8080

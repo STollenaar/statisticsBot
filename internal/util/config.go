@@ -2,6 +2,7 @@ package util
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -39,6 +40,16 @@ type Config struct {
 
 	OLLAMA_API_KEY     string
 	AWS_OLLAMA_API_KEY string
+
+	B2_BUCKET   string
+	B2_PREFIX   string
+	B2_REGION   string
+	B2_ENDPOINT string
+
+	B2_KEY_ID              string
+	AWS_B2_KEY_ID          string
+	B2_APPLICATION_KEY     string
+	AWS_B2_APPLICATION_KEY string
 }
 
 var (
@@ -76,6 +87,14 @@ func init() {
 		AWS_OLLAMA_API_KEY:       os.Getenv("AWS_OLLAMA_API_KEY"),
 		HEALTH_PORT:              os.Getenv("HEALTH_PORT"),
 		ADMIN_USER_ID:            os.Getenv("ADMIN_USER_ID"),
+		B2_BUCKET:                os.Getenv("B2_BUCKET"),
+		B2_PREFIX:                os.Getenv("B2_PREFIX"),
+		B2_REGION:                os.Getenv("B2_REGION"),
+		B2_ENDPOINT:              os.Getenv("B2_ENDPOINT"),
+		B2_KEY_ID:                os.Getenv("B2_KEY_ID"),
+		AWS_B2_KEY_ID:            os.Getenv("AWS_B2_KEY_ID"),
+		B2_APPLICATION_KEY:       os.Getenv("B2_APPLICATION_KEY"),
+		AWS_B2_APPLICATION_KEY:   os.Getenv("AWS_B2_APPLICATION_KEY"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
@@ -83,6 +102,14 @@ func init() {
 
 	if ConfigFile.OLLAMA_MODEL == "" {
 		ConfigFile.OLLAMA_MODEL = "llama3.2:3b"
+	}
+
+	if ConfigFile.B2_PREFIX == "" {
+		ConfigFile.B2_PREFIX = "statisticsbot"
+	}
+
+	if ConfigFile.B2_ENDPOINT == "" && ConfigFile.B2_REGION != "" {
+		ConfigFile.B2_ENDPOINT = fmt.Sprintf("https://s3.%s.backblazeb2.com", ConfigFile.B2_REGION)
 	}
 }
 
@@ -170,6 +197,31 @@ func GetOllamaAPIKey() (string, error) {
 	}
 
 	return getAWSParameter(ConfigFile.AWS_OLLAMA_API_KEY)
+}
+
+// GetB2KeyID returns the Backblaze application key ID. Unlike the Ollama
+// getters this reports an error instead of exiting: backups are triggered by a
+// CronJob against the running bot, and misconfigured backup credentials must
+// not take the bot down with them.
+func GetB2KeyID() (string, error) {
+	if ConfigFile.B2_KEY_ID != "" {
+		return ConfigFile.B2_KEY_ID, nil
+	}
+	if ConfigFile.AWS_B2_KEY_ID == "" {
+		return "", fmt.Errorf("neither B2_KEY_ID nor AWS_B2_KEY_ID is set")
+	}
+	return getAWSParameter(ConfigFile.AWS_B2_KEY_ID)
+}
+
+// GetB2ApplicationKey returns the Backblaze application key.
+func GetB2ApplicationKey() (string, error) {
+	if ConfigFile.B2_APPLICATION_KEY != "" {
+		return ConfigFile.B2_APPLICATION_KEY, nil
+	}
+	if ConfigFile.AWS_B2_APPLICATION_KEY == "" {
+		return "", fmt.Errorf("neither B2_APPLICATION_KEY nor AWS_B2_APPLICATION_KEY is set")
+	}
+	return getAWSParameter(ConfigFile.AWS_B2_APPLICATION_KEY)
 }
 
 func getAWSParameter(parameterName string) (string, error) {

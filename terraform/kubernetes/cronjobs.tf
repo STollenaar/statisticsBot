@@ -109,6 +109,43 @@ resource "kubernetes_cron_job_v1" "put_fix_emojis" {
   }
 }
 
+# POST /backup; export the DuckDB database and upload it to Backblaze
+resource "kubernetes_cron_job_v1" "backup" {
+  metadata {
+    name      = "backup"
+    namespace = data.terraform_remote_state.kubernetes_cluster.outputs.discordbots.namespace.metadata.0.name
+  }
+  spec {
+    schedule                      = "0 3 * * *" # daily at 03:00
+    concurrency_policy            = "Forbid"
+    successful_jobs_history_limit = local.history_success
+    failed_jobs_history_limit     = local.history_fail
+
+    job_template {
+      metadata {}
+      spec {
+        backoff_limit           = local.backoff_limit
+        active_deadline_seconds = 3600
+
+        template {
+          metadata {}
+          spec {
+            restart_policy = "OnFailure"
+
+            container {
+              name  = "curl-backup"
+              image = local.image
+              # --fail is what makes a failed backup fail the job instead of
+              # silently recording a 500 response as a success.
+              args = ["-sS", "--fail", "-X", "POST", "--max-time", "3600", "${local.host}/backup"]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 # PUT /fixEmbeddings; generate embeddings for messages missing them
 resource "kubernetes_cron_job_v1" "put_fix_embeddings" {
   metadata {
