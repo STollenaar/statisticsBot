@@ -21,7 +21,7 @@ require (
 	github.com/knights-analytics/hugot v0.7.7
 	github.com/marcboeker/go-duckdb/v2 v2.4.3
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c
-	golang.org/x/text v0.40.0
+	golang.org/x/text v0.41.0
 )
 
 require (
