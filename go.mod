@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.37
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.36
 	github.com/aws/aws-sdk-go-v2/feature/s3/manager v1.22.43
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.13
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.14
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.107.2
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.73.6
 	github.com/bwmarrin/discordgo v0.29.0
