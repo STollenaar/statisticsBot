@@ -52,6 +52,16 @@ type SQSObject struct {
 	ApplicationID string `json:"applicationID"`
 }
 
+type UserMessagesResponse struct {
+	Type          string   `json:"type"`
+	Command       string   `json:"command"`
+	Data          []string `json:"data"`
+	ChannelID     string   `json:"channelID"`
+	GuildID       string   `json:"guildID"`
+	Token         string   `json:"token"`
+	ApplicationID string   `json:"applicationID"`
+}
+
 type OllamaGenerateResponseChoiceMessage struct {
 	Content string `json:"content"`
 }

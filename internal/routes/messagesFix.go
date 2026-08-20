@@ -43,24 +43,24 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 	content,
 	date
 	FROM messages 
-	WHERE date IS NULL OR content == '' or guild_id == '';
+	WHERE date IS NULL OR content = '' or guild_id = '';
 	`
 
 	updateDate := `
 	UPDATE messages
 	SET date = ?
-	WHERE id == ?;
+	WHERE id = ?;
 	`
 
 	updateGuild := `
 	UPDATE messages
 	SET guild_id = ?
-	WHERE id == ?;
+	WHERE id = ?;
 	`
 
 	deleteMessage := `
 	DELETE FROM messages
-	WHERE id == ?;
+	WHERE id = ?;
 	`
 	rs, err := database.QueryDuckDB(query, []interface{}{})
 	if err != nil {

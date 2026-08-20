@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
@@ -29,11 +28,15 @@ func handleGetUserMessages(w http.ResponseWriter, r *http.Request) {
 
 	var sqsObject util.SQSObject
 
-	if err := json.NewDecoder(r.Body).Decode(&sqsObject); err == nil{
+	if err := json.NewDecoder(r.Body).Decode(&sqsObject); err == nil {
 		switch sqsObject.Type {
 		case "user":
-			resp := handleUserObject(sqsObject)
-			writeJSON(w, http.StatusOK, resp)
+			resp, err := handleUserObject(sqsObject)
+			if err != nil {
+				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			} else {
+				writeJSON(w, http.StatusOK, resp)
+			}
 		case "message":
 			resp, err := handleMessageObject(sqsObject)
 			if err != nil {
@@ -50,20 +53,29 @@ func handleGetUserMessages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getUserMessages(guildID, userID string) (messageObject []*util.MessageObject) {
+// getUserMessages returns the latest version of every message the user sent in the guild.
+func getUserMessages(guildID, userID string) ([]*util.MessageObject, error) {
+	query := `
+		SELECT guild_id, channel_id, id, author_id, content, date
+		FROM messages
+		WHERE guild_id = ? AND author_id = ? AND content IS NOT NULL
+		QUALIFY ROW_NUMBER() OVER (PARTITION BY id ORDER BY version DESC) = 1
+		ORDER BY date;
+	`
 
-	filterResult, err := database.QueryDuckDB("guild_id==? AND author_id==?", []interface{}{guildID, userID})
+	filterResult, err := database.QueryDuckDB(query, []interface{}{guildID, userID})
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
+	defer filterResult.Close()
 
+	var messageObject []*util.MessageObject
 	for filterResult.Next() {
 		var guild_id, channel_id, id, author_id, content string
 		var date time.Time
 
-		err = filterResult.Scan(&guild_id, &channel_id, &id, &author_id, &content, &date)
-		if err != nil {
-			break
+		if err := filterResult.Scan(&guild_id, &channel_id, &id, &author_id, &content, &date); err != nil {
+			return nil, err
 		}
 		lastMessage := &util.MessageObject{
 			GuildID:   guild_id,
@@ -76,11 +88,11 @@ func getUserMessages(guildID, userID string) (messageObject []*util.MessageObjec
 		messageObject = append(messageObject, lastMessage)
 	}
 
-	return
+	return messageObject, filterResult.Err()
 }
 
-func handleUserObject(sqsObject util.SQSObject) util.SQSObject {
-	response := util.SQSObject{
+func handleUserObject(sqsObject util.SQSObject) (util.UserMessagesResponse, error) {
+	response := util.UserMessagesResponse{
 		Type:          sqsObject.Type,
 		Command:       sqsObject.Command,
 		GuildID:       sqsObject.GuildID,
@@ -88,13 +100,20 @@ func handleUserObject(sqsObject util.SQSObject) util.SQSObject {
 		ApplicationID: sqsObject.ApplicationID,
 	}
 
-	messageObjects := getUserMessages(sqsObject.GuildID, sqsObject.Data)
+	messageObjects, err := getUserMessages(sqsObject.GuildID, sqsObject.Data)
+	if err != nil {
+		return response, err
+	}
 
 	messages := mapToContent(messageObjects)
 	messages = filterNonTexts(messages)
+	if messages == nil {
+		// A user with no stored messages should serialise as [], not null.
+		messages = []string{}
+	}
 
-	response.Data = strings.Join(messages, " ")
-	return response
+	response.Data = messages
+	return response, nil
 }
 
 func mapToContent(messages []*util.MessageObject) (result []string) {
