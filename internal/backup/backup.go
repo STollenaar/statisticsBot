@@ -58,7 +58,7 @@ func Run(ctx context.Context) (Result, error) {
 
 	start := time.Now()
 
-	uploader, err := newUploader(ctx)
+	uploader, err := newUploader()
 	if err != nil {
 		return Result{}, err
 	}
@@ -112,7 +112,7 @@ func Run(ctx context.Context) (Result, error) {
 
 // newUploader builds an S3 uploader pointed at Backblaze. Credentials are read
 // per run so rotating the key in SSM takes effect without a restart.
-func newUploader(ctx context.Context) (*transfermanager.Client, error) {
+func newUploader() (*transfermanager.Client, error) {
 	if util.ConfigFile.B2_BUCKET == "" {
 		return nil, errors.New("B2_BUCKET is not set")
 	}
