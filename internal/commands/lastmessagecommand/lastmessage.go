@@ -109,9 +109,9 @@ func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionC
 
 	lastMessage := messageObject[0]
 	messageLink := getMessageLink(lastMessage.GuildID, lastMessage.ChannelID, lastMessage.MessageID)
-	response = fmt.Sprintf("%s last has send something in %s, and %s", 	discord.UserMention(sub.Options["user"].Snowflake()),discord.ChannelMention(snowflake.MustParse(lastMessage.ChannelID)), messageLink)
+	response = fmt.Sprintf("%s last has send something in %s, and %s", discord.UserMention(sub.Options["user"].Snowflake()), discord.ChannelMention(snowflake.MustParse(lastMessage.ChannelID)), messageLink)
 
-		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
 	})
 	if err != nil {
