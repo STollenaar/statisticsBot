@@ -15,3 +15,4 @@ venv/
 tools/charts/chart.html
 vendor/
 cmd/statisticsbot/models/
+TODO.md
