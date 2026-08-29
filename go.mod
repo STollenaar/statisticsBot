@@ -4,9 +4,9 @@ go 1.26.5
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.45.1
-	github.com/aws/aws-sdk-go-v2/config v1.32.37
+	github.com/aws/aws-sdk-go-v2/config v1.33.1
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.1
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.3.14
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.4.1
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.109.1
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.75.1
 	github.com/bwmarrin/discordgo v0.29.0
