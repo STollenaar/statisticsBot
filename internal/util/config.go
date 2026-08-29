@@ -26,9 +26,6 @@ type Config struct {
 	AWS_PARAMETER_NAME string
 	TERMINAL_REGEX     string
 
-	SQS_REQUEST  string
-	SQS_RESPONSE string
-
 	OLLAMA_URL       string
 	OLLAMA_AUTH_TYPE string
 	OLLAMA_MODEL     string
@@ -72,9 +69,7 @@ func init() {
 		AWS_REGION:               os.Getenv("AWS_REGION"),
 		DISCORD_TOKEN:            os.Getenv("DISCORD_TOKEN"),
 		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
-		SQS_REQUEST:              os.Getenv("SQS_REQUEST"),
 		DUCKDB_PATH:              os.Getenv("DUCKDB_PATH"),
-		SQS_RESPONSE:             os.Getenv("SQS_RESPONSE"),
 		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
 		OLLAMA_URL:               os.Getenv("OLLAMA_URL"),
 		OLLAMA_MODEL:             os.Getenv("OLLAMA_MODEL"),

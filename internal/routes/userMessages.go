@@ -26,27 +26,27 @@ func addGetUserMessages(mux *http.ServeMux) {
 
 func handleGetUserMessages(w http.ResponseWriter, r *http.Request) {
 
-	var sqsObject util.SQSObject
+	var object util.Object
 
-	if err := json.NewDecoder(r.Body).Decode(&sqsObject); err == nil {
-		switch sqsObject.Type {
+	if err := json.NewDecoder(r.Body).Decode(&object); err == nil {
+		switch object.Type {
 		case "user":
-			resp, err := handleUserObject(sqsObject)
+			resp, err := handleUserObject(object)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			} else {
 				writeJSON(w, http.StatusOK, resp)
 			}
 		case "message":
-			resp, err := handleMessageObject(sqsObject)
+			resp, err := handleMessageObject(object)
 			if err != nil {
 				writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			} else {
 				writeJSON(w, http.StatusOK, resp)
 			}
 		default:
-			slog.Warn("Unknown type has been sent to queue", slog.Any("sqsObject", sqsObject))
-			writeJSON(w, http.StatusBadRequest, map[string]string{"status": fmt.Sprintf("Unknown type has been send to queue. sqsObject is: %v", sqsObject)})
+			slog.Warn("Unknown type has been sent to queue", slog.Any("object", object))
+			writeJSON(w, http.StatusBadRequest, map[string]string{"status": fmt.Sprintf("Unknown type has been send to queue. object is: %v", object)})
 		}
 	} else {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"status": "bad request"})
@@ -91,16 +91,16 @@ func getUserMessages(guildID, userID string) ([]*util.MessageObject, error) {
 	return messageObject, filterResult.Err()
 }
 
-func handleUserObject(sqsObject util.SQSObject) (util.UserMessagesResponse, error) {
+func handleUserObject(object util.Object) (util.UserMessagesResponse, error) {
 	response := util.UserMessagesResponse{
-		Type:          sqsObject.Type,
-		Command:       sqsObject.Command,
-		GuildID:       sqsObject.GuildID,
-		Token:         sqsObject.Token,
-		ApplicationID: sqsObject.ApplicationID,
+		Type:          object.Type,
+		Command:       object.Command,
+		GuildID:       object.GuildID,
+		Token:         object.Token,
+		ApplicationID: object.ApplicationID,
 	}
 
-	messageObjects, err := getUserMessages(sqsObject.GuildID, sqsObject.Data)
+	messageObjects, err := getUserMessages(object.GuildID, object.Data)
 	if err != nil {
 		return response, err
 	}
@@ -132,6 +132,6 @@ func filterNonTexts(messages []string) (result []string) {
 	return result
 }
 
-func handleMessageObject(sqsObject util.SQSObject) ([]util.MessageObject, error) {
-	return database.GetMessageBlock(sqsObject.Command)
+func handleMessageObject(object util.Object) ([]util.MessageObject, error) {
+	return database.GetMessageBlock(object.Command)
 }

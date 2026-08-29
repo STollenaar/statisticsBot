@@ -42,7 +42,7 @@ type WordCounted struct {
 	Count int    `json:"Count"`
 }
 
-type SQSObject struct {
+type Object struct {
 	Type          string `json:"type"`
 	Command       string `json:"command"`
 	Data          string `json:"data"`
