@@ -6,8 +6,8 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.46.0
 	github.com/aws/aws-sdk-go-v2/config v1.33.3
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.3
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.4.3
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.111.0
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.4.4
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.112.0
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.77.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/disgoorg/disgo v0.19.6
@@ -20,7 +20,7 @@ require (
 	github.com/knights-analytics/hugot v0.7.8
 	github.com/marcboeker/go-duckdb/v2 v2.4.3
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c
-	golang.org/x/text v0.41.0
+	golang.org/x/text v0.42.0
 )
 
 require (
@@ -94,8 +94,8 @@ require (
 	golang.org/x/crypto v0.54.0 // indirect
 	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa // indirect
 	golang.org/x/image v0.45.0 // indirect
-	golang.org/x/mod v0.39.0 // indirect
-	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
+	golang.org/x/sync v0.23.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260811182544-a038080d80e5 // indirect
 	golang.org/x/term v0.45.0 // indirect
