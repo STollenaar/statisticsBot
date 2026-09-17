@@ -129,22 +129,24 @@ func GetMessagesWithoutEmbeddings(limit int) ([]util.MessageObject, error) {
 	return result, rows.Err()
 }
 
-// EmbedMessage generates and stores an embedding for a single message. It is
-// best-effort: empty content is skipped and failures are logged, not returned,
-// so it can be fired off from ingestion and backfill paths.
-func EmbedMessage(id, content string) {
+// EmbedMessage generates and stores an embedding for a single message. Empty
+// content is skipped. Failures are logged here so the fire-and-forget ingestion
+// callers stay one-liners, and also returned so the backfill can count them.
+func EmbedMessage(id, content string) error {
 	content = strings.TrimSpace(content)
 	if content == "" {
-		return
+		return nil
 	}
 
 	vec, err := embeddings.Embed(content)
 	if err != nil {
 		slog.Error("failed to embed message", slog.String("id", id), slog.Any("err", err))
-		return
+		return err
 	}
 
 	if err := SaveMessageEmbedding(id, embeddings.ModelName(), vec); err != nil {
 		slog.Error("failed to store message embedding", slog.String("id", id), slog.Any("err", err))
+		return err
 	}
+	return nil
 }
