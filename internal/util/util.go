@@ -34,65 +34,12 @@ func MentionifyIDs(s string) string {
 	})
 }
 
-// Contains check slice contains want string
-func Contains(slice []string, want string) bool {
-	for _, element := range slice {
-		if element == want {
-			return true
-		}
-	}
-	return false
-}
-
-// DeleteEmpty deleting empty strings in string slice
-func DeleteEmpty(s []string) []string {
-	var r []string
-	for _, str := range s {
-		if str != "" {
-			r = append(r, str)
-		}
-	}
-	return r
-}
-
 // Elapsed timing time till function completion
 func Elapsed(channel string) func() {
 	start := time.Now()
 	return func() {
 		slog.Info("Loading channel complete", slog.String("channel", channel), slog.Duration("took", time.Since(start)))
 	}
-}
-
-// FilterDiscordMessages filtering specific messages out of message slice
-func FilterDiscordMessages(messages []discord.Message, condition func(discord.Message) bool) (result []discord.Message) {
-	for _, message := range messages {
-		if condition(message) {
-			result = append(result, message)
-		}
-	}
-	return result
-}
-
-// FilterMessageObjects filtering specific messages out of message slice
-func FilterMessageObjects(messages []*MessageObject, condition func(*MessageObject) bool) (result []*MessageObject) {
-	for _, message := range messages {
-		if condition(message) {
-			result = append(result, message)
-		}
-	}
-	return result
-}
-
-// FindMaxIndexElement finds the max count element index of the wordcounted slice
-func FindMaxIndexElement(slice []CountGrouped) int {
-	max := 0
-
-	for index, element := range slice {
-		if element.Word.Count > slice[max].Word.Count {
-			max = index
-		}
-	}
-	return max
 }
 
 // SnowflakeToTimestamp converts a Discord snowflake ID to a timestamp
@@ -164,4 +111,43 @@ func UpdateComponentInteractionResponse(event *events.ComponentInteractionCreate
 	if err != nil {
 		slog.Error("Error updating component interaction response", slog.Any("err", err))
 	}
+}
+
+func ParseTimeArg(timeUnit string) (time.Duration, error) {
+	// Regular expression to match a number followed by a unit
+	re := regexp.MustCompile(`^(\d+)([smhd])$`)
+	matches := re.FindStringSubmatch(timeUnit)
+	if matches == nil {
+		return 0, fmt.Errorf("invalid time format: %s", timeUnit)
+	}
+
+	value, err := strconv.Atoi(matches[1])
+	if err != nil {
+		return 0, fmt.Errorf("invalid number: %v", err)
+	}
+
+	unit := matches[2]
+	var duration time.Duration
+
+	// Calculate duration based on the unit
+	switch unit {
+	case "s": // seconds
+		duration = time.Duration(value) * time.Second
+	case "m": // minutes
+		duration = time.Duration(value) * time.Minute
+	case "h": // hours
+		duration = time.Duration(value) * time.Hour
+	case "d": // days
+		duration = time.Duration(value) * 24 * time.Hour
+	default:
+		return 0, fmt.Errorf("unknown time unit: %s", unit)
+	}
+
+	// Enforce maximum time limit (1 day)
+	maxDuration := 24 * time.Hour
+	if duration > maxDuration {
+		return 0, fmt.Errorf("time cannot exceed 1 day (24h)")
+	}
+
+	return duration, nil
 }

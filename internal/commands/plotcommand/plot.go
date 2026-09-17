@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
@@ -86,10 +85,6 @@ func (p PlotCommand) ModalHandler(event *events.ModalSubmitInteractionCreate) {
 
 func (p PlotCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
 	return []discord.ApplicationCommandOption{}
-}
-func (p PlotCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
-	// parsedArguments := new(CommandParsed)
-	return nil
 }
 
 func (p PlotCommand) interactionHandler(event *events.ApplicationCommandInteractionCreate) {

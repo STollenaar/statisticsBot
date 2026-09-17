@@ -112,37 +112,6 @@ func (m MaxCommand) CreateCommandArguments() []discord.ApplicationCommandOption 
 	}
 }
 
-func (m MaxCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
-	parsedArguments := new(CommandParsed)
-
-	// Access options in the order provided by the user.
-	options := interaction.ApplicationCommandData().Options
-	parsedArguments.GuildID = interaction.GuildID
-	// Or convert the slice into a map
-	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-	for _, opt := range options {
-		optionMap[opt.Name] = opt
-	}
-
-	if option, ok := optionMap["word"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.Word = option.StringValue()
-	}
-	if option, ok := optionMap["user"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.UserTarget = option.UserValue(bot)
-	}
-	if option, ok := optionMap["channel"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.ChannelTarget = option.ChannelValue(bot)
-	}
-
-	return parsedArguments
-}
-
 // findAllWordOccurences finding the occurences of a word in the database
 func findAllWordOccurences(guildID, authorID string, sub discord.SlashCommandInteractionData) util.CountGrouped {
 	filter, params := getFilter(guildID, authorID, sub)

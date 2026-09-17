@@ -39,6 +39,8 @@ func (c *ChartTracker) getData(client *bot.Client) (data []*ChartData, err error
 	// Track execution time for the database query
 	queryStartTime := time.Now()
 	rs, err := database.QueryDuckDB(query, []interface{}{c.GuildID, start, end})
+	defer rs.Close()
+
 	if err != nil {
 		return nil, err
 	}

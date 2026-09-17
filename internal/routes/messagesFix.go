@@ -1,14 +1,12 @@
 package routes
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"slices"
 	"sync"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/snowflake/v2"
@@ -63,10 +61,14 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 	WHERE id = ?;
 	`
 	rs, err := database.QueryDuckDB(query, []interface{}{})
+
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+
+	defer rs.Close()
+
 	tx, err := database.StartTX()
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
@@ -124,23 +126,6 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 		if content == "" {
 			message, _ := client.Caches.Message(snowflake.MustParse(channel_id), snowflake.MustParse(message_id))
 
-			if err != nil {
-				var apiErr *discordgo.RESTError
-				if errors.As(err, &apiErr) && apiErr.Message.Code != discordgo.ErrCodeUnknownMessage {
-					slog.Error("messagesFix error", slog.Any("err", err))
-					writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-					tx.Rollback()
-					return
-				} else {
-					_, err := tx.Exec(deleteMessage, message_id)
-					response.Updates["deleted"] = response.Updates["deleted"] + 1
-
-					if err != nil {
-						slog.Error("messagesFix error", slog.Any("err", err))
-					}
-					continue
-				}
-			}
 			if message.Flags != discord.MessageFlagLoading &&
 				message.Type != discord.MessageTypeUserJoin &&
 				message.Type != discord.MessageTypeChannelPinnedMessage &&
@@ -211,6 +196,7 @@ func addMissingMessages(w http.ResponseWriter, r *http.Request) {
 	reactionTable := make(map[string]bool)
 
 	rs, err := database.QueryDuckDB(query, nil)
+
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
@@ -225,11 +211,14 @@ func addMissingMessages(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, id)
 	}
 
+	rs.Close()
 	rs, err = database.QueryDuckDB(reactions, nil)
+
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 		return
 	}
+	defer rs.Close()
 
 	for rs.Next() {
 		var id, author_id, reaction string

@@ -4,11 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"regexp"
-	"strconv"
 	"time"
 
-	"github.com/bwmarrin/discordgo"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
 	"github.com/stollenaar/statisticsbot/internal/database"
@@ -26,10 +23,6 @@ var (
 		WHERE guild_id = ? 
 		AND channel_id = ?
 		AND date BETWEEN ? and ?;
-	`
-
-	milvusQuery = `
-		id in %s
 	`
 )
 
@@ -68,7 +61,7 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 	}
 	sub := event.SlashCommandInteractionData()
 
-	unit, err := parseTimeArg(sub.Options["unit"].String())
+	unit, err := util.ParseTimeArg(sub.Options["unit"].String())
 	if err != nil {
 		eString := err.Error()
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
@@ -84,6 +77,7 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 
 	// Get all messages in the time frame
 	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().String(), now.Add(-unit), now})
+
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
 		slog.Error("mood duckDB error", slog.Any("err", err))
@@ -95,6 +89,7 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 		}
 		return
 	}
+	defer rs.Close()
 
 	var messages []MoodBody
 	messagMap := make(map[string]string)
@@ -151,25 +146,6 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 	}
 }
 
-func (m MoodCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
-	parsedArguments := new(CommandParsed)
-
-	// Access options in the order provided by the user.
-	options := interaction.ApplicationCommandData().Options
-	// Or convert the slice into a map
-	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-	for _, opt := range options {
-		optionMap[opt.Name] = opt
-	}
-
-	if option, ok := optionMap["unit"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.Unit = option.StringValue()
-	}
-	return parsedArguments
-}
-
 func (m MoodCommand) CreateCommandArguments() []discord.ApplicationCommandOption {
 	return []discord.ApplicationCommandOption{
 		discord.ApplicationCommandOptionString{
@@ -178,45 +154,6 @@ func (m MoodCommand) CreateCommandArguments() []discord.ApplicationCommandOption
 			Required:    true,
 		},
 	}
-}
-
-func parseTimeArg(timeUnit string) (time.Duration, error) {
-	// Regular expression to match a number followed by a unit
-	re := regexp.MustCompile(`^(\d+)([smhd])$`)
-	matches := re.FindStringSubmatch(timeUnit)
-	if matches == nil {
-		return 0, fmt.Errorf("invalid time format: %s", timeUnit)
-	}
-
-	value, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return 0, fmt.Errorf("invalid number: %v", err)
-	}
-
-	unit := matches[2]
-	var duration time.Duration
-
-	// Calculate duration based on the unit
-	switch unit {
-	case "s": // seconds
-		duration = time.Duration(value) * time.Second
-	case "m": // minutes
-		duration = time.Duration(value) * time.Minute
-	case "h": // hours
-		duration = time.Duration(value) * time.Hour
-	case "d": // days
-		duration = time.Duration(value) * 24 * time.Hour
-	default:
-		return 0, fmt.Errorf("unknown time unit: %s", unit)
-	}
-
-	// Enforce maximum time limit (1 day)
-	maxDuration := 24 * time.Hour
-	if duration > maxDuration {
-		return 0, fmt.Errorf("time cannot exceed 1 day (24h)")
-	}
-
-	return duration, nil
 }
 
 func getMood(messages []MoodBody) (out MoodResponse, err error) {

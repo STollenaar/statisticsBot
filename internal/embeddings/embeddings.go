@@ -9,11 +9,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 
 	"github.com/knights-analytics/hugot"
 	"github.com/knights-analytics/hugot/pipelines"
+	"github.com/knights-analytics/hugot/util/fileutil"
 )
 
 const (
@@ -52,7 +54,7 @@ func initPipeline() {
 		return
 	}
 
-	modelPath, err := ensureModel(ctx, "sentence-transformers/all-MiniLM-L6-v2")
+	modelPath, err := ensureModel(ctx, MODEL_NAME)
 
 	if err != nil {
 		initErr = err
@@ -69,17 +71,38 @@ func initPipeline() {
 
 // ensureModel returns the local path to the model, downloading it from
 // HuggingFace into MODELS_PATH the first time.
+//
+// DownloadModel copies the fetched files through hugot's fileutil, which since
+// v0.7.8 resolves the filesystem from the context rather than a package global.
+// NewGoSession binds one, but only to the session context it keeps privately,
+// so the context handed to DownloadModel needs its own binding; a nil
+// filesystem selects hugot's local-OS implementation.
 func ensureModel(ctx context.Context, name string) (string, error) {
+	ctx = fileutil.WithFileSystem(ctx, nil)
 
 	opts := hugot.NewDownloadOptions()
 	opts.OnnxFilePath = "onnx/model.onnx"
 
 	modelsDir := "./models/"
-	if err := os.MkdirAll(modelsDir, 0755); err != nil {
+	// DownloadModel copies each file with fileutil.CopyFile, which opens the
+	// destination directly instead of going through NewFileWriter and so never
+	// creates the directory it writes into. Create the per-model directory that
+	// DownloadModel derives from the name, or the copy fails with ENOENT on a
+	// machine that has not downloaded this model before.
+	if err := os.MkdirAll(modelDir(modelsDir, name), 0755); err != nil {
 		return "", fmt.Errorf("failed to create models directory: %w", err)
 	}
 
 	return hugot.DownloadModel(ctx, name, modelsDir, opts)
+}
+
+// modelDir mirrors how DownloadModel derives a model's directory from its name,
+// so the directory exists before the download copies files into it.
+func modelDir(modelsDir, name string) string {
+	if before, _, found := strings.Cut(name, ":"); found {
+		name = before
+	}
+	return filepath.Join(modelsDir, strings.ReplaceAll(name, "/", "_"))
 }
 
 // Embed returns the embedding vector for a single input string. The pipeline is

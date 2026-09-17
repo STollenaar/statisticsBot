@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"regexp"
-	"strconv"
 	"time"
 
 	"github.com/bwmarrin/discordgo"
@@ -60,7 +58,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 
 	sub := event.SlashCommandInteractionData()
 
-	unit, err := parseTimeArg(sub.Options["unit"].String())
+	unit, err := util.ParseTimeArg(sub.Options["unit"].String())
 	if err != nil {
 		eString := err.Error()
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
@@ -76,6 +74,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 
 	// Get all messages in the time frame
 	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().ID().String(), now.Add(-unit), now})
+
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
 		slog.Error("summarize duckDB error", slog.Any("err", err))
@@ -87,6 +86,7 @@ func (s SummarizeCommand) Handler(event *events.ApplicationCommandInteractionCre
 		}
 		return
 	}
+	defer rs.Close()
 
 	var messages []util.SummaryBody
 
@@ -203,45 +203,6 @@ func (s SummarizeCommand) CreateCommandArguments() []discord.ApplicationCommandO
 			Required:    true,
 		},
 	}
-}
-
-func parseTimeArg(timeUnit string) (time.Duration, error) {
-	// Regular expression to match a number followed by a unit
-	re := regexp.MustCompile(`^(\d+)([smhd])$`)
-	matches := re.FindStringSubmatch(timeUnit)
-	if matches == nil {
-		return 0, fmt.Errorf("invalid time format: %s", timeUnit)
-	}
-
-	value, err := strconv.Atoi(matches[1])
-	if err != nil {
-		return 0, fmt.Errorf("invalid number: %v", err)
-	}
-
-	unit := matches[2]
-	var duration time.Duration
-
-	// Calculate duration based on the unit
-	switch unit {
-	case "s": // seconds
-		duration = time.Duration(value) * time.Second
-	case "m": // minutes
-		duration = time.Duration(value) * time.Minute
-	case "h": // hours
-		duration = time.Duration(value) * time.Hour
-	case "d": // days
-		duration = time.Duration(value) * 24 * time.Hour
-	default:
-		return 0, fmt.Errorf("unknown time unit: %s", unit)
-	}
-
-	// Enforce maximum time limit (1 day)
-	maxDuration := 24 * time.Hour
-	if duration > maxDuration {
-		return 0, fmt.Errorf("time cannot exceed 1 day (24h)")
-	}
-
-	return duration, nil
 }
 
 func GetSummary(messages []util.SummaryBody) (out util.SummaryResponse, rawResponse string, err error) {

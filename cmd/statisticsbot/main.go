@@ -25,8 +25,6 @@ import (
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/internal/util"
-
-	"github.com/bwmarrin/discordgo"
 )
 
 var (
@@ -247,36 +245,4 @@ func main() {
 			}
 		}
 	}
-}
-
-// optionEqual compares two ApplicationCommandOption objects recursively.
-func optionEqual(a, b *discordgo.ApplicationCommandOption) bool {
-	if a.Name != b.Name ||
-		a.Description != b.Description ||
-		a.Type != b.Type ||
-		a.Required != b.Required {
-		return false
-	}
-
-	// Compare choices if available.
-	if len(a.Choices) != len(b.Choices) {
-		return false
-	}
-	for i := range a.Choices {
-		if a.Choices[i].Name != b.Choices[i].Name ||
-			a.Choices[i].Value != b.Choices[i].Value {
-			return false
-		}
-	}
-
-	// Compare sub-options recursively.
-	if len(a.Options) != len(b.Options) {
-		return false
-	}
-	for i := range a.Options {
-		if !optionEqual(a.Options[i], b.Options[i]) {
-			return false
-		}
-	}
-	return true
 }

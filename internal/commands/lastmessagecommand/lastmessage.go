@@ -77,6 +77,7 @@ func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionC
 	`
 
 	filterResult, err := database.QueryDuckDB(fmt.Sprintf(query, filter), values)
+
 	if err != nil {
 		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 			Content: &response,
@@ -86,6 +87,7 @@ func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionC
 		}
 		return
 	}
+	defer filterResult.Close()
 	var messageObject []*util.MessageObject
 
 	for filterResult.Next() {
@@ -107,9 +109,13 @@ func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionC
 		messageObject = append(messageObject, lastMessage)
 	}
 
-	lastMessage := messageObject[0]
-	messageLink := getMessageLink(lastMessage.GuildID, lastMessage.ChannelID, lastMessage.MessageID)
-	response = fmt.Sprintf("%s last has send something in %s, and %s", discord.UserMention(sub.Options["user"].Snowflake()), discord.ChannelMention(snowflake.MustParse(lastMessage.ChannelID)), messageLink)
+	if len(messageObject) == 0 {
+		response = fmt.Sprintf("%s hasn't send anything yet using these parameters", discord.UserMention(sub.Options["user"].Snowflake()))
+	} else {
+		lastMessage := messageObject[0]
+		messageLink := getMessageLink(lastMessage.GuildID, lastMessage.ChannelID, lastMessage.MessageID)
+		response = fmt.Sprintf("%s last has send something in %s, and %s", discord.UserMention(sub.Options["user"].Snowflake()), discord.ChannelMention(snowflake.MustParse(lastMessage.ChannelID)), messageLink)
+	}
 
 	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
@@ -137,37 +143,6 @@ func (l LastMessageCommand) CreateCommandArguments() []discord.ApplicationComman
 			Required:    false,
 		},
 	}
-}
-
-func (l LastMessageCommand) ParseArguments(bot *discordgo.Session, interaction *discordgo.InteractionCreate) interface{} {
-	parsedArguments := new(CommandParsed)
-
-	// Access options in the order provided by the user.
-	options := interaction.ApplicationCommandData().Options
-	parsedArguments.GuildID = interaction.GuildID
-	// Or convert the slice into a map
-	optionMap := make(map[string]*discordgo.ApplicationCommandInteractionDataOption, len(options))
-	for _, opt := range options {
-		optionMap[opt.Name] = opt
-	}
-
-	if option, ok := optionMap["word"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.Word = option.StringValue()
-	}
-	if option, ok := optionMap["user"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.UserTarget = option.UserValue(bot)
-	}
-	if option, ok := optionMap["channel"]; ok {
-		// Option values must be type asserted from interface{}.
-		// Discordgo provides utility functions to make this simple.
-		parsedArguments.ChannelTarget = option.ChannelValue(bot)
-	}
-
-	return parsedArguments
 }
 
 func getMessageLink(GuildId, ChannelId, MessageId string) string {

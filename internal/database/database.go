@@ -177,6 +177,7 @@ func loadCache() {
 	rs, err := duckdbClient.Query(`
 		SELECT name,image_data AS image FROM emojis;
 	`)
+	defer rs.Close()
 	if err != nil {
 		slog.Error("Failed to initialize cache", slog.Any("err", err))
 		os.Exit(1)
@@ -578,6 +579,8 @@ func CountFilterOccurences(filter, word string, params []interface{}) (messageOb
 	}
 
 	messages, err := QueryDuckDB(q, append(params, word))
+	defer messages.Close()
+
 	if err != nil {
 		return nil, err
 	}
