@@ -18,7 +18,7 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	}
 	// os.WriteFile("req.json", data, 0644)
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("https://%s", ConfigFile.OLLAMA_URL), bytes.NewBuffer(data))
+	req, err := http.NewRequest("POST", fmt.Sprintf("http://%s", ConfigFile.OLLAMA_URL), bytes.NewBuffer(data))
 
 	if err != nil {
 		slog.Error("ollama request error", slog.Any("err", err))
@@ -77,4 +77,3 @@ func setOllamaAuth(req *http.Request) error {
 	}
 	return nil
 }
-
