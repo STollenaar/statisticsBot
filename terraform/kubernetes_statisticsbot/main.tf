@@ -59,7 +59,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           }
           env {
             name  = "OLLAMA_URL"
-            value = "ollama.ollama.svc.cluster.local:11434"
+            value = "ollama.ollama.svc.cluster.local:11434/v1/chat/completions"
           }
           env {
             name  = "OLLAMA_MODEL"
