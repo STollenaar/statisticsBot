@@ -92,14 +92,9 @@ func GetEmbeddingCoverage(model string) (EmbeddingCoverage, error) {
 	var c EmbeddingCoverage
 	err := duckdbClient.QueryRow(`
 		WITH latest AS (
-			SELECT m.id, m.content
-			FROM messages m
-			JOIN (
-				SELECT id, MAX(version) AS latest_version
-				FROM messages
-				GROUP BY id
-			) l ON m.id = l.id AND m.version = l.latest_version
-			WHERE m.content <> ''
+			SELECT id, content
+			FROM latest_messages
+			WHERE content <> ''
 		)
 		SELECT
 			COUNT(*),

@@ -4,13 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"slices"
-	"sync"
 
-	"github.com/disgoorg/disgo/bot"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/jobs"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
@@ -30,7 +28,8 @@ type MessageBody struct {
 
 func addFixMessages(mux *http.ServeMux) {
 	mux.HandleFunc("DELETE /fixMessages", deleteBadMessages)
-	mux.HandleFunc("PUT /fixMessages", addMissingMessages)
+	mux.HandleFunc("PUT /fixMessages", startMissingMessages)
+	mux.HandleFunc("GET /fixMessages", getMissingMessages)
 }
 
 func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
@@ -184,177 +183,27 @@ func deleteBadMessages(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func addMissingMessages(w http.ResponseWriter, r *http.Request) {
-	query := `
-		SELECT id FROM messages
-		UNION ALL
-		SELECT id FROM bot_messages;
-	`
-
-	reactions := `SELECT id, author_id, reaction FROM reactions`
-
-	reactionTable := make(map[string]bool)
-
-	rs, err := database.QueryDuckDB(query, nil)
-
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+// startMissingMessages kicks off a scan of every message-bearing channel's full
+// history, storing anything the database does not already have, and returns
+// without waiting for it. The scan walks the REST API channel by channel and
+// takes far longer than any sane HTTP timeout, so progress is read back from
+// GET /fixMessages.
+func startMissingMessages(w http.ResponseWriter, r *http.Request) {
+	if !jobs.StartMessageSync(client) {
+		writeJSON(w, http.StatusConflict, map[string]any{
+			"error":  "a message sync is already running",
+			"status": jobs.MessageSync(),
+		})
 		return
 	}
-	var ids []string
-	for rs.Next() {
-		var id string
-		err = rs.Scan(&id)
-		if err != nil {
-			break
-		}
-		ids = append(ids, id)
-	}
 
-	rs.Close()
-	rs, err = database.QueryDuckDB(reactions, nil)
-
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
-		return
-	}
-	defer rs.Close()
-
-	for rs.Next() {
-		var id, author_id, reaction string
-		err = rs.Scan(&id, &author_id, &reaction)
-		if err != nil {
-			break
-		}
-		reactionTable[fmt.Sprintf("%s_%s_%s", id, author_id, reaction)] = true
-	}
-
-	guilds := slices.Collect(client.Caches.Guilds())
-
-	var waitGroup sync.WaitGroup
-	var mu sync.Mutex
-	var missed int
-
-	for _, guild := range guilds {
-		channels := slices.Collect(client.Caches.ChannelsForGuild(guild.ID))
-
-		// Async checking the channels of guild for new messages
-		waitGroup.Add(1)
-		go func(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
-			defer waitGroup.Done()
-			miss := doChannels(client, channels, ids, reactionTable)
-			mu.Lock()
-			missed += miss
-			mu.Unlock()
-		}(client, channels, &waitGroup)
-	}
-	// Waiting for all async calls to complete
-	waitGroup.Wait()
-	writeJSON(w, http.StatusOK, map[string]string{"message": fmt.Sprintf("done, added %d messages", missed)})
-}
-func doChannels(client *bot.Client, channels []discord.GuildChannel, IDs []string, reactionTable map[string]bool) (missed int) {
-	var waitGroup sync.WaitGroup
-	var mu sync.Mutex
-	for _, channel := range channels {
-		// Check if channel is a guild text channel and not a voice or DM channel
-		if channel.Type() != discord.ChannelTypeGuildText {
-			continue
-		}
-
-		// Async loading of the messages in that channnel
-		waitGroup.Add(1)
-		go func(client *bot.Client, channel discord.GuildChannel, IDs []string, waitGroup *sync.WaitGroup) {
-			defer waitGroup.Done()
-			miss := loadMessages(client, channel, IDs, reactionTable)
-			mu.Lock()
-			missed += miss
-			mu.Unlock()
-		}(client, channel, IDs, &waitGroup)
-	}
-	waitGroup.Wait()
-	return
+	writeJSON(w, http.StatusAccepted, map[string]any{
+		"message": "message sync started, poll GET /fixMessages for progress",
+		"status":  jobs.MessageSync(),
+	})
 }
 
-// loadMessages loading messages from the channel
-func loadMessages(client *bot.Client, channel discord.GuildChannel, IDs []string, reactionTable map[string]bool) (missed int) {
-	slog.Info("DatabaseFix: loading channel", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()))
-
-	var result []discord.Message
-	var before snowflake.ID
-	for {
-		batch, err := client.Rest.GetMessages(channel.ID(), 0, before, 0, 100)
-		if err != nil {
-			slog.Error("DatabaseFix: failed to fetch messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Any("err", err))
-			break
-		}
-		if len(batch) == 0 {
-			break
-		}
-		result = append(result, batch...)
-		// The last element is the oldest message in the batch; continue from it.
-		before = batch[len(batch)-1].ID
-		if len(batch) < 100 {
-			break
-		}
-	}
-	slog.Info("DatabaseFix: done collecting messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Int("found", len(result)))
-	filtered := filterSlice(result, IDs)
-
-	for _, message := range filtered {
-		for _, reaction := range message.Reactions {
-			if reaction.Emoji.Creator == nil {
-				continue
-			}
-			if _, ok := reactionTable[fmt.Sprintf("%s_%s_%s", message.ID, reaction.Emoji.Creator.ID.String(), reaction.Emoji.Name)]; !ok {
-				database.ConstructMessageReactObject(database.MessageReact{
-					ID:        message.ID.String(),
-					GuildID:   message.GuildID.String(),
-					ChannelID: message.ChannelID.String(),
-					Author:    reaction.Emoji.Creator.ID.String(),
-					Reaction:  reaction.Emoji.Name,
-				}, false)
-			}
-		}
-		if message.Flags != discord.MessageFlagLoading &&
-			message.Type != discord.MessageTypeUserJoin &&
-			message.Type != discord.MessageTypeChannelPinnedMessage &&
-			message.Type != discord.MessageTypeGuildBoost &&
-			message.Type != discord.MessageTypeGuildBoostTier1 &&
-			message.Type != discord.MessageTypeGuildBoostTier2 &&
-			message.Type != discord.MessageTypeGuildBoostTier3 &&
-			message.Thread == nil &&
-			message.Poll == nil &&
-			message.StickerItems == nil {
-			if message.Type == discord.MessageTypeDefault && message.ReferencedMessage == nil && message.MessageReference != nil {
-				continue
-			}
-			if len(message.Embeds) > 0 && message.Embeds[0].Type == "poll_result" {
-				continue
-			}
-			if len(message.Attachments) > 0 {
-				continue
-			}
-
-			database.ConstructCreateMessageObject(message, channel.GuildID().String(), message.Author.Bot)
-			missed++
-		}
-	}
-	return
-}
-
-// Remove items from A if their ID exists in B
-func filterSlice(A []discord.Message, B []string) []discord.Message {
-	idMap := make(map[string]struct{}, len(B))
-	for _, id := range B {
-		idMap[id] = struct{}{}
-	}
-
-	var filtered []discord.Message
-	for _, item := range A {
-		if _, exists := idMap[item.ID.String()]; !exists {
-			filtered = append(filtered, item)
-		}
-	}
-
-	return filtered
+// getMissingMessages reports the progress of the current or last sync.
+func getMissingMessages(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, http.StatusOK, jobs.MessageSync())
 }

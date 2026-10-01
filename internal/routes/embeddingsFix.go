@@ -3,7 +3,7 @@ package routes
 import (
 	"net/http"
 
-	"github.com/stollenaar/statisticsbot/internal/embedbackfill"
+	"github.com/stollenaar/statisticsbot/internal/jobs"
 )
 
 func addFixEmbeddings(mux *http.ServeMux) {
@@ -16,21 +16,21 @@ func addFixEmbeddings(mux *http.ServeMux) {
 // messages, and returns without waiting for it. The job takes hours, far longer
 // than any sane HTTP timeout, so progress is read back from GET /fixEmbeddings.
 func startMissingEmbeddings(w http.ResponseWriter, r *http.Request) {
-	if !embedbackfill.Start() {
+	if !jobs.StartEmbeddingBackfill() {
 		writeJSON(w, http.StatusConflict, map[string]any{
 			"error":  "an embedding backfill is already running",
-			"status": embedbackfill.Current(),
+			"status": jobs.EmbeddingBackfill(),
 		})
 		return
 	}
 
 	writeJSON(w, http.StatusAccepted, map[string]any{
 		"message": "embedding backfill started, poll GET /fixEmbeddings for progress",
-		"status":  embedbackfill.Current(),
+		"status":  jobs.EmbeddingBackfill(),
 	})
 }
 
 // getMissingEmbeddings reports the progress of the current or last backfill.
 func getMissingEmbeddings(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, embedbackfill.Current())
+	writeJSON(w, http.StatusOK, jobs.EmbeddingBackfill())
 }

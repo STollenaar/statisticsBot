@@ -10,8 +10,8 @@ import (
 	"github.com/disgoorg/disgo/events"
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
-	"github.com/stollenaar/statisticsbot/internal/embedbackfill"
 	"github.com/stollenaar/statisticsbot/internal/embeddings"
+	"github.com/stollenaar/statisticsbot/internal/jobs"
 )
 
 const (
@@ -34,10 +34,10 @@ func semanticHandler(sub discord.SlashCommandInteractionData) []discord.LayoutCo
 	return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Unknown semantic subcommand")}}
 }
 
-// parseSemanticCustomID splits a button ID of the form
-// admin_semantic_<action>_<payload>. The payload is optional, so the buttons
-// that carry no state ("status", "backfill") parse the same way as "page_3".
-func parseSemanticCustomID(customID string) (action, payload string, ok bool) {
+// parseAdminCustomID splits a button ID of the form
+// admin_<group>_<action>_<payload>. The payload is optional, so the buttons that
+// carry no state ("status", "backfill") parse the same way as "page_3".
+func parseAdminCustomID(customID string) (action, payload string, ok bool) {
 	parts := strings.SplitN(customID, "_", 4)
 	if len(parts) < 3 {
 		return "", "", false
@@ -49,7 +49,7 @@ func parseSemanticCustomID(customID string) (action, payload string, ok bool) {
 }
 
 func semanticButtonHandler(event *events.ComponentInteractionCreate) []discord.LayoutComponent {
-	action, payload, ok := parseSemanticCustomID(event.Data.CustomID())
+	action, payload, ok := parseAdminCustomID(event.Data.CustomID())
 	if !ok {
 		return []discord.LayoutComponent{discord.ContainerComponent{Components: errorComponents("Malformed button ID")}}
 	}
@@ -101,7 +101,7 @@ func semanticStatusComponents() []discord.LayoutComponent {
 			CustomID: "admin_semantic_status",
 		},
 	}
-	if !embedbackfill.Current().Running() {
+	if !jobs.EmbeddingBackfill().Running() {
 		buttons = append(buttons, discord.ButtonComponent{
 			Style:    discord.ButtonStylePrimary,
 			Label:    "Start backfill",
@@ -116,7 +116,7 @@ func semanticStatusComponents() []discord.LayoutComponent {
 // semanticBackfillComponents starts a backfill, or reports the running one when
 // a job is already in flight.
 func semanticBackfillComponents() []discord.LayoutComponent {
-	started := embedbackfill.Start()
+	started := jobs.StartEmbeddingBackfill()
 	header := "**Embedding backfill started**"
 	if !started {
 		header = "**A backfill is already running**"
@@ -143,13 +143,13 @@ func semanticBackfillComponents() []discord.LayoutComponent {
 
 // backfillStatusRow renders the current job state as one text component.
 func backfillStatusRow() discord.ContainerSubComponent {
-	s := embedbackfill.Current()
-	if s.Phase == embedbackfill.PhaseIdle {
+	s := jobs.EmbeddingBackfill()
+	if s.Phase == jobs.PhaseIdle {
 		return discord.TextDisplayComponent{Content: "Backfill: `idle` — no job has run since the last restart."}
 	}
 
 	var b strings.Builder
-	fmt.Fprintf(&b, "Backfill: `%s` — %d/%d done", s.Phase, s.Done, s.Total)
+	fmt.Fprintf(&b, "Backfill: `%s` — %d/%d done", phaseLabel(s), s.Done, s.Total)
 	if s.Failed > 0 {
 		fmt.Fprintf(&b, ", **%d failed**", s.Failed)
 	}

@@ -64,17 +64,8 @@ func SearchSimilarMessages(guildID string, vec []float32, model string, limit in
 		SELECT m.id, m.channel_id, COALESCE(m.author_id, ''), m.content, m.date,
 		       list_cosine_similarity(e.embedding, %s::FLOAT[]) AS score
 		FROM message_embeddings e
-		JOIN (
-			SELECT m.id, m.guild_id, m.channel_id, m.author_id, m.content, m.date
-			FROM messages m
-			JOIN (
-				SELECT id, MAX(version) AS latest_version
-				FROM messages
-				GROUP BY id
-			) latest ON m.id = latest.id AND m.version = latest.latest_version
-			WHERE m.guild_id = ?
-		) m ON m.id = e.id
-		WHERE e.model = ?
+		JOIN latest_messages m ON m.id = e.id
+		WHERE m.guild_id = ? AND e.model = ?
 		ORDER BY score DESC
 		LIMIT ?`, floatSliceToList(vec))
 
@@ -100,12 +91,7 @@ func SearchSimilarMessages(guildID string, vec []float32, model string, limit in
 func GetMessagesWithoutEmbeddings(limit int) ([]util.MessageObject, error) {
 	query := `
 		SELECT m.id, m.guild_id, m.channel_id, m.author_id, m.content, m.date
-		FROM messages m
-		JOIN (
-			SELECT id, MAX(version) AS latest_version
-			FROM messages
-			GROUP BY id
-		) latest ON m.id = latest.id AND m.version = latest.latest_version
+		FROM latest_messages m
 		LEFT JOIN message_embeddings e ON e.id = m.id
 		WHERE e.id IS NULL AND m.content <> ''`
 	if limit > 0 {

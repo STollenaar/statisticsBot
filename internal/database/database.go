@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"embed"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -20,7 +21,7 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/util"
 
-	_ "github.com/marcboeker/go-duckdb/v2" // DuckDB Go driver
+	duckdb "github.com/marcboeker/go-duckdb/v2" // DuckDB Go driver
 )
 
 var (
@@ -230,8 +231,11 @@ func Init(client *bot.Client, GuildID *string) {
 func initChannels(client *bot.Client, channels []discord.GuildChannel, waitGroup *sync.WaitGroup) {
 	for _, channel := range channels {
 		slog.Info("Checking", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()))
-		// Check if channel is a guild text channel and not a voice or DM channel
-		if channel.Type() != discord.ChannelTypeGuildText {
+		// Anything that can hold messages, which is more than plain text
+		// channels: announcement channels, threads, and voice/stage text chat all
+		// satisfy this. Forum and media parents do not, correctly — their posts
+		// are threads, which appear as channels in their own right.
+		if _, ok := channel.(discord.GuildMessageChannel); !ok {
 			continue
 		}
 
@@ -298,7 +302,13 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel) {
 
 	// Getting last stored message so we only ingest newer ones
 	lastMessage := getLastMessage(channel)
-	before, _ := snowflake.Parse(lastMessage.MessageID)
+
+	// Page backwards from the channel's newest message and stop at the last one
+	// already stored. `before` must start at 0 (newest): seeding it with the
+	// stored ID asks Discord for messages *older* than what we already have, so
+	// the very first message fails the newer-than check below and the loop exits
+	// having ingested nothing.
+	var before snowflake.ID
 
 	stopped := false
 	for !stopped {
@@ -342,20 +352,20 @@ func loadMessages(client *bot.Client, channel discord.GuildChannel) {
 	slog.Info("Done collecting messages", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.Name()), slog.Int("found", operations))
 }
 
-// constructing the message object from the received discord message, ready for inserting into database
-func ConstructCreateMessageObject(message discord.Message, guildID string, isBot bool) {
-
+// MessageContent derives the text stored for a message: the message's own
+// content, or the text carried by its embeds when the message itself is empty.
+// Exported so callers can tell whether a message would be stored with no text at
+// all before deciding to store it.
+func MessageContent(message discord.Message) string {
 	var content []string
 	if message.Content == "" && len(message.Embeds) > 0 {
 		for _, embed := range message.Embeds {
 			if embed.Description != "" {
 				content = append(content, embed.Description)
 			}
-			if len(embed.Fields) > 0 {
-				for _, field := range embed.Fields {
-					content = append(content, field.Name)
-					content = append(content, field.Value)
-				}
+			for _, field := range embed.Fields {
+				content = append(content, field.Name)
+				content = append(content, field.Value)
 			}
 			if footer := embed.Footer; footer != nil && footer.Text != "" {
 				content = append(content, footer.Text)
@@ -364,9 +374,13 @@ func ConstructCreateMessageObject(message discord.Message, guildID string, isBot
 	} else {
 		content = []string{message.Content}
 	}
+	return strings.Join(content, "\n")
+}
 
-	// Prepare the content as a single string (for simplicity, we join it)
-	contentStr := strings.Join(content, "\n")
+// constructing the message object from the received discord message, ready for inserting into database
+func ConstructCreateMessageObject(message discord.Message, guildID string, isBot bool) {
+
+	contentStr := MessageContent(message)
 	timestamp, err := util.SnowflakeToTimestamp(message.ID.String())
 	if err != nil {
 		slog.Error("Error converting snowflake to timestamp", slog.Any("err", err))
@@ -391,37 +405,43 @@ func ConstructCreateMessageObject(message discord.Message, guildID string, isBot
 		values = append(values, "?")
 	}
 
-	// Increment the version and insert the updated message
-	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s) 
-                                VALUES (%s)`, table, strings.Join(columns, ","), strings.Join(values, ",")), args...)
-	if err != nil {
+	// This always writes version 1, the message as first seen. The startup
+	// backfill and the gateway listener both feed this path and routinely race
+	// over the same message, so a row that is already there is the expected case,
+	// not an error. DO NOTHING rather than DO UPDATE: edits are recorded as new
+	// versions by constructUpdateMessageObject, so overwriting version 1 with
+	// whatever the API returns now would stamp edited content onto the original.
+	_, err = duckdbClient.Exec(fmt.Sprintf(`INSERT INTO %s (%s)
+                                VALUES (%s)
+                                ON CONFLICT (id, version) DO NOTHING`, table, strings.Join(columns, ","), strings.Join(values, ",")), args...)
+	if err != nil && !isDuplicateKey(err) {
 		slog.Error("Error inserting into DuckDB", slog.Any("err", err))
+	} else if err != nil {
+		slog.Debug("Message already stored, skipping insert", slog.String("id", message.ID.String()))
 	}
 }
 
-func constructUpdateMessageObject(message discord.Message, guildID string, isBot bool) {
-	var content []string
-	if message.Content == "" && len(message.Embeds) > 0 {
-		for _, embed := range message.Embeds {
-			if embed.Description != "" {
-				content = append(content, embed.Description)
-			}
-			if len(embed.Fields) > 0 {
-				for _, field := range embed.Fields {
-					content = append(content, field.Name)
-					content = append(content, field.Value)
-				}
-			}
-			if footer := embed.Footer; footer != nil && footer.Text != "" {
-				content = append(content, footer.Text)
-			}
-		}
-	} else {
-		content = []string{message.Content}
+// isDuplicateKey reports whether err is DuckDB saying the row is already there.
+//
+// ON CONFLICT covers a re-insert that can see the committed row, but the startup
+// backfill and the gateway listener write concurrently, and two transactions that
+// each insert the same new key only discover each other when the second commits.
+// That surfaces as a transaction error rather than a constraint one. Either way
+// the row exists, which is the outcome this path wanted.
+func isDuplicateKey(err error) bool {
+	var dbErr *duckdb.Error
+	if !errors.As(err, &dbErr) {
+		return false
 	}
+	if dbErr.Type != duckdb.ErrorTypeConstraint && dbErr.Type != duckdb.ErrorTypeTransaction {
+		return false
+	}
+	return strings.Contains(dbErr.Msg, "Duplicate key") ||
+		strings.Contains(dbErr.Msg, "PRIMARY KEY or UNIQUE constraint violation")
+}
 
-	// Prepare the content as a single string (for simplicity, we join it)
-	contentStr := strings.Join(content, "\n")
+func constructUpdateMessageObject(message discord.Message, guildID string, isBot bool) {
+	contentStr := MessageContent(message)
 	timestamp, err := util.SnowflakeToTimestamp(message.ID.String())
 	if err != nil {
 		slog.Error("Error converting snowflake to timestamp", slog.Any("err", err))
@@ -540,22 +560,12 @@ func StartTX() (*sql.Tx, error) {
 
 func CountFilterOccurences(filter, word string, params []interface{}) (messageObjects []util.CountGrouped, err error) {
 	query := `
-		WITH latest_versions AS (
-			SELECT m.*
-			FROM messages m
-			JOIN (
-				SELECT id, MAX(version) AS latest_version
-				FROM messages
-				GROUP BY id
-			) latest
-				ON m.id = latest.id AND m.version = latest.latest_version
-		),
-		tokenized_messages AS (
+		WITH tokenized_messages AS (
 			SELECT 
 				author_id,
 				guild_id,
 				LOWER(unnest(string_split(regexp_replace(content, '[^a-zA-Z0-9'' ]', '', 'g'), ' '))) AS word
-			FROM latest_versions
+			FROM latest_messages
 			%s
 		)
 		SELECT 

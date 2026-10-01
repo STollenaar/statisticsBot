@@ -51,20 +51,10 @@ func (l LastMessageCommand) Handler(event *events.ApplicationCommandInteractionC
 
 	// Query to find the most recent message for the specified channel_id
 	query := `
-		WITH latest_versions AS (
-			SELECT m.*
-			FROM messages m
-			JOIN (
-				SELECT id, MAX(version) AS latest_version
-				FROM messages
-				GROUP BY id
-			) latest
-				ON m.id = latest.id AND m.version = latest.latest_version
-		),
-		ranked_messages AS (
+		WITH ranked_messages AS (
 			SELECT *,
 				ROW_NUMBER() OVER (ORDER BY date DESC) AS rank
-			FROM latest_versions
+			FROM latest_messages
 			WHERE %s
 		)
 		SELECT 

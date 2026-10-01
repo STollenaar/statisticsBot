@@ -64,8 +64,8 @@ func (c *ChartTracker) GenerateChart(client *bot.Client) (*discord.File, error) 
 	os.Remove(fileName)
 	imgReader := bytes.NewReader(image)
 	return &discord.File{
-		Name:        fileName,
-		Reader:      imgReader,
+		Name:   fileName,
+		Reader: imgReader,
 	}, nil
 }
 

@@ -6,6 +6,7 @@ import (
 
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/stollenaar/statisticsbot/internal/jobs"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
 
@@ -44,6 +45,8 @@ func (a AdminCommand) Handler(event *events.ApplicationCommandInteractionCreate)
 		components = summaryHandler(sub)
 	case "semantic":
 		components = semanticHandler(sub)
+	case "messages":
+		components = messagesHandler(event, sub)
 	}
 	if len(components) != 0 {
 		util.UpdateInteractionResponse(event, components)
@@ -68,6 +71,8 @@ func (a AdminCommand) ComponentHandler(event *events.ComponentInteractionCreate)
 		components = summaryButtonHandler(event)
 	case "semantic":
 		components = semanticButtonHandler(event)
+	case "messages":
+		components = messagesButtonHandler(event)
 	default:
 		components = append(components, discord.ContainerComponent{
 			Components: []discord.ContainerSubComponent{
@@ -112,5 +117,28 @@ func (a AdminCommand) CreateCommandArguments() []discord.ApplicationCommandOptio
 				},
 			},
 		},
+		discord.ApplicationCommandOptionSubCommandGroup{
+			Name:        "messages",
+			Description: "Manage message ingestion",
+			Options: []discord.ApplicationCommandOptionSubCommand{
+				{
+					Name:        "status",
+					Description: "Show message sync progress",
+				},
+				{
+					Name:        "sync",
+					Description: "Scan every channel and store messages the database is missing",
+				},
+			},
+		},
 	}
+}
+
+// phaseLabel renders a job's phase for display, preferring the job's own word
+// for what it is doing ("embedding", "scanning") over the generic phase name.
+func phaseLabel(s jobs.Status) string {
+	if s.Step != "" {
+		return s.Step
+	}
+	return string(s.Phase)
 }

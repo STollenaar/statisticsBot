@@ -341,7 +341,7 @@ func (c *ChartTracker) getSingleGroupBy() []discord.StringSelectMenuOption {
 	}
 }
 
-func (c *ChartTracker) getMultiGroupBy() 	[]discord.StringSelectMenuOption {
+func (c *ChartTracker) getMultiGroupBy() []discord.StringSelectMenuOption {
 	switch c.Metric.Category {
 	case "message":
 		c.GroupBy = MetricType{Category: "channel", Metric: "user", MultiAxes: true}

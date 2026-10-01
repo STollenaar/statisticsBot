@@ -22,16 +22,11 @@ var (
 		Description: "summarize past messages from a period of time",
 	}
 	pastMessages = `
-	SELECT m.author_id, m.content
-	FROM messages m
-	JOIN (
-		SELECT id, MAX(version) AS latest_version
-		FROM messages
-		WHERE guild_id = ?
-		AND channel_id = ?
-		AND date BETWEEN ? AND ?
-		GROUP BY id
-	) sub ON m.id = sub.id AND m.version = sub.latest_version;
+	SELECT author_id, content
+	FROM latest_messages
+	WHERE guild_id = ?
+	AND channel_id = ?
+	AND date BETWEEN ? AND ?;
 	`
 )
 
