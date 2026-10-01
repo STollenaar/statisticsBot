@@ -76,30 +76,51 @@ func (s SemanticCommand) Handler(event *events.ApplicationCommandInteractionCrea
 		poolSize = maxPoolSize
 	}
 
+	// Every path from here records the search, so /admin semantic list shows
+	// failures and empty searches too, not just the ones that found something.
+	inv := database.SemanticInvocation{
+		ID:        uuid.New().String(),
+		GuildID:   event.GuildID().String(),
+		ChannelID: event.Channel().ID().String(),
+		AuthorID:  event.User().ID.String(),
+		Query:     query,
+		Model:     embeddings.ModelName(),
+		PoolSize:  poolSize,
+	}
+
 	// Embed the query with the same model used for stored messages.
 	vec, err := embeddings.Embed(query)
 	if err != nil {
 		slog.Error("semantic embedding error", slog.Any("err", err))
+		inv.Status, inv.Error = "failed", err.Error()
+		database.SaveSemanticInvocation(inv)
 		s.editError(event, "error happened while embedding the query")
 		return
 	}
 
-	results, err := database.SearchSimilarMessages(event.GuildID().String(), vec, embeddings.ModelName(), poolSize)
+	results, err := database.SearchSimilarMessages(inv.GuildID, vec, embeddings.ModelName(), poolSize)
 	if err != nil {
 		slog.Error("semantic search error", slog.Any("err", err))
+		inv.Status, inv.Error = "failed", err.Error()
+		database.SaveSemanticInvocation(inv)
 		s.editError(event, "error happened while searching for messages")
 		return
 	}
 
+	inv.ResultCount = len(results)
 	if len(results) == 0 {
+		inv.Status = "empty"
+		database.SaveSemanticInvocation(inv)
 		s.editError(event, "no matching messages found (has the history been embedded yet?)")
 		return
 	}
+	inv.Status = "success"
+	database.SaveSemanticInvocation(inv)
 
 	token := uuid.New().String()
 	sess := &searchSession{
 		query:   query,
-		guildID: event.GuildID().String(),
+		guildID: inv.GuildID,
 		results: results,
 		created: time.Now(),
 	}

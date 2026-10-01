@@ -42,6 +42,8 @@ func (a AdminCommand) Handler(event *events.ApplicationCommandInteractionCreate)
 	switch *sub.SubCommandGroupName {
 	case "summary":
 		components = summaryHandler(sub)
+	case "semantic":
+		components = semanticHandler(sub)
 	}
 	if len(components) != 0 {
 		util.UpdateInteractionResponse(event, components)
@@ -64,6 +66,8 @@ func (a AdminCommand) ComponentHandler(event *events.ComponentInteractionCreate)
 	switch strings.Split(event.Data.CustomID(), "_")[1] {
 	case "summary":
 		components = summaryButtonHandler(event)
+	case "semantic":
+		components = semanticButtonHandler(event)
 	default:
 		components = append(components, discord.ContainerComponent{
 			Components: []discord.ContainerSubComponent{
@@ -87,6 +91,24 @@ func (a AdminCommand) CreateCommandArguments() []discord.ApplicationCommandOptio
 				{
 					Name:        "list",
 					Description: "List recent summary invocations",
+				},
+			},
+		},
+		discord.ApplicationCommandOptionSubCommandGroup{
+			Name:        "semantic",
+			Description: "Manage semantic search",
+			Options: []discord.ApplicationCommandOptionSubCommand{
+				{
+					Name:        "status",
+					Description: "Show embedding coverage and backfill progress",
+				},
+				{
+					Name:        "backfill",
+					Description: "Embed every message that does not have an embedding yet",
+				},
+				{
+					Name:        "list",
+					Description: "List recent semantic searches",
 				},
 			},
 		},
