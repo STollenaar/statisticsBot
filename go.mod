@@ -17,7 +17,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.20.1
-	github.com/knights-analytics/hugot v0.8.0
+	github.com/knights-analytics/hugot v0.8.1
 	github.com/marcboeker/go-duckdb/v2 v2.4.3
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c
 	golang.org/x/text v0.42.0
@@ -65,17 +65,17 @@ require (
 	github.com/gomlx/compute v0.1.14 // indirect
 	github.com/gomlx/compute-onnx v0.1.13 // indirect
 	github.com/gomlx/exceptions v0.0.3 // indirect
-	github.com/gomlx/go-huggingface v0.4.12 // indirect
+	github.com/gomlx/go-huggingface v0.4.13 // indirect
 	github.com/gomlx/go-xla v0.4.13 // indirect
 	github.com/gomlx/gomlx v0.28.16 // indirect
 	github.com/gomlx/onnx-gomlx v0.5.13 // indirect
 	github.com/google/flatbuffers v25.2.10+incompatible // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/knights-analytics/ortgenai v0.3.2 // indirect
+	github.com/knights-analytics/ortgenai v0.3.3 // indirect
 	github.com/marcboeker/go-duckdb/arrowmapping v0.0.21 // indirect
 	github.com/marcboeker/go-duckdb/mapping v0.0.21 // indirect
-	github.com/microsoft/onnxruntime/go v0.0.0-20260922015325-62e95311b771 // indirect
+	github.com/microsoft/onnxruntime/go v0.0.0-20261002084303-27f3d47e38cd // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
