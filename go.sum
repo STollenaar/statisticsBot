@@ -142,6 +142,8 @@ github.com/gomlx/exceptions v0.0.3 h1:HKnTgEjj4jlmhr8zVFkTP9qmV1ey7ypYYosQ8GzXWu
 github.com/gomlx/exceptions v0.0.3/go.mod h1:uHL0TQwJ0xaV2/snJOJV6hSE4yRmhhfymuYgNredGxU=
 github.com/gomlx/go-huggingface v0.4.12 h1:HfvqGjYKcBebp/IXpeHVZBWax6/2b+AjblAvMvkPDQU=
 github.com/gomlx/go-huggingface v0.4.12/go.mod h1:GZLcbvOz4YFnrld3oCenp7Kmkg6BijulcAKiFKrCzMY=
+github.com/gomlx/go-huggingface v0.4.13 h1:nrdPU0sMsVK+w6HdXRLPIOMRxsQ95H2aerQ7I+oS5hA=
+github.com/gomlx/go-huggingface v0.4.13/go.mod h1:GZLcbvOz4YFnrld3oCenp7Kmkg6BijulcAKiFKrCzMY=
 github.com/gomlx/go-xla v0.4.13 h1:z+u8ORjjQTmvUYTrw5ultYQqwVvhqWSP0KagjLFjNpI=
 github.com/gomlx/go-xla v0.4.13/go.mod h1:SXsYWGWRu+cDCaAjZ71mZOSjVQqFKyqYPJUOyYzea4k=
 github.com/gomlx/gomlx v0.28.16 h1:kaws8OAX1XmvNHb0z6eKXtLFgtXG2OtAC/7YpCchGlA=
@@ -169,8 +171,12 @@ github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzh
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/knights-analytics/hugot v0.8.0 h1:mbjYAWloz4FiCPzypM8JJF31q9wHhvIt5/xVMO9JQX0=
 github.com/knights-analytics/hugot v0.8.0/go.mod h1:C6YpvCyPY2AxflEdWtVSmR7vPmmRnTG6OUGIhWeKmrQ=
+github.com/knights-analytics/hugot v0.8.1 h1:8g9dO5W51nXpXvB26O1ZCS53WRj2t03jMNz1m6eHetA=
+github.com/knights-analytics/hugot v0.8.1/go.mod h1:Lxhm9Z1yNZs89ORnfCM70MqvasLf606bpdIC6zqqsH0=
 github.com/knights-analytics/ortgenai v0.3.2 h1:0RnCmiSV68GSDuTYlViyPB3UAYNVzhJ1Sg7gPer9t3w=
 github.com/knights-analytics/ortgenai v0.3.2/go.mod h1:lSbQsRP5wY5NS+4W5CUGhdxjTzERQkR7WprAFxrBSt4=
+github.com/knights-analytics/ortgenai v0.3.3 h1:dbdCpTozLRmHpbyRC7bDLHi5pEQCwLTWykDKN/lnDHQ=
+github.com/knights-analytics/ortgenai v0.3.3/go.mod h1:TKJS9xWIv1XPnTydTm6NoUclgcAESWNHJvvCHQzgPHI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
@@ -191,6 +197,8 @@ github.com/mattn/go-runewidth v0.0.21 h1:jJKAZiQH+2mIinzCJIaIG9Be1+0NR+5sz/lYEEj
 github.com/mattn/go-runewidth v0.0.21/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
 github.com/microsoft/onnxruntime/go v0.0.0-20260922015325-62e95311b771 h1:jivhLophWChCmvTU86LJTaHBzAnyAUxcISxAepwTRV0=
 github.com/microsoft/onnxruntime/go v0.0.0-20260922015325-62e95311b771/go.mod h1:y6lrwg9wJfp1/eahM089k+5YM7nekCeWhl8UGvefyzo=
+github.com/microsoft/onnxruntime/go v0.0.0-20261002084303-27f3d47e38cd h1:QrhdDcCUP8JjODUGnuiO/K4W0/vWCupIgzH7FxcCiuQ=
+github.com/microsoft/onnxruntime/go v0.0.0-20261002084303-27f3d47e38cd/go.mod h1:y6lrwg9wJfp1/eahM089k+5YM7nekCeWhl8UGvefyzo=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 h1:AMFGa4R4MiIpspGNG7Z948v4n35fFGB3RR3G/ry4FWs=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8/go.mod h1:mC1jAcsrzbxHt8iiaC+zU4b1ylILSosueou12R++wfY=
 github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 h1:+n/aFZefKZp7spd8DFdX7uMikMLXX4oubIzJF4kv/wI=
