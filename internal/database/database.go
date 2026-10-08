@@ -55,14 +55,31 @@ type EmojiData struct {
 }
 
 func init() {
-	initDuckDB()
-	loadCache()
+	// The loaders report failures; this is the one place that decides a failure
+	// at startup is fatal.
+	if err := initDuckDB(); err != nil {
+		fatal("failed to initialize database", err)
+	}
+	if err := loadCache(); err != nil {
+		fatal("failed to initialize emoji cache", err)
+	}
+}
+
+func fatal(msg string, err error) {
+	slog.Error(msg, slog.Any("err", err))
+	Exit()
+	os.Exit(1)
 }
 
 // Exit closes the underlying DuckDB connection. It is safe to call more than
-// once; only the first call closes the database.
+// once; only the first call closes the database. It is also safe to call before
+// the database was opened, so startup failures can route through fatal without
+// caring how far initialization got.
 func Exit() {
 	exitOnce.Do(func() {
+		if duckdbClient == nil {
+			return
+		}
 		slog.Info("Closing DB")
 		if err := duckdbClient.Close(); err != nil {
 			slog.Error("error closing DB", slog.Any("err", err))
@@ -70,14 +87,13 @@ func Exit() {
 	})
 }
 
-func initDuckDB() {
+func initDuckDB() error {
 	var err error
 
 	duckdbClient, err = sql.Open("duckdb", fmt.Sprintf("%s/statsbot.db", util.ConfigFile.DUCKDB_PATH)) // Create or connect to messages.db
 
 	if err != nil {
-		slog.Error("failed to open DuckDB", slog.Any("err", err))
-		os.Exit(1)
+		return fmt.Errorf("failed to open DuckDB: %w", err)
 	}
 
 	// Ensure changelog table exists
@@ -92,16 +108,15 @@ func initDuckDB() {
 	`)
 
 	if err != nil {
-		slog.Error("failed to create changelog table", slog.Any("err", err))
-		os.Exit(1)
+		return fmt.Errorf("failed to create changelog table: %w", err)
 	}
 
 	if err := runMigrations(); err != nil {
-		slog.Error("migration failed", slog.Any("err", err))
-		os.Exit(1)
+		return fmt.Errorf("migration failed: %w", err)
 	}
 
 	slog.Info("All migrations applied successfully.")
+	return nil
 }
 
 func runMigrations() error {
@@ -174,24 +189,24 @@ func runMigrations() error {
 	return nil
 }
 
-func loadCache() {
+func loadCache() error {
 	rs, err := duckdbClient.Query(`
 		SELECT name,image_data AS image FROM emojis;
 	`)
-	defer rs.Close()
 	if err != nil {
-		slog.Error("Failed to initialize cache", slog.Any("err", err))
-		os.Exit(1)
+		return err
 	}
+	defer rs.Close()
+
 	for rs.Next() {
 		var name, image string
-		err = rs.Scan(&name, &image)
-		if err != nil {
+		if err := rs.Scan(&name, &image); err != nil {
 			slog.Error("Error parsing emoji row", slog.Any("err", err))
 			continue
 		}
 		CustomEmojiCache[name] = image
 	}
+	return rs.Err()
 }
 
 // Init doing the initialization of all the messages
@@ -283,7 +298,6 @@ func getLastMessage(channel discord.GuildChannel) (lastMessage util.MessageObjec
 			slog.Info("No messages found for", slog.String("guild", channel.GuildID().String()), slog.String("channel", channel.ID().String()))
 		} else {
 			slog.Error("Query failed", slog.Any("err", err))
-			os.Exit(1)
 		}
 		return
 	}

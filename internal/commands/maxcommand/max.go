@@ -60,26 +60,16 @@ func (m MaxCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
 
 	maxWord := findAllWordOccurences(event.GuildID().String(), event.User().ID.String(), sub)
 
-	var response string
-
-	if _, ok := sub.Options["user"]; ok {
-		response = fmt.Sprintf("%s has used the word \"%s\" more than anyone else, a total of %d time(s)", discord.UserMention(snowflake.MustParse(maxWord.Author)), maxWord.Word.Word, maxWord.Word.Count)
-	} else {
-		response = fmt.Sprintf("\"%s\" is the most common word used by %s.", maxWord.Word.Word, discord.UserMention(snowflake.MustParse(maxWord.Author)))
+	// Whose count to report: the explicitly requested user when there is one,
+	// otherwise whoever the query turned up. `user` is optional, so it must be
+	// read with the two-value form — indexing a missing key yields a zero
+	// SlashCommandOption whose Snowflake() panics on its nil Value.
+	target := maxWord.Author
+	if user, ok := sub.Options["user"]; ok {
+		target = user.Snowflake().String()
 	}
 
-	if (sub.Options["user"].Snowflake().String() != event.User().ID.String()) || maxWord.Author != event.User().ID.String() {
-		var targetUser snowflake.ID
-		tgtUser, ok := sub.Options["user"]
-		if !ok {
-			targetUser = snowflake.MustParse(maxWord.Author)
-		} else {
-			targetUser = tgtUser.Snowflake()
-		}
-		response = fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", discord.UserMention(targetUser), maxWord.Word.Word, maxWord.Word.Count)
-	} else {
-		response = fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
-	}
+	response := maxResponse(maxWord, target, event.User().ID.String())
 
 	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
@@ -109,6 +99,32 @@ func (m MaxCommand) CreateCommandArguments() []discord.ApplicationCommandOption 
 			Description: "Channel to filter with",
 			Required:    false,
 		},
+	}
+}
+
+// maxResponse renders the reply for a /max result. target is the user whose
+// count is being reported, invoker is whoever ran the command, so the wording
+// can address them directly.
+func maxResponse(maxWord util.CountGrouped, target, invoker string) string {
+	switch {
+	case maxWord.Author == "":
+		// findAllWordOccurences returns a zero CountGrouped both when nothing
+		// matched and when the query failed, so there is no author to name and
+		// no count worth reporting.
+		return "No messages matched those parameters."
+
+	case target == invoker:
+		return fmt.Sprintf("You have used the word \"%s\" the most, and is used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
+
+	default:
+		targetUser, err := snowflake.Parse(target)
+		if err != nil {
+			// A stored author_id that is not a snowflake. Report the count
+			// without a mention rather than taking the handler down.
+			slog.Error("unparseable author id", slog.String("author", target), slog.Any("err", err))
+			return fmt.Sprintf("The word \"%s\" has been used %d time(s) \n", maxWord.Word.Word, maxWord.Word.Count)
+		}
+		return fmt.Sprintf("%s has used the word \"%s\" the most, and is used %d time(s) \n", discord.UserMention(targetUser), maxWord.Word.Word, maxWord.Word.Count)
 	}
 }
 

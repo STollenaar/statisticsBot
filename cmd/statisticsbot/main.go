@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -62,16 +63,24 @@ func init() {
 		bot.WithEventListenerFunc(func(event *events.ApplicationCommandInteractionCreate) {
 			data := event.Data
 			if event.Data.Type() == discord.ApplicationCommandTypeSlash {
-				commands.CommandHandlers[data.CommandName()](event)
+				if fn, ok := commands.CommandHandlers[data.CommandName()]; ok {
+					fn(event)
+				}
 			} else {
-				commands.MessageCommandHandlers[data.CommandName()](event)
+				if fn, ok := commands.MessageCommandHandlers[data.CommandName()]; ok {
+					fn(event)
+				}
 			}
 		}),
 		bot.WithEventListenerFunc(func(event *events.ComponentInteractionCreate) {
-			commands.ComponentHandlers[strings.Split(event.Message.Interaction.Name, " ")[0]](event)
+			if fn, ok := commands.ComponentHandlers[strings.Split(event.Message.Interaction.Name, " ")[0]]; ok {
+				fn(event)
+			}
 		}),
 		bot.WithEventListenerFunc(func(event *events.ModalSubmitInteractionCreate) {
-			commands.ModalSubmitHandlers[event.Data.CustomID](event)
+			if fn, ok := commands.ModalSubmitHandlers[event.Data.CustomID]; ok {
+				fn(event)
+			}
 		}),
 
 		bot.WithEventListenerFunc(func(event *events.GuildsReady) {
@@ -95,7 +104,16 @@ func init() {
 	util.ConfigFile.DEBUG = *Debug
 }
 
-func startHealthServer(port string) {
+// shutdownGrace is how long in-flight HTTP requests get to finish once a
+// termination signal arrives. It is deliberately well inside Kubernetes' default
+// 30s terminationGracePeriodSeconds, because the database still has to be
+// flushed and the commands cleaned up after this returns — spending the whole
+// budget draining would trade a cut-off request for an unflushed database.
+const shutdownGrace = 15 * time.Second
+
+// startHealthServer starts the liveness/readiness server in the background and
+// returns it so it can be shut down with everything else.
+func startHealthServer(port string) *http.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -120,10 +138,40 @@ func startHealthServer(port string) {
 
 		}
 	})
-	slog.Info("Health server listening", slog.String("port", port))
-	if err := http.ListenAndServe(":"+port, mux); err != nil {
-		slog.Error("Health server failed", slog.Any("err", err))
+	srv := &http.Server{Addr: ":" + port, Handler: mux}
+	go func() {
+		slog.Info("Health server listening", slog.String("port", port))
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Health server failed", slog.Any("err", err))
+		}
+	}()
+	return srv
+}
+
+// shutdownHTTP stops the given servers accepting new connections and waits for
+// in-flight requests, up to shutdownGrace shared across all of them.
+func shutdownHTTP(servers ...*http.Server) {
+	ctx, cancel := context.WithTimeout(context.Background(), shutdownGrace)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	for _, srv := range servers {
+		if srv == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(srv *http.Server) {
+			defer wg.Done()
+			if err := srv.Shutdown(ctx); err != nil {
+				// Most likely the grace period expired with requests still
+				// running; they are about to be cut off either way.
+				slog.Error("server did not drain in time", slog.String("addr", srv.Addr), slog.Any("err", err))
+				return
+			}
+			slog.Info("server stopped", slog.String("addr", srv.Addr))
+		}(srv)
 	}
+	wg.Wait()
 }
 
 func main() {
@@ -170,7 +218,7 @@ func main() {
 		return
 	}
 
-	go startHealthServer(util.ConfigFile.HEALTH_PORT)
+	healthServer := startHealthServer(util.ConfigFile.HEALTH_PORT)
 
 	slog.Info("Adding commands...")
 
@@ -208,7 +256,7 @@ func main() {
 	gatewayReady.Store(true)
 
 	database.Init(client, GuildID)
-	go routes.CreateRouter(client)
+	apiServer := routes.CreateRouter(client)
 
 	sc := make(chan os.Signal, 1)
 	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
@@ -216,8 +264,13 @@ func main() {
 
 	slog.Info("Shutting down...")
 
-	// Close the database first so it is flushed even if the (potentially slow)
-	// command cleanup below runs long enough for the platform to send SIGKILL.
+	// Stop serving before closing the database. A request still in flight would
+	// otherwise find the connection closed underneath it, which is how an
+	// in-progress backup used to die mid-upload on a rolling deploy.
+	shutdownHTTP(apiServer, healthServer)
+
+	// Then flush the database, before the (potentially slow) command cleanup
+	// below risks running long enough for the platform to send SIGKILL.
 	database.Exit()
 
 	if *RemoveCommands {

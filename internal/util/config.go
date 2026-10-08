@@ -38,6 +38,9 @@ type Config struct {
 	OLLAMA_API_KEY     string
 	AWS_OLLAMA_API_KEY string
 
+	HTTP_AUTH_TOKEN     string
+	AWS_HTTP_AUTH_TOKEN string
+
 	B2_BUCKET   string
 	B2_PREFIX   string
 	B2_REGION   string
@@ -80,6 +83,8 @@ func init() {
 		AWS_OLLAMA_AUTH_USERNAME: os.Getenv("AWS_OLLAMA_AUTH_USERNAME"),
 		AWS_OLLAMA_AUTH_PASSWORD: os.Getenv("AWS_OLLAMA_AUTH_PASSWORD"),
 		AWS_OLLAMA_API_KEY:       os.Getenv("AWS_OLLAMA_API_KEY"),
+		HTTP_AUTH_TOKEN:          os.Getenv("HTTP_AUTH_TOKEN"),
+		AWS_HTTP_AUTH_TOKEN:      os.Getenv("AWS_HTTP_AUTH_TOKEN"),
 		HEALTH_PORT:              os.Getenv("HEALTH_PORT"),
 		ADMIN_USER_ID:            os.Getenv("ADMIN_USER_ID"),
 		B2_BUCKET:                os.Getenv("B2_BUCKET"),
@@ -192,6 +197,27 @@ func GetOllamaAPIKey() (string, error) {
 	}
 
 	return getAWSParameter(ConfigFile.AWS_OLLAMA_API_KEY)
+}
+
+// GetHTTPAuthToken returns the shared token the internal HTTP API requires.
+//
+// The three outcomes are distinct and the caller must treat them differently:
+//   - ("", nil)    no token configured at all
+//   - (token, nil) a token is configured and resolved
+//   - ("", err)    a token was configured but could not be read
+//
+// The last case must not be mistaken for the first: a token was intended, so
+// the API has to refuse requests rather than quietly serve them unauthenticated.
+// Like the B2 getters this reports an error instead of exiting — a misconfigured
+// admin API must not take the Discord side of the bot down with it.
+func GetHTTPAuthToken() (string, error) {
+	if ConfigFile.HTTP_AUTH_TOKEN != "" {
+		return ConfigFile.HTTP_AUTH_TOKEN, nil
+	}
+	if ConfigFile.AWS_HTTP_AUTH_TOKEN == "" {
+		return "", nil
+	}
+	return getAWSParameter(ConfigFile.AWS_HTTP_AUTH_TOKEN)
 }
 
 // GetB2KeyID returns the Backblaze application key ID. Unlike the Ollama

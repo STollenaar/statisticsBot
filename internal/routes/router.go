@@ -3,6 +3,7 @@ package routes
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
@@ -15,7 +16,11 @@ var (
 	client *bot.Client
 )
 
-func CreateRouter(c *bot.Client) {
+// CreateRouter builds the internal API and starts serving it in the background,
+// returning the server so the caller can shut it down gracefully. The listener
+// is created here rather than in a goroutine the caller launches, so the
+// returned server is always safe to call Shutdown on.
+func CreateRouter(c *bot.Client) *http.Server {
 	client = c
 
 	mux := http.NewServeMux()
@@ -28,10 +33,28 @@ func CreateRouter(c *bot.Client) {
 	addFixMessages(mux)
 	addFixEmojis(mux)
 	addFixEmbeddings(mux)
+	addFixMoods(mux)
 	addBackup(mux)
 
-	slog.Info("starting server on :8080")
-	_ = http.ListenAndServe(":8080", withMiddleware(mux))
+	resolveAuth()
+
+	// Auth runs inside the logging/recovery middleware so rejected requests are
+	// still logged.
+	srv := &http.Server{
+		Addr:    ":8080",
+		Handler: withMiddleware(withAuth(mux)),
+	}
+
+	go func() {
+		slog.Info("starting server on :8080")
+		// ErrServerClosed is the expected result of a graceful Shutdown, not a
+		// failure worth logging as one.
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("api server failed", slog.Any("err", err))
+		}
+	}()
+
+	return srv
 }
 
 // withMiddleware adds per-request logging and panic recovery (gin.Default's two

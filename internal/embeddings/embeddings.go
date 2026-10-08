@@ -78,10 +78,16 @@ func initPipeline() {
 // so the context handed to DownloadModel needs its own binding; a nil
 // filesystem selects hugot's local-OS implementation.
 func ensureModel(ctx context.Context, name string) (string, error) {
+	return ensureModelWithOnnx(ctx, name, "onnx/model.onnx")
+}
+
+// ensureModelWithOnnx is ensureModel for a repo whose export does not sit at the
+// conventional onnx/model.onnx path.
+func ensureModelWithOnnx(ctx context.Context, name, onnxPath string) (string, error) {
 	ctx = fileutil.WithFileSystem(ctx, nil)
 
 	opts := hugot.NewDownloadOptions()
-	opts.OnnxFilePath = "onnx/model.onnx"
+	opts.OnnxFilePath = onnxPath
 
 	modelsDir := "./models/"
 	// DownloadModel copies each file with fileutil.CopyFile, which opens the

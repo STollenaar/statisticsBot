@@ -47,6 +47,8 @@ func (a AdminCommand) Handler(event *events.ApplicationCommandInteractionCreate)
 		components = semanticHandler(sub)
 	case "messages":
 		components = messagesHandler(event, sub)
+	case "mood":
+		components = moodHandler(sub)
 	}
 	if len(components) != 0 {
 		util.UpdateInteractionResponse(event, components)
@@ -73,6 +75,8 @@ func (a AdminCommand) ComponentHandler(event *events.ComponentInteractionCreate)
 		components = semanticButtonHandler(event)
 	case "messages":
 		components = messagesButtonHandler(event)
+	case "mood":
+		components = moodButtonHandler(event)
 	default:
 		components = append(components, discord.ContainerComponent{
 			Components: []discord.ContainerSubComponent{
@@ -114,6 +118,20 @@ func (a AdminCommand) CreateCommandArguments() []discord.ApplicationCommandOptio
 				{
 					Name:        "list",
 					Description: "List recent semantic searches",
+				},
+			},
+		},
+		discord.ApplicationCommandOptionSubCommandGroup{
+			Name:        "mood",
+			Description: "Manage mood classification",
+			Options: []discord.ApplicationCommandOptionSubCommand{
+				{
+					Name:        "status",
+					Description: "Show mood classification coverage and backfill progress",
+				},
+				{
+					Name:        "backfill",
+					Description: "Classify the mood of every message that has not been scored yet",
 				},
 			},
 		},

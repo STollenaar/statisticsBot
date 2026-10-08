@@ -2,6 +2,7 @@ package moodcommand
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -18,12 +19,20 @@ var (
 		Description: "get the mood of messages from a period of time",
 	}
 	pastMessages = `
-		SELECT id, content
-		FROM messages
-		WHERE guild_id = ? 
+		SELECT content
+		FROM latest_messages
+		WHERE guild_id = ?
 		AND channel_id = ?
-		AND date BETWEEN ? and ?;
+		AND date BETWEEN ? AND ?
+		AND content <> '';
 	`
+)
+
+// Discord's embed limits; exceeding any of them is a rejected request.
+const (
+	maxEmbedFields = 25
+	maxFieldName   = 256
+	maxFieldValue  = 1024
 )
 
 type MoodCommand struct {
@@ -35,21 +44,15 @@ type CommandParsed struct {
 	Unit string
 }
 
+// MoodResponse mirrors the json getMood asks the model for, and the
+// response_format schema it declares: one entry per detected topic.
 type MoodResponse struct {
-	// The key can be a string (e.g., a topic title), and the value is the Mood of that topic.
-	Mood map[string]string `json:"mood"`
+	Messages []MoodTopic `json:"messages"`
 }
 
-type MoodRequest struct {
-	MoodBodies []MoodBody `json:"messages"`
-	Eps        float32    `json:"eps"`
-	MinSamples int        `json:"minSamples"`
-	TopN       int        `json:"topN"`
-}
-
-type MoodBody struct {
-	Vector  []float32 `json:"vector"`
-	Message string    `json:"message"`
+type MoodTopic struct {
+	Topic string `json:"topic"`
+	Mood  string `json:"mood"`
 }
 
 func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) {
@@ -76,7 +79,9 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 	now := time.Now()
 
 	// Get all messages in the time frame
-	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().String(), now.Add(-unit), now})
+	// Channel().String() renders the channel as display text, not its id, so
+	// this used to filter on a value no row could ever hold.
+	rs, err := database.QueryDuckDB(pastMessages, []interface{}{event.GuildID().String(), event.Channel().ID().String(), now.Add(-unit), now})
 
 	if err != nil {
 		eString := "error happened while trying to fetch the messages"
@@ -91,14 +96,11 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 	}
 	defer rs.Close()
 
-	var messages []MoodBody
-	messagMap := make(map[string]string)
-	var messageIds []string
+	var messages []string
 
 	for rs.Next() {
-		var id, content string
-		err := rs.Scan(&id, &content)
-		if err != nil {
+		var content string
+		if err := rs.Scan(&content); err != nil {
 			eString := "error happened while trying to build Mood body"
 			slog.Error("mood duckDB error", slog.Any("err", err))
 			_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
@@ -109,8 +111,30 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 			}
 			return
 		}
-		messagMap[id] = content
-		messageIds = append(messageIds, id)
+		messages = append(messages, content)
+	}
+	if err := rs.Err(); err != nil {
+		eString := "error happened while trying to fetch the messages"
+		slog.Error("mood duckDB error", slog.Any("err", err))
+		_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+			Content: &eString,
+		})
+		if err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
+		return
+	}
+
+	// Nothing to analyse; asking the model about an empty list only wastes a
+	// round trip and produces an empty embed.
+	if len(messages) == 0 {
+		eString := fmt.Sprintf("No messages in this channel in the past %s", sub.Options["unit"].String())
+		if _, err := event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+			Content: &eString,
+		}); err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
+		return
 	}
 
 	// Get and create the Mood
@@ -131,11 +155,26 @@ func (m MoodCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 		Title: fmt.Sprintf("Mood of the past %s", sub.Options["unit"].String()),
 	}
 
-	for topic, Mood := range mood.Mood {
+	for _, topic := range mood.Messages {
+		// Discord rejects an embed with more than maxEmbedFields fields, and
+		// truncates nothing for you.
+		if len(embed.Fields) == maxEmbedFields {
+			break
+		}
 		embed.Fields = append(embed.Fields, discord.EmbedField{
-			Name:  topic,
-			Value: Mood,
+			Name:  truncate(topic.Topic, maxFieldName),
+			Value: truncate(topic.Mood, maxFieldValue),
 		})
+	}
+
+	if len(embed.Fields) == 0 {
+		eString := "could not determine a mood for those messages"
+		if _, err := event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
+			Content: &eString,
+		}); err != nil {
+			slog.Error("Error editing the response:", slog.Any("err", err))
+		}
+		return
 	}
 
 	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
@@ -156,13 +195,13 @@ func (m MoodCommand) CreateCommandArguments() []discord.ApplicationCommandOption
 	}
 }
 
-func getMood(messages []MoodBody) (out MoodResponse, err error) {
+func getMood(messages []string) (out MoodResponse, err error) {
 	data, err := json.Marshal(messages)
 	if err != nil {
 		return MoodResponse{}, err
 	}
 
-	prompt := fmt.Sprintf("group the following messages together and analyze the mood. Make sure to return both the topic of the grouped messages, and mood analysis. Return it as a json string of this format {\"messages\":[{\"topic\", \"mood\"}]}: %s", string(data))
+	prompt := fmt.Sprintf("group the following messages together and analyze the mood. Make sure to return both the topic of the grouped messages, and mood analysis. Return it as a json string of this format {\"messages\":[{\"topic\":\"...\",\"mood\":\"...\"}]}: %s", string(data))
 
 	resp, err := util.CreateOllamaGeneration(util.OllamaGenerateRequest{
 		Model:            util.ConfigFile.OLLAMA_MODEL,
@@ -198,9 +237,30 @@ func getMood(messages []MoodBody) (out MoodResponse, err error) {
 		Stream: false,
 	})
 	if err != nil {
-		return MoodResponse{}, nil
+		// Was `return MoodResponse{}, nil`, which reported success on failure and
+		// left the caller rendering an empty embed.
+		return MoodResponse{}, err
 	}
 
-	err = json.Unmarshal([]byte(resp.Choices[0].Message.Content), &out)
-	return
+	// An empty choices array is a valid json response from the endpoint, so this
+	// has to be checked rather than indexed.
+	if len(resp.Choices) == 0 {
+		return MoodResponse{}, errors.New("ollama returned no choices")
+	}
+
+	rawResponse := resp.Choices[0].Message.Content
+	slog.Debug("Raw response for mood", slog.String("rawResponse", rawResponse))
+	if err := json.Unmarshal([]byte(rawResponse), &out); err != nil {
+		return MoodResponse{}, fmt.Errorf("unmarshalling mood response: %w", err)
+	}
+	return out, nil
+}
+
+// truncate shortens s to at most n runes, appending an ellipsis when cut.
+func truncate(s string, n int) string {
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n-1]) + "…"
 }

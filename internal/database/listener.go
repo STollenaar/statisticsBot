@@ -29,9 +29,11 @@ func MessageCreateListener(event *events.GuildMessageCreate) {
 		}
 		ConstructCreateMessageObject(message, message.GuildID.String(), message.Author.Bot)
 
-		// Embed newly ingested messages so they become searchable. Best-effort
-		// and off the hot path; history is backfilled via the /fixEmbeddings route.
+		// Embed and classify newly ingested messages, so they become searchable
+		// and carry a mood. Both are best-effort and off the hot path; history is
+		// backfilled via the /fixEmbeddings and /fixMoods routes.
 		go EmbedMessage(message.ID.String(), message.Content)
+		go MoodMessage(message.ID.String(), message.Content)
 	}
 }
 
@@ -66,9 +68,10 @@ func MessageUpdateListener(event *events.GuildMessageUpdate) {
 
 		constructUpdateMessageObject(message, message.GuildID.String(), message.Author.Bot)
 
-		// Re-embed the edited message so semantic search reflects the new
-		// content. SaveMessageEmbedding upserts, overwriting the old vector.
+		// Re-embed and re-score the edited message so search and mood reflect the
+		// new content. Both saves upsert, overwriting the old values.
 		go EmbedMessage(message.ID.String(), message.Content)
+		go MoodMessage(message.ID.String(), message.Content)
 	}
 }
 

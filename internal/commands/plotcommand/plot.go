@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/disgoorg/disgo/discord"
@@ -13,13 +14,78 @@ import (
 	"github.com/stollenaar/statisticsbot/internal/util/charts"
 )
 
+const (
+	// trackerTTL is how long a /plot form's selections stay cached. Discord stops
+	// accepting an interaction token after 15 minutes, so a tracker that outlives
+	// that can never be acted on again and is only holding memory.
+	trackerTTL = 15 * time.Minute
+
+	plotExpiredMessage = "This chart form has expired, please run `/plot` again"
+)
+
 var (
 	PlotCmd = PlotCommand{
 		Name:        "plot",
 		Description: "Returns a plotted chart",
 	}
-	cache = make(map[string]*charts.ChartTracker)
+
+	// cache holds each open form's selections, keyed by the id of the
+	// interaction that opened it. Entries are pruned on access rather than by a
+	// timer, which is the pattern the semantic command's sessions use.
+	cache   = make(map[string]*cacheEntry)
+	cacheMu sync.Mutex
 )
+
+type cacheEntry struct {
+	tracker *charts.ChartTracker
+	created time.Time
+}
+
+// storeTracker caches a form's state and prunes any that have expired.
+func storeTracker(id string, tracker *charts.ChartTracker) {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	pruneLocked()
+	cache[id] = &cacheEntry{tracker: tracker, created: time.Now()}
+}
+
+// getTracker returns a cached form, pruning expired ones first. It reports false
+// when the form has expired or the bot restarted since it was opened — both of
+// which used to return a nil tracker that the handlers then dereferenced.
+func getTracker(id string) (*charts.ChartTracker, bool) {
+	cacheMu.Lock()
+	defer cacheMu.Unlock()
+	pruneLocked()
+	entry, ok := cache[id]
+	if !ok {
+		return nil, false
+	}
+	return entry.tracker, true
+}
+
+// pruneLocked drops trackers older than trackerTTL. Callers must hold cacheMu.
+func pruneLocked() {
+	cutoff := time.Now().Add(-trackerTTL)
+	for k, v := range cache {
+		if v.created.Before(cutoff) {
+			delete(cache, k)
+		}
+	}
+}
+
+// trackerKey is the cache key for the interaction a component or modal belongs
+// to.
+//
+// Both pointers really can be nil: a modal submitted from a slash command rather
+// than from a component carries no message at all, and Message.Interaction is
+// nil on any message that did not originate from an interaction. An empty key
+// simply misses the cache, which the callers already handle.
+func trackerKey(msg *discord.Message) string {
+	if msg == nil || msg.Interaction == nil {
+		return ""
+	}
+	return msg.Interaction.ID.String()
+}
 
 type PlotCommand struct {
 	Name        string
@@ -38,7 +104,16 @@ func (p PlotCommand) Handler(event *events.ApplicationCommandInteractionCreate) 
 
 func (p PlotCommand) ModalHandler(event *events.ModalSubmitInteractionCreate) {
 
-	chartTracker := cache[event.Message.Interaction.ID.String()]
+	chartTracker, ok := getTracker(trackerKey(event.Message))
+	if !ok {
+		if err := event.CreateMessage(discord.MessageCreate{
+			Content: plotExpiredMessage,
+			Flags:   discord.MessageFlagEphemeral,
+		}); err != nil {
+			slog.Error("plot error", slog.Any("err", err))
+		}
+		return
+	}
 	submittedData := extractModalSubmitData(event.ModalSubmitInteraction.Data.Components)
 	errorCode := 0xff3300
 	errors := make(map[string][]discord.LayoutComponent)
@@ -93,7 +168,7 @@ func (p PlotCommand) interactionHandler(event *events.ApplicationCommandInteract
 		InteractionID: event.ID().String(),
 		UserID:        event.User().ID.String(),
 	}
-	cache[chartTracker.InteractionID] = chartTracker
+	storeTracker(chartTracker.InteractionID, chartTracker)
 
 	title := discord.TextDisplayComponent{
 		Content: "# Create a Chart\n Select the chart type, users to include, and provide a date range.",
@@ -121,7 +196,18 @@ func (p PlotCommand) interactionHandler(event *events.ApplicationCommandInteract
 func (p PlotCommand) ComponentHandler(event *events.ComponentInteractionCreate) {
 
 	cID := strings.Split(event.ComponentInteraction.Data.CustomID(), ";")
-	chartTracker := cache[event.Message.Interaction.ID.String()]
+	chartTracker, ok := getTracker(trackerKey(&event.Message))
+	if !ok {
+		// Answer before any other branch responds: an interaction may only be
+		// responded to once.
+		if err := event.CreateMessage(discord.MessageCreate{
+			Content: plotExpiredMessage,
+			Flags:   discord.MessageFlagEphemeral,
+		}); err != nil {
+			slog.Error("plot error", slog.Any("err", err))
+		}
+		return
+	}
 
 	if cID[0] == "custom_date_range" {
 		var startDate, endDate string

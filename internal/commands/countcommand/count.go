@@ -8,6 +8,7 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/disgoorg/disgo/discord"
 	"github.com/disgoorg/disgo/events"
+	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -43,12 +44,16 @@ func (c CountCommand) Handler(event *events.ApplicationCommandInteractionCreate)
 	sub := event.SlashCommandInteractionData()
 	amount := findSpecificWordOccurences(event.GuildID().String(), event.User().ID.String(), sub)
 
-	var response string
-	if sub.Options["user"].Snowflake().String() != event.User().ID.String() {
-		response = fmt.Sprintf("%s has used the word \"%s\" %d time(s) \n", discord.UserMention(sub.Options["user"].Snowflake()), sub.Options["word"].String(), amount)
-	} else {
-		response = fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", sub.Options["word"].String(), amount)
+	// Whose count this is: the requested user when there is one, otherwise the
+	// caller's own, matching getFilter's default. `user` is optional, so it must
+	// be read with the two-value form — indexing a missing key yields a zero
+	// SlashCommandOption whose Snowflake() panics on its nil Value.
+	target := event.User().ID
+	if user, ok := sub.Options["user"]; ok {
+		target = user.Snowflake()
 	}
+
+	response := countResponse(sub.Options["word"].String(), amount, target, event.User().ID)
 	_, err = event.Client().Rest.UpdateInteractionResponse(event.ApplicationID(), event.Token(), discord.MessageUpdate{
 		Content: &response,
 	})
@@ -75,6 +80,16 @@ func (c CountCommand) CreateCommandArguments() []discord.ApplicationCommandOptio
 			Required:    false,
 		},
 	}
+}
+
+// countResponse renders the reply for a /count result. target is the user whose
+// count is being reported, invoker is whoever ran the command, so the wording
+// can address them directly.
+func countResponse(word string, amount int, target, invoker snowflake.ID) string {
+	if target == invoker {
+		return fmt.Sprintf("You have used the word \"%s\" %d time(s) \n", word, amount)
+	}
+	return fmt.Sprintf("%s has used the word \"%s\" %d time(s) \n", discord.UserMention(target), word, amount)
 }
 
 // findSpecificWordOccurences finding the occurences of a word in the database

@@ -58,6 +58,10 @@ resource "kubernetes_deployment" "statisticsbot" {
             value = "/duckdb"
           }
           env {
+            name = "AWS_HTTP_AUTH_TOKEN"
+            value =  "/statisticsbot/auth_token"
+          }
+          env {
             name  = "OLLAMA_URL"
             value = "ollama.ollama.svc.cluster.local:11434/v1/chat/completions"
           }
