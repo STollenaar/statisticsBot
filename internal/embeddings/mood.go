@@ -20,6 +20,31 @@ const (
 	// moodOnnxPath is where this repo keeps its export. The quantized variant
 	// beside it would be faster and less accurate.
 	moodOnnxPath = "onnx/model.onnx"
+
+	// moodSequenceLength pads every input to a fixed token length, which is what
+	// keeps this pipeline's memory bounded.
+	//
+	// On the Go backend hugot disables sequence padding entirely
+	// (createInputTensorsGoMLX is called with padSequenceDimension = runtime ==
+	// XLA), and the Go backend's default JIT cache is unlimited. Every distinct
+	// token length therefore compiled and retained its own graph for a 125M
+	// parameter model: scoring 68 messages of assorted lengths peaked at 24 GiB.
+	// Forcing one shape means one compiled graph, which measured ~2-3 GiB for the
+	// same work.
+	//
+	// Bucket options are not an alternative: WithGoMLXSequenceBuckets has no
+	// effect while sequence padding is off, and bounding the cache without
+	// padding just makes most inputs fail to compile.
+	//
+	// 64 tokens is roughly 250 characters, against a median message of 33 and a
+	// mean of 56, so little is truncated. Lowering it is faster and raising it
+	// truncates less: measured 1.7/s at 32, 0.9/s at 64, 0.4/s at 128.
+	moodSequenceLength = 64
+
+	// moodMaxRunes caps input before tokenizing. Past roughly four characters per
+	// token there is nothing left for the fixed padding above to keep, so the
+	// extra tokenizer work would be wasted.
+	moodMaxRunes = moodSequenceLength * 4
 )
 
 var (
@@ -76,6 +101,8 @@ func initMoodPipeline() {
 			// softmax that sums to one.
 			pipelines.WithMultiLabel(),
 			pipelines.WithSigmoid(),
+			// See moodSequenceLength: this is the memory bound, not a tuning knob.
+			pipelines.WithFixedPadding(moodSequenceLength),
 		},
 	}
 
@@ -85,8 +112,9 @@ func initMoodPipeline() {
 // ScoreMood returns the emotion distribution for a single input string. The
 // pipeline is initialized (and the model downloaded) on first call.
 //
-// Input length is capped the same way Embed caps it: the Go-backend tokenizer
-// does not reliably truncate, and this model's context window is no larger.
+// Unlike Embed there is no shrink-and-retry loop: fixed padding gives every
+// input the same tensor shape and silently truncates anything longer, so an
+// over-long input cannot fail to compile.
 func ScoreMood(text string) (Mood, error) {
 	moodOnce.Do(initMoodPipeline)
 	if moodErr != nil {
@@ -97,23 +125,7 @@ func ScoreMood(text string) (Mood, error) {
 	if len(runes) == 0 {
 		return Mood{}, errors.New("cannot score empty text")
 	}
-
-	limit := min(len(runes), firstAttemptRunes)
-
-	var lastErr error
-	for {
-		mood, err := runScore(string(runes[:limit]))
-		if err == nil {
-			return mood, nil
-		}
-		lastErr = err
-		if limit <= minAttemptRunes {
-			return Mood{}, lastErr
-		}
-		if limit /= 2; limit < minAttemptRunes {
-			limit = minAttemptRunes
-		}
-	}
+	return runScore(string(runes[:min(len(runes), moodMaxRunes)]))
 }
 
 // runScore runs a single input through the classifier under the mood lock.

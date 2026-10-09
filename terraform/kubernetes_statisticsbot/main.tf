@@ -127,6 +127,11 @@ resource "kubernetes_deployment" "statisticsbot" {
             name       = data.terraform_remote_state.kubernetes.outputs.persistent_volume_claim.metadata.0.name
             mount_path = "/duckdb"
           }
+          resources {
+            limits = {
+                memory = "8Gi"
+            }
+          }
 
         }
         volume {
