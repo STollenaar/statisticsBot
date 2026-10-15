@@ -33,6 +33,12 @@ const (
 	PhaseInterrupted Phase = Phase(database.PhaseInterrupted)
 )
 
+// backfillChunkSize is how many messages a backfill pulls from the database at a
+// time. Small enough that the rows are a rounding error against the models held
+// in memory, large enough that the query cost per chunk is irrelevant next to
+// per-message inference.
+const backfillChunkSize = 1000
+
 // registry holds every job by its persistence key, so startup can restore and
 // resume them without each job file wiring itself in.
 var registry = map[string]*Job{}

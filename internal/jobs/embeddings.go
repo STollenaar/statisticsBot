@@ -37,22 +37,41 @@ func EmbeddingBackfill() Status {
 func runEmbeddingBackfill() {
 	defer embedJob.recoverPanic()
 
-	messages, err := database.GetMessagesWithoutEmbeddings(0)
+	total, err := database.CountMessagesWithoutEmbeddings()
 	if err != nil {
 		embedJob.fail(err)
 		return
 	}
-	embedJob.begin("embedding", len(messages))
-	slog.Info("embedding backfill started", slog.Int("messages", len(messages)))
+	embedJob.begin("embedding", total)
+	slog.Info("embedding backfill started", slog.Int("messages", total))
 
-	for _, m := range messages {
-		done := embedJob.record(database.EmbedMessage(m.MessageID, m.Content))
-		if done%embedLogInterval == 0 {
-			s := embedJob.status()
-			slog.Info("embedding backfill progress",
-				slog.Int("done", s.Done), slog.Int("total", s.Total),
-				slog.Int("failed", s.Failed), slog.String("rate", s.Rate), slog.String("eta", s.ETA))
+	// Streamed in chunks, keyed on the last id seen. Materialising the whole
+	// list cost hundreds of megabytes before any work started, which on a
+	// memory-capped pod is the difference between finishing and being killed.
+	var afterID string
+	for {
+		messages, err := database.GetMessagesWithoutEmbeddings(afterID, backfillChunkSize)
+		if err != nil {
+			embedJob.fail(err)
+			return
 		}
+		if len(messages) == 0 {
+			break
+		}
+
+		for _, m := range messages {
+			done := embedJob.record(database.EmbedMessage(m.MessageID, m.Content))
+			if done%embedLogInterval == 0 {
+				s := embedJob.status()
+				slog.Info("embedding backfill progress",
+					slog.Int("done", s.Done), slog.Int("total", s.Total),
+					slog.Int("failed", s.Failed), slog.String("rate", s.Rate), slog.String("eta", s.ETA))
+			}
+		}
+
+		// Advance past the chunk whether or not every message in it succeeded, so
+		// a message that always fails cannot stall the backfill on it.
+		afterID = messages[len(messages)-1].MessageID
 	}
 
 	embedJob.finish(PhaseDone, nil)

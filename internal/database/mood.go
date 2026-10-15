@@ -47,19 +47,39 @@ func MoodMessage(id, content string) error {
 	return nil
 }
 
-// GetMessagesWithoutMoods returns the latest version of every stored message
-// that has not been classified yet. A limit <= 0 means no limit.
-func GetMessagesWithoutMoods(limit int) ([]util.MessageObject, error) {
-	query := `
+// CountMessagesWithoutMoods counts the messages still to be classified, so a
+// backfill can report a total without holding them all in memory.
+func CountMessagesWithoutMoods() (int, error) {
+	var count int
+	err := duckdbClient.QueryRow(`
+		SELECT COUNT(*)
+		FROM latest_messages m
+		LEFT JOIN message_moods mo ON mo.id = m.id
+		WHERE mo.id IS NULL AND m.content <> ''`).Scan(&count)
+	return count, err
+}
+
+// GetMessagesWithoutMoods returns up to limit messages that have not been
+// classified, ordered by id and starting after afterID. Pass an empty afterID
+// for the first chunk and the last id of each chunk for the next.
+//
+// Paginating on the id rather than taking the whole set is what keeps a backfill
+// of a million messages from loading a million rows up front. A cursor rather
+// than LIMIT alone is deliberate: a message that fails to classify keeps
+// matching this query, so re-running it from the start would hand back the same
+// failures forever. Advancing past the last id seen cannot loop.
+//
+// The ordering is lexicographic on the VARCHAR id, which is not numeric order
+// because ids differ in length. That does not matter — it only has to be a
+// stable total order, and the comparison below uses the same one.
+func GetMessagesWithoutMoods(afterID string, limit int) ([]util.MessageObject, error) {
+	rows, err := duckdbClient.Query(fmt.Sprintf(`
 		SELECT m.id, m.guild_id, m.channel_id, m.author_id, m.content, m.date
 		FROM latest_messages m
 		LEFT JOIN message_moods mo ON mo.id = m.id
-		WHERE mo.id IS NULL AND m.content <> ''`
-	if limit > 0 {
-		query += fmt.Sprintf("\n\t\tLIMIT %d", limit)
-	}
-
-	rows, err := duckdbClient.Query(query)
+		WHERE mo.id IS NULL AND m.content <> '' AND m.id > ?
+		ORDER BY m.id
+		LIMIT %d`, limit), afterID)
 	if err != nil {
 		return nil, err
 	}

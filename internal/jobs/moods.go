@@ -36,22 +36,41 @@ func MoodBackfill() Status {
 func runMoodBackfill() {
 	defer moodJob.recoverPanic()
 
-	messages, err := database.GetMessagesWithoutMoods(0)
+	total, err := database.CountMessagesWithoutMoods()
 	if err != nil {
 		moodJob.fail(err)
 		return
 	}
-	moodJob.begin("scoring", len(messages))
-	slog.Info("mood backfill started", slog.Int("messages", len(messages)))
+	moodJob.begin("scoring", total)
+	slog.Info("mood backfill started", slog.Int("messages", total))
 
-	for _, m := range messages {
-		done := moodJob.record(database.MoodMessage(m.MessageID, m.Content))
-		if done%moodLogInterval == 0 {
-			s := moodJob.status()
-			slog.Info("mood backfill progress",
-				slog.Int("done", s.Done), slog.Int("total", s.Total),
-				slog.Int("failed", s.Failed), slog.String("rate", s.Rate), slog.String("eta", s.ETA))
+	// Streamed in chunks, keyed on the last id seen. Materialising the whole
+	// list cost hundreds of megabytes before any work started, which on a
+	// memory-capped pod is the difference between finishing and being killed.
+	var afterID string
+	for {
+		messages, err := database.GetMessagesWithoutMoods(afterID, backfillChunkSize)
+		if err != nil {
+			moodJob.fail(err)
+			return
 		}
+		if len(messages) == 0 {
+			break
+		}
+
+		for _, m := range messages {
+			done := moodJob.record(database.MoodMessage(m.MessageID, m.Content))
+			if done%moodLogInterval == 0 {
+				s := moodJob.status()
+				slog.Info("mood backfill progress",
+					slog.Int("done", s.Done), slog.Int("total", s.Total),
+					slog.Int("failed", s.Failed), slog.String("rate", s.Rate), slog.String("eta", s.ETA))
+			}
+		}
+
+		// Advance past the chunk whether or not every message in it succeeded, so
+		// a message that always fails cannot stall the backfill on it.
+		afterID = messages[len(messages)-1].MessageID
 	}
 
 	moodJob.finish(PhaseDone, nil)

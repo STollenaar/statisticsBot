@@ -86,19 +86,32 @@ func SearchSimilarMessages(guildID string, vec []float32, model string, limit in
 	return results, rows.Err()
 }
 
-// GetMessagesWithoutEmbeddings returns the latest version of every stored
-// message that does not yet have an embedding. A limit <= 0 means no limit.
-func GetMessagesWithoutEmbeddings(limit int) ([]util.MessageObject, error) {
-	query := `
+// CountMessagesWithoutEmbeddings counts the messages still to be embedded, so a
+// backfill can report a total without holding them all in memory.
+func CountMessagesWithoutEmbeddings() (int, error) {
+	var count int
+	err := duckdbClient.QueryRow(`
+		SELECT COUNT(*)
+		FROM latest_messages m
+		LEFT JOIN message_embeddings e ON e.id = m.id
+		WHERE e.id IS NULL AND m.content <> ''`).Scan(&count)
+	return count, err
+}
+
+// GetMessagesWithoutEmbeddings returns up to limit messages that have no
+// embedding, ordered by id and starting after afterID. Pass an empty afterID for
+// the first chunk and the last id of each chunk for the next.
+//
+// See GetMessagesWithoutMoods for why this pages on a cursor rather than
+// returning the whole set or using LIMIT alone.
+func GetMessagesWithoutEmbeddings(afterID string, limit int) ([]util.MessageObject, error) {
+	rows, err := duckdbClient.Query(fmt.Sprintf(`
 		SELECT m.id, m.guild_id, m.channel_id, m.author_id, m.content, m.date
 		FROM latest_messages m
 		LEFT JOIN message_embeddings e ON e.id = m.id
-		WHERE e.id IS NULL AND m.content <> ''`
-	if limit > 0 {
-		query += fmt.Sprintf("\n\t\tLIMIT %d", limit)
-	}
-
-	rows, err := duckdbClient.Query(query)
+		WHERE e.id IS NULL AND m.content <> '' AND m.id > ?
+		ORDER BY m.id
+		LIMIT %d`, limit), afterID)
 	if err != nil {
 		return nil, err
 	}
