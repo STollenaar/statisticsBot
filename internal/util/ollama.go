@@ -72,7 +72,7 @@ func setOllamaAuth(req *http.Request) error {
 		if err != nil {
 			return err
 		}
-		token := b64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s", username, password)))
+		token := b64.StdEncoding.EncodeToString(fmt.Appendf(nil, "%s:%s", username, password))
 		req.Header.Add("Authorization", fmt.Sprintf("Basic %s", token))
 	case "api_key":
 		token, err := GetOllamaAPIKey()
