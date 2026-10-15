@@ -16,6 +16,21 @@ locals {
     "vault.hashicorp.com/role"         = "internal-app"
     "vault.hashicorp.com/aws-role"     = data.terraform_remote_state.iam_role.outputs.iam.statisticsbot_role.name
     "cache.spicedelver.me/cmtemplate"  = "vault-aws-agent"
+
+    # The injector runs its init container *last* by default, after any init
+    # containers already in the pod. The fetch-token container below is one of
+    # those, so without this it starts before the credentials it needs have been
+    # rendered and the SSM lookup fails with no credentials at all. The
+    # deployment does not need this because its app container runs after every
+    # init container regardless.
+    "vault.hashicorp.com/agent-init-first" = "true"
+
+    # No renewing sidecar for a job. These pods read the parameter once at
+    # startup and exit, and a sidecar that never returns would keep the Job from
+    # ever completing — it would sit until active_deadline_seconds killed it. The
+    # long-lived deployment does want the sidecar, which is why this is set here
+    # and not there.
+    "vault.hashicorp.com/agent-pre-populate-only" = "true"
   }
 
   aws_image = "amazon/aws-cli:2.17.0"

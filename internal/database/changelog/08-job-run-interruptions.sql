@@ -1,0 +1,11 @@
+-- interruptions counts how many times in a row a job has been cut off mid-run.
+--
+-- Auto-resume on startup is what makes a job survive a restart, but it also
+-- means a job that kills the process gets restarted into the same failure: the
+-- mood backfill OOMed the pod, was resumed on boot, and OOMed again. This
+-- counter lets resume give up after a couple of attempts and wait for a human,
+-- instead of holding the bot in a crash loop.
+--
+-- Reset to zero whenever a run finishes, so the limit applies to consecutive
+-- failures rather than the job's whole history.
+ALTER TABLE job_runs ADD COLUMN IF NOT EXISTS interruptions INTEGER DEFAULT 0;

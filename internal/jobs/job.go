@@ -80,6 +80,10 @@ type Job struct {
 	counters map[string]int
 
 	lastErr string
+
+	// interruptions is the consecutive count of runs cut off by a restart,
+	// loaded from and written back to job_runs. Reset on a clean finish.
+	interruptions int
 }
 
 // Status is a snapshot of a job, safe to render or marshal.
@@ -175,6 +179,11 @@ func (j *Job) finish(phase Phase, err error) {
 	if err != nil {
 		j.lastErr = err.Error()
 	}
+	if phase == PhaseDone {
+		// Reaching the end clears the crash-loop brake: the limit is on
+		// consecutive interruptions, not on the job's history.
+		j.interruptions = 0
+	}
 	// Always written, throttle or not: this is the state a restart reads to
 	// decide whether the job needs resuming.
 	j.persistLocked()
@@ -213,6 +222,7 @@ func (j *Job) persistLocked() {
 		WorkStartedAt: j.workStart,
 		FinishedAt:    j.finished,
 		Error:         j.lastErr,
+		Interruptions: j.interruptions,
 	}); err != nil {
 		slog.Error("failed to persist job state", slog.String("job", j.name), slog.Any("err", err))
 	}
@@ -241,6 +251,7 @@ func (j *Job) loadPersisted() {
 	}
 	j.started, j.workStart, j.finished = run.StartedAt, run.WorkStartedAt, run.FinishedAt
 	j.lastErr = run.Error
+	j.interruptions = run.Interruptions
 }
 
 func (j *Job) status() Status {

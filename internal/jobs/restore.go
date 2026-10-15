@@ -15,6 +15,18 @@ const (
 	KeyMessages   = "messages"
 )
 
+// maxResumeAttempts is how many times in a row a job may be cut off before
+// startup stops resuming it on its own.
+//
+// Auto-resume is what makes a job survive a restart, but a job that kills the
+// process gets resumed straight back into the same failure. That is not
+// hypothetical: the mood backfill exhausted the pod's memory limit, was resumed
+// on boot, and died again, holding the bot in a crash loop that also took the
+// HTTP API down with it. Past this many consecutive interruptions the job is
+// left alone and waits for someone to start it from /admin, which keeps the
+// rest of the bot up.
+const maxResumeAttempts = 2
+
 // Restore loads each job's last known state from the database and returns the
 // jobs the previous process left unfinished.
 //
@@ -51,6 +63,17 @@ func ResumeInterrupted(client *bot.Client) []string {
 	var resumed []string
 	for key, job := range registry {
 		if job.status().Phase != PhaseInterrupted {
+			continue
+		}
+
+		job.mu.Lock()
+		attempts := job.interruptions
+		job.mu.Unlock()
+		if attempts > maxResumeAttempts {
+			slog.Error("not resuming job: it has been interrupted repeatedly, which usually means it is killing the process",
+				slog.String("job", job.name),
+				slog.Int("consecutiveInterruptions", attempts),
+				slog.String("action", "start it from /admin once the cause is addressed"))
 			continue
 		}
 

@@ -23,6 +23,9 @@ type JobRun struct {
 	UpdatedAt     time.Time
 	FinishedAt    time.Time
 	Error         string
+	// Interruptions counts consecutive runs cut off by a restart. Reset on a
+	// clean finish; used to stop auto-resume looping into the same crash.
+	Interruptions int
 }
 
 // PhaseInterrupted is what a run left mid-flight by a restart becomes. It is
@@ -30,14 +33,14 @@ type JobRun struct {
 const PhaseInterrupted = "interrupted"
 
 const jobRunColumns = `name, phase, COALESCE(step, ''), total, done, failed, COALESCE(counters, ''),
-	started_at, work_started_at, updated_at, finished_at, COALESCE(error, '')`
+	started_at, work_started_at, updated_at, finished_at, COALESCE(error, ''), COALESCE(interruptions, 0)`
 
 func scanJobRun(s rowScanner) (JobRun, error) {
 	var j JobRun
 	var counters string
 	var started, workStarted, updated, finished sql.NullTime
 	if err := s.Scan(&j.Name, &j.Phase, &j.Step, &j.Total, &j.Done, &j.Failed, &counters,
-		&started, &workStarted, &updated, &finished, &j.Error); err != nil {
+		&started, &workStarted, &updated, &finished, &j.Error, &j.Interruptions); err != nil {
 		return j, err
 	}
 	j.StartedAt, j.WorkStartedAt, j.UpdatedAt, j.FinishedAt = started.Time, workStarted.Time, updated.Time, finished.Time
@@ -66,8 +69,8 @@ func SaveJobRun(j JobRun) error {
 	_, err := duckdbClient.Exec(`
 		INSERT INTO job_runs
 			(name, phase, step, total, done, failed, counters,
-			 started_at, work_started_at, updated_at, finished_at, error)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			 started_at, work_started_at, updated_at, finished_at, error, interruptions)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT (name) DO UPDATE SET
 			phase = EXCLUDED.phase,
 			step = EXCLUDED.step,
@@ -79,9 +82,11 @@ func SaveJobRun(j JobRun) error {
 			work_started_at = EXCLUDED.work_started_at,
 			updated_at = EXCLUDED.updated_at,
 			finished_at = EXCLUDED.finished_at,
-			error = EXCLUDED.error`,
+			error = EXCLUDED.error,
+			interruptions = EXCLUDED.interruptions`,
 		j.Name, j.Phase, j.Step, j.Total, j.Done, j.Failed, counters,
 		nullTime(j.StartedAt), nullTime(j.WorkStartedAt), nullTime(time.Now()), nullTime(j.FinishedAt), j.Error,
+		j.Interruptions,
 	)
 	return err
 }
@@ -146,7 +151,8 @@ func MarkInterruptedJobRuns(inFlight []string) ([]string, error) {
 		SET phase = ?,
 			step = '',
 			finished_at = COALESCE(finished_at, updated_at),
-			updated_at = ?
+			updated_at = ?,
+			interruptions = COALESCE(interruptions, 0) + 1
 		WHERE phase IN (?, ?)`,
 		PhaseInterrupted, time.Now(), inFlight[0], inFlight[1]); err != nil {
 		return nil, err
