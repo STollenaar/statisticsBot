@@ -23,6 +23,13 @@ const (
 // and skipped, rather than having their inner snowflake rewrapped.
 var userIDPattern = regexp.MustCompile(`<@!?\d{17,20}>|\b\d{17,20}\b`)
 
+// emojiClient fetches emoji images with a deadline. http.Get would use
+// http.DefaultClient, which has none, so a stalled CDN connection would hang
+// the caller forever — and PUT /fixEmojis walks every emoji in a guild, so one
+// stuck fetch stalls the whole request. Shared rather than per-call so the
+// connection pool is reused across that loop.
+var emojiClient = &http.Client{Timeout: 5 * time.Minute}
+
 // MentionifyIDs wraps bare Discord user IDs in a mention so they render as the
 // user instead of a raw snowflake. Already formatted mentions are left as-is.
 func MentionifyIDs(s string) string {
@@ -60,7 +67,7 @@ func FetchDiscordEmojiImage(emojiID string, isAnimated bool) (string, error) {
 	}
 	url := fmt.Sprintf(DISCORD_EMOJI_URL, emojiID, ext)
 
-	resp, err := http.Get(url)
+	resp, err := emojiClient.Get(url)
 	if err != nil {
 		return "", fmt.Errorf("failed to fetch emoji from %s: %w", url, err)
 	}

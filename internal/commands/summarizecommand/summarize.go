@@ -2,6 +2,7 @@ package summarizecommand
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -250,6 +251,12 @@ func GetSummary(messages []util.SummaryBody) (out util.SummaryResponse, rawRespo
 	})
 	if err != nil {
 		return util.SummaryResponse{}, "", err
+	}
+
+	// An empty choices array is a valid json response from the endpoint, so this
+	// has to be checked rather than indexed.
+	if len(resp.Choices) == 0 {
+		return util.SummaryResponse{}, "", errors.New("ollama returned no choices")
 	}
 
 	rawResponse = resp.Choices[0].Message.Content

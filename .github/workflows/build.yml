@@ -53,16 +53,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Extract Go Version from go.mod
-        id: go-version
-        run: |
-          GO_VERSION=$(grep '^go ' go.mod | awk '{print $2}')
-          echo "GO_VERSION=$GO_VERSION" >> $GITHUB_ENV
-
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: ${{ steps.go-version.outputs.GO_VERSION }}
+          # Read straight from go.mod. The previous version of this wrote
+          # GO_VERSION to $GITHUB_ENV but read it back as a step *output*, which
+          # is always empty, so setup-go received no version at all and silently
+          # used whatever Go the runner had preinstalled.
+          go-version-file: go.mod
 
       - name: Build Go Binary
         run: |

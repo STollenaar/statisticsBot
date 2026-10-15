@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateResponse, error) {
@@ -31,12 +32,17 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 		return OllamaGenerateResponse{}, err
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: 30 * time.Minute,
+	}
 	resp, err := client.Do(req)
+
 	if err != nil {
 		slog.Error("ollama request error", slog.Any("err", err))
 		return OllamaGenerateResponse{}, err
 	}
+
+	defer resp.Body.Close()
 
 	var bodyData string
 	if resp != nil {
@@ -50,8 +56,8 @@ func CreateOllamaGeneration(prompt OllamaGenerateRequest) (OllamaGenerateRespons
 	}
 
 	var r OllamaGenerateResponse
-	json.Unmarshal([]byte(bodyData), &r)
-	return r, nil
+	err = json.Unmarshal([]byte(bodyData), &r)
+	return r, err
 }
 
 // setOllamaAuth applies the configured auth scheme to an Ollama request.
