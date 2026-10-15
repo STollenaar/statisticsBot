@@ -24,6 +24,8 @@ import (
 	"github.com/disgoorg/snowflake/v2"
 	"github.com/stollenaar/statisticsbot/internal/commands"
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/embeddings"
+	"github.com/stollenaar/statisticsbot/internal/jobs"
 	"github.com/stollenaar/statisticsbot/internal/routes"
 	"github.com/stollenaar/statisticsbot/internal/util"
 )
@@ -181,6 +183,12 @@ func main() {
 	// below does not double-close.
 	defer client.Close(context.TODO())
 	defer database.Exit()
+	// Releases the hugot session: the loaded models and every compiled graph.
+	defer func() {
+		if err := embeddings.Close(); err != nil {
+			slog.Error("error closing embedding session", slog.Any("err", err))
+		}
+	}()
 
 	var guilds []snowflake.ID
 	if sn, err := snowflake.Parse(*GuildID); err == nil {
@@ -256,6 +264,18 @@ func main() {
 	gatewayReady.Store(true)
 
 	database.Init(client, GuildID)
+
+	// Background jobs record their progress in the database, so a restart can
+	// tell the difference between a job that finished and one that was cut off
+	// mid-run, and pick the latter back up. Resuming is safe to do
+	// unconditionally: each job re-derives its remaining work from the database
+	// rather than replaying anything.
+	if interrupted, err := jobs.Restore(); err != nil {
+		slog.Error("could not restore job state", slog.Any("err", err))
+	} else if len(interrupted) > 0 {
+		jobs.ResumeInterrupted(client)
+	}
+
 	apiServer := routes.CreateRouter(client)
 
 	sc := make(chan os.Signal, 1)
@@ -272,6 +292,10 @@ func main() {
 	// Then flush the database, before the (potentially slow) command cleanup
 	// below risks running long enough for the platform to send SIGKILL.
 	database.Exit()
+
+	if err := embeddings.Close(); err != nil {
+		slog.Error("error closing embedding session", slog.Any("err", err))
+	}
 
 	if *RemoveCommands {
 		slog.Info("Removing commands...")

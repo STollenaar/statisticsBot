@@ -51,8 +51,6 @@ var (
 	moodOnce sync.Once
 	moodErr  error
 
-	moodPipeline *pipelines.TextClassificationPipeline
-
 	// moodMu serializes scoring for the same reason runMu does for embedding:
 	// one shared pipeline, and the gain from parallel calls is not worth the
 	// risk until it is measured.
@@ -75,38 +73,42 @@ type Mood struct {
 	Scores []float32
 }
 
-func initMoodPipeline() {
-	ctx := context.Background()
+// moodClassifier returns the classification pipeline, creating it on the shared
+// session the first time. Like embedPipeline it reads the pipeline back from the
+// session by name instead of caching it.
+func moodClassifier() (*pipelines.TextClassificationPipeline, error) {
+	moodOnce.Do(func() {
+		s, err := ensureSession()
+		if err != nil {
+			moodErr = err
+			return
+		}
 
-	// Reuse the session the embedding pipeline set up, so both models share one
-	// hugot runtime rather than each holding their own.
-	initOnce.Do(initPipeline)
-	if initErr != nil {
-		moodErr = initErr
-		return
+		modelPath, err := ensureModelWithOnnx(context.Background(), MOOD_MODEL_NAME, moodOnnxPath)
+		if err != nil {
+			moodErr = err
+			return
+		}
+
+		_, moodErr = s.NewPipeline(hugot.TextClassificationConfig{
+			ModelPath: modelPath,
+			Name:      moodPipelineName,
+			Options: []hugot.TextClassificationOption{
+				// go_emotions is multi-label: a message can be both "joy" and
+				// "gratitude", so the scores are independent sigmoids rather than
+				// a softmax that sums to one.
+				pipelines.WithMultiLabel(),
+				pipelines.WithSigmoid(),
+				// See moodSequenceLength: this is the memory bound, not a tuning
+				// knob.
+				pipelines.WithFixedPadding(moodSequenceLength),
+			},
+		})
+	})
+	if moodErr != nil {
+		return nil, moodErr
 	}
-
-	modelPath, err := ensureModelWithOnnx(ctx, MOOD_MODEL_NAME, moodOnnxPath)
-	if err != nil {
-		moodErr = err
-		return
-	}
-
-	config := hugot.TextClassificationConfig{
-		ModelPath: modelPath,
-		Name:      "mood-classification",
-		Options: []hugot.TextClassificationOption{
-			// go_emotions is multi-label: a message can be both "joy" and
-			// "gratitude", so the scores are independent sigmoids rather than a
-			// softmax that sums to one.
-			pipelines.WithMultiLabel(),
-			pipelines.WithSigmoid(),
-			// See moodSequenceLength: this is the memory bound, not a tuning knob.
-			pipelines.WithFixedPadding(moodSequenceLength),
-		},
-	}
-
-	moodPipeline, moodErr = hugot.NewPipeline(session, config)
+	return session.GetPipeline[*pipelines.TextClassificationPipeline](moodPipelineName)
 }
 
 // ScoreMood returns the emotion distribution for a single input string. The
@@ -116,24 +118,24 @@ func initMoodPipeline() {
 // input the same tensor shape and silently truncates anything longer, so an
 // over-long input cannot fail to compile.
 func ScoreMood(text string) (Mood, error) {
-	moodOnce.Do(initMoodPipeline)
-	if moodErr != nil {
-		return Mood{}, moodErr
+	classifier, err := moodClassifier()
+	if err != nil {
+		return Mood{}, err
 	}
 
 	runes := []rune(strings.TrimSpace(text))
 	if len(runes) == 0 {
 		return Mood{}, errors.New("cannot score empty text")
 	}
-	return runScore(string(runes[:min(len(runes), moodMaxRunes)]))
+	return runScore(classifier, string(runes[:min(len(runes), moodMaxRunes)]))
 }
 
 // runScore runs a single input through the classifier under the mood lock.
-func runScore(text string) (Mood, error) {
+func runScore(classifier *pipelines.TextClassificationPipeline, text string) (Mood, error) {
 	moodMu.Lock()
 	defer moodMu.Unlock()
 
-	out, err := moodPipeline.RunPipeline(context.Background(), []string{text})
+	out, err := classifier.RunPipeline(context.Background(), []string{text})
 	if err != nil {
 		return Mood{}, err
 	}

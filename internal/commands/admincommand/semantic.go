@@ -145,7 +145,7 @@ func semanticBackfillComponents() []discord.LayoutComponent {
 func backfillStatusRow() discord.ContainerSubComponent {
 	s := jobs.EmbeddingBackfill()
 	if s.Phase == jobs.PhaseIdle {
-		return discord.TextDisplayComponent{Content: "Backfill: `idle` — no job has run since the last restart."}
+		return discord.TextDisplayComponent{Content: "Backfill: `idle` — no job has ever run."}
 	}
 
 	var b strings.Builder

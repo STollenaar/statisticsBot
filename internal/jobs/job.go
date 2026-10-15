@@ -11,8 +11,11 @@ package jobs
 import (
 	"fmt"
 	"log/slog"
+	"maps"
 	"sync"
 	"time"
+
+	"github.com/stollenaar/statisticsbot/internal/database"
 )
 
 type Phase string
@@ -25,17 +28,40 @@ const (
 	PhaseRunning   Phase = "running"
 	PhaseDone      Phase = "done"
 	PhaseFailed    Phase = "failed"
+	// PhaseInterrupted is what a run becomes when the process died while it was
+	// in flight. Written only by Restore at startup, never by a running job.
+	PhaseInterrupted Phase = Phase(database.PhaseInterrupted)
 )
+
+// registry holds every job by its persistence key, so startup can restore and
+// resume them without each job file wiring itself in.
+var registry = map[string]*Job{}
+
+// newJob constructs a job and registers it.
+//
+// persistEvery is how many completed units pass between writes of the job's
+// progress. The backfills get a wide interval because they tick a million times;
+// the message sync ticks once per channel, so every tick is written.
+func newJob(key, name, unit string, persistEvery int) *Job {
+	j := &Job{key: key, name: name, unit: unit, persistEvery: persistEvery}
+	registry[key] = j
+	return j
+}
 
 // Job is the state of one background job. Every field is guarded by mu, and the
 // only way to read them is status(), which builds a consistent snapshot.
 type Job struct {
 	mu sync.Mutex
 
-	// name and unit are set at construction and never change: name goes in log
-	// lines, unit is what the rate is measured in ("msg", "channels").
+	// key, name and unit are set at construction and never change: key is the
+	// job_runs row this job owns, name goes in log lines, unit is what the rate
+	// is measured in ("msg", "channels").
+	key  string
 	name string
 	unit string
+
+	// persistEvery throttles progress writes; see newJob.
+	persistEvery int
 
 	phase Phase
 	// step is the job's own word for what it is doing right now ("embedding",
@@ -98,6 +124,7 @@ func (j *Job) tryStart(step string) bool {
 	j.total, j.done, j.failed = 0, 0, 0
 	j.counters = make(map[string]int)
 	j.lastErr = ""
+	j.persistLocked()
 	return true
 }
 
@@ -109,6 +136,7 @@ func (j *Job) begin(step string, total int) {
 	j.phase, j.step = PhaseRunning, step
 	j.workStart = time.Now()
 	j.total = total
+	j.persistLocked()
 }
 
 // record folds one completed unit of work into the job and returns the new done
@@ -120,6 +148,11 @@ func (j *Job) record(err error) (done int) {
 	if err != nil {
 		j.failed++
 		j.lastErr = err.Error()
+	}
+	// Throttled: a backfill calls this a million times, and the row only has to
+	// be close enough that a restart knows roughly where it got to.
+	if j.persistEvery > 0 && j.done%j.persistEvery == 0 {
+		j.persistLocked()
 	}
 	return j.done
 }
@@ -142,6 +175,9 @@ func (j *Job) finish(phase Phase, err error) {
 	if err != nil {
 		j.lastErr = err.Error()
 	}
+	// Always written, throttle or not: this is the state a restart reads to
+	// decide whether the job needs resuming.
+	j.persistLocked()
 }
 
 // fail records a setup error and ends the run. Returns the error so callers can
@@ -158,6 +194,53 @@ func (j *Job) recoverPanic() {
 		slog.Error(j.name+" panicked", slog.Any("panic", rec))
 		j.finish(PhaseFailed, fmt.Errorf("panic: %v", rec))
 	}
+}
+
+// persistLocked writes the job's state to job_runs. Callers must hold mu, so
+// the row can never disagree with the snapshot a concurrent status() would
+// return. A failure is logged and swallowed: losing the ability to resume is
+// not worth abandoning work already in progress.
+func (j *Job) persistLocked() {
+	if err := database.SaveJobRun(database.JobRun{
+		Name:          j.key,
+		Phase:         string(j.phase),
+		Step:          j.step,
+		Total:         j.total,
+		Done:          j.done,
+		Failed:        j.failed,
+		Counters:      maps.Clone(j.counters),
+		StartedAt:     j.started,
+		WorkStartedAt: j.workStart,
+		FinishedAt:    j.finished,
+		Error:         j.lastErr,
+	}); err != nil {
+		slog.Error("failed to persist job state", slog.String("job", j.name), slog.Any("err", err))
+	}
+}
+
+// loadPersisted replaces the job's in-memory state with what the database holds,
+// so a fresh process reports the previous run rather than claiming it never ran.
+func (j *Job) loadPersisted() {
+	run, ok, err := database.GetJobRun(j.key)
+	if err != nil {
+		slog.Error("failed to read job state", slog.String("job", j.name), slog.Any("err", err))
+		return
+	}
+	if !ok {
+		return
+	}
+
+	j.mu.Lock()
+	defer j.mu.Unlock()
+	j.phase = Phase(run.Phase)
+	j.step = run.Step
+	j.total, j.done, j.failed = run.Total, run.Done, run.Failed
+	j.counters = run.Counters
+	if j.counters == nil {
+		j.counters = make(map[string]int)
+	}
+	j.started, j.workStart, j.finished = run.StartedAt, run.WorkStartedAt, run.FinishedAt
+	j.lastErr = run.Error
 }
 
 func (j *Job) status() Status {
@@ -183,6 +266,12 @@ func (j *Job) status() Status {
 		}
 	}
 	if j.phase == PhaseIdle {
+		return s
+	}
+	// A persisted row can carry a phase without a start time if it was written
+	// by an older version or hand-edited. Reporting timings from a zero start
+	// yields a duration since year 1, which overflows into nonsense.
+	if j.started.IsZero() {
 		return s
 	}
 

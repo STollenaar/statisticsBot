@@ -31,11 +31,8 @@ const (
 )
 
 var (
-	initOnce sync.Once
-	initErr  error
-
-	session  *hugot.Session
-	pipeline *pipelines.FeatureExtractionPipeline
+	embedOnce sync.Once
+	embedErr  error
 
 	runMu sync.Mutex
 )
@@ -46,27 +43,34 @@ func ModelName() string {
 	return MODEL_NAME
 }
 
-func initPipeline() {
-	ctx := context.Background()
+// embedPipeline returns the feature-extraction pipeline, creating it on the
+// shared session the first time.
+//
+// The pipeline is read back from the session by name rather than cached here, so
+// the session stays the single owner of its lifetime.
+func embedPipeline() (*pipelines.FeatureExtractionPipeline, error) {
+	embedOnce.Do(func() {
+		s, err := ensureSession()
+		if err != nil {
+			embedErr = err
+			return
+		}
 
-	session, initErr = hugot.NewGoSession(ctx)
-	if initErr != nil {
-		return
+		modelPath, err := ensureModel(context.Background(), MODEL_NAME)
+		if err != nil {
+			embedErr = err
+			return
+		}
+
+		_, embedErr = s.NewPipeline(hugot.FeatureExtractionConfig{
+			ModelPath: modelPath,
+			Name:      embedPipelineName,
+		})
+	})
+	if embedErr != nil {
+		return nil, embedErr
 	}
-
-	modelPath, err := ensureModel(ctx, MODEL_NAME)
-
-	if err != nil {
-		initErr = err
-		return
-	}
-
-	config := hugot.FeatureExtractionConfig{
-		ModelPath: modelPath,
-		Name:      "semantic-embeddings",
-	}
-
-	pipeline, initErr = hugot.NewPipeline(session, config)
+	return session.GetPipeline[*pipelines.FeatureExtractionPipeline](embedPipelineName)
 }
 
 // ensureModel returns the local path to the model, downloading it from
@@ -118,9 +122,9 @@ func modelDir(modelsDir, name string) string {
 // pipeline during graph construction, so the text is capped up front and, if it
 // still overflows, halved and retried until it fits.
 func Embed(text string) ([]float32, error) {
-	initOnce.Do(initPipeline)
-	if initErr != nil {
-		return nil, initErr
+	pipeline, err := embedPipeline()
+	if err != nil {
+		return nil, err
 	}
 
 	runes := []rune(strings.TrimSpace(text))
@@ -135,7 +139,7 @@ func Embed(text string) ([]float32, error) {
 
 	var lastErr error
 	for {
-		vec, err := runEmbed(string(runes[:limit]))
+		vec, err := runEmbed(pipeline, string(runes[:limit]))
 		if err == nil {
 			return vec, nil
 		}
@@ -150,7 +154,7 @@ func Embed(text string) ([]float32, error) {
 }
 
 // runEmbed runs a single input through the pipeline under the run lock.
-func runEmbed(text string) ([]float32, error) {
+func runEmbed(pipeline *pipelines.FeatureExtractionPipeline, text string) ([]float32, error) {
 	runMu.Lock()
 	defer runMu.Unlock()
 

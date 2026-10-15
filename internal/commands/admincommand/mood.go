@@ -115,7 +115,7 @@ func moodBackfillComponents() []discord.LayoutComponent {
 func moodStatusRow() discord.ContainerSubComponent {
 	s := jobs.MoodBackfill()
 	if s.Phase == jobs.PhaseIdle {
-		return discord.TextDisplayComponent{Content: "Backfill: `idle` — no job has run since the last restart."}
+		return discord.TextDisplayComponent{Content: "Backfill: `idle` — no job has ever run."}
 	}
 
 	var b strings.Builder

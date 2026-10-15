@@ -92,7 +92,7 @@ func messagesSyncComponents(client *bot.Client) []discord.LayoutComponent {
 func syncStatusRow() discord.ContainerSubComponent {
 	s := jobs.MessageSync()
 	if s.Phase == jobs.PhaseIdle {
-		return discord.TextDisplayComponent{Content: "Sync: `idle` — no job has run since the last restart."}
+		return discord.TextDisplayComponent{Content: "Sync: `idle` — no job has ever run."}
 	}
 
 	var b strings.Builder

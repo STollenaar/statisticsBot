@@ -22,7 +22,7 @@ const (
 	CounterReactions = "reactions"
 )
 
-var syncJob = &Job{name: "message sync", unit: "channels"}
+var syncJob = newJob(KeyMessages, "message sync", "channels", 1)
 
 // StartMessageSync walks every message-bearing channel's full history and stores
 // anything the database does not already have, returning immediately. It reports

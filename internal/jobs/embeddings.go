@@ -11,7 +11,7 @@ import (
 // a restart of whatever kicked it off.
 const embedLogInterval = 1000
 
-var embedJob = &Job{name: "embedding backfill", unit: "msg"}
+var embedJob = newJob(KeyEmbeddings, "embedding backfill", "msg", 200)
 
 // StartEmbeddingBackfill embeds every stored message that does not have a vector
 // yet, so semantic search can cover historical messages, and returns

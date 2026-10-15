@@ -10,7 +10,7 @@ import (
 // log lines.
 const moodLogInterval = 500
 
-var moodJob = &Job{name: "mood backfill", unit: "msg"}
+var moodJob = newJob(KeyMoods, "mood backfill", "msg", 200)
 
 // StartMoodBackfill classifies the mood of every stored message that has not
 // been scored yet, and returns immediately. It reports false when a backfill is
