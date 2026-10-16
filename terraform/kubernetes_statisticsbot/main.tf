@@ -129,7 +129,7 @@ resource "kubernetes_deployment" "statisticsbot" {
           }
           resources {
             limits = {
-                memory = "8Gi"
+                memory = "12Gi"
             }
           }
 
