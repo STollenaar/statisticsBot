@@ -1,4 +1,4 @@
-FROM chromedp/headless-shell:157.0.8081.0
+FROM chromedp/headless-shell:158.0.8106.0
 
 RUN apt update && apt install -y ca-certificates
 
