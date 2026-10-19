@@ -35,6 +35,7 @@ func CreateRouter(c *bot.Client) *http.Server {
 	addFixEmbeddings(mux)
 	addFixMoods(mux)
 	addBackup(mux)
+	addDebug(mux)
 
 	resolveAuth()
 

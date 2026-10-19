@@ -108,6 +108,7 @@ Listens on `:8080`. Intended to stay inside the cluster; the CronJobs in
 | `PUT /fixEmojis` | fetch and store guild emoji images |
 | `POST /backup` | export the database and upload it to B2 |
 | `POST /userMessages` | look up a user or message; body is `{"type": "user"\|"message", …}` |
+| `GET /debug` | runtime, container, DuckDB and job diagnostics. **Only registered when `DEBUG` is set**; 404 otherwise |
 
 Liveness and readiness are on a **separate** port (`HEALTH_PORT`), serving
 `/health` and `/ready`. `/ready` only reports OK once the gateway is connected.
@@ -150,7 +151,7 @@ runtime. Set one or the other.
 | `HEALTH_PORT` | — | port for `/health` and `/ready` |
 | `AWS_REGION` | — | used by the SSM and B2 clients |
 | `TERMINAL_REGEX` | `(\.\|,\|:\|;\|\?\|!)$` | trailing punctuation stripped during word counting |
-| `DEBUG` | `false` | also settable with the `-debug` flag |
+| `DEBUG` | `false` | enables `GET /debug`; also settable with the `-debug` flag |
 
 ### Internal API
 

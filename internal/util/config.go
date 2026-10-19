@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -71,6 +72,7 @@ func init() {
 	ConfigFile = &Config{
 		AWS_REGION:               os.Getenv("AWS_REGION"),
 		DISCORD_TOKEN:            os.Getenv("DISCORD_TOKEN"),
+		DEBUG:                    envBool("DEBUG"),
 		AWS_PARAMETER_NAME:       os.Getenv("AWS_PARAMETER_NAME"),
 		DUCKDB_PATH:              os.Getenv("DUCKDB_PATH"),
 		TERMINAL_REGEX:           os.Getenv("TERMINAL_REGEX"),
@@ -197,6 +199,13 @@ func GetOllamaAPIKey() (string, error) {
 	}
 
 	return getAWSParameter(ConfigFile.AWS_OLLAMA_API_KEY)
+}
+
+// envBool reads a boolean environment variable. Anything unparseable counts as
+// false, so a typo disables a feature rather than enabling it by accident.
+func envBool(name string) bool {
+	value, err := strconv.ParseBool(os.Getenv(name))
+	return err == nil && value
 }
 
 // GetHTTPAuthToken returns the shared token the internal HTTP API requires.

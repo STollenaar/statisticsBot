@@ -103,7 +103,12 @@ func init() {
 		os.Exit(1)
 	}
 	client = c
-	util.ConfigFile.DEBUG = *Debug
+	// Either source may turn debug on. Assigning the flag directly would reset
+	// an env-provided DEBUG back to false whenever the flag is absent, which is
+	// always in the deployment — it passes environment, not arguments.
+	if *Debug {
+		util.ConfigFile.DEBUG = true
+	}
 }
 
 // shutdownGrace is how long in-flight HTTP requests get to finish once a
