@@ -18,6 +18,17 @@ type DebugInfo struct {
 	EmbeddingCount   int64  `json:"embeddingCount"`
 	MoodCount        int64  `json:"moodCount"`
 	WALCheckpointErr string `json:"walCheckpointError,omitempty"`
+
+	// ByTag breaks the total down by DuckDB's own allocation tags, so a large
+	// figure can be attributed instead of guessed at. Only non-zero tags are
+	// included; DuckDB reports fourteen and most are usually idle.
+	ByTag map[string]MemoryTag `json:"byTag,omitempty"`
+}
+
+// MemoryTag is one DuckDB allocation tag's usage.
+type MemoryTag struct {
+	MemoryBytes int64 `json:"memoryBytes"`
+	TempBytes   int64 `json:"tempBytes"`
 }
 
 // GetDebugInfo gathers DuckDB's own view of itself.
@@ -57,5 +68,35 @@ func GetDebugInfo() (DebugInfo, error) {
 		return info, errors.Join(err, nil)
 	}
 
+	if tags, err := memoryByTag(); err != nil {
+		// Non-fatal: the totals above are still worth returning.
+		info.ByTag = nil
+	} else {
+		info.ByTag = tags
+	}
+
 	return info, nil
+}
+
+// memoryByTag returns the non-idle allocation tags.
+func memoryByTag() (map[string]MemoryTag, error) {
+	rows, err := duckdbClient.Query(`
+		SELECT tag, memory_usage_bytes, temporary_storage_bytes
+		FROM duckdb_memory()
+		WHERE memory_usage_bytes > 0 OR temporary_storage_bytes > 0`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	tags := map[string]MemoryTag{}
+	for rows.Next() {
+		var tag string
+		var mem, temp int64
+		if err := rows.Scan(&tag, &mem, &temp); err != nil {
+			return nil, err
+		}
+		tags[tag] = MemoryTag{MemoryBytes: mem, TempBytes: temp}
+	}
+	return tags, rows.Err()
 }

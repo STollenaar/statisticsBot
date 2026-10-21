@@ -109,6 +109,7 @@ Listens on `:8080`. Intended to stay inside the cluster; the CronJobs in
 | `POST /backup` | export the database and upload it to B2 |
 | `POST /userMessages` | look up a user or message; body is `{"type": "user"\|"message", …}` |
 | `GET /debug` | runtime, container, DuckDB and job diagnostics. **Only registered when `DEBUG` is set**; 404 otherwise |
+| `GET /debug/pprof/…` | Go pprof profiles (`heap`, `goroutine`, `allocs`, `profile`, `trace`). Same `DEBUG` gate |
 
 Liveness and readiness are on a **separate** port (`HEALTH_PORT`), serving
 `/health` and `/ready`. `/ready` only reports OK once the gateway is connected.
@@ -282,3 +283,24 @@ why. The ones most likely to surprise:
 - There are no tests and no `go vet` gate in CI, by decision rather than
   oversight — see TODO.md.
 - `DELETE /fixMessages` deletes rows. Read it before running it.
+
+### Debugging memory
+
+With `DEBUG` set, `GET /debug` reports the container limit and usage, the Go
+heap broken down (live, fragmentation, held-but-idle, non-heap), process RSS,
+DuckDB's usage per allocation tag, and every job's state. `processRSS` is the
+figure the container limit is enforced against; Go's own accounting excludes the
+ONNX models.
+
+For *what* is holding memory rather than how much, the pprof endpoints are
+behind the same gate:
+
+```sh
+go tool pprof http://<host>:8080/debug/pprof/heap     # add the auth header via -http-header
+```
+
+Inference is the usual answer. hugot's pure-Go backend caches a compiled graph
+per distinct input shape and never evicts, so the retained graphs are live Go
+heap that no amount of GC pressure will reclaim. The mood pipeline bounds this
+with `WithFixedPadding` (one shape, one graph); the embedding pipeline has no
+such option and grows with the variety of message lengths it has seen.

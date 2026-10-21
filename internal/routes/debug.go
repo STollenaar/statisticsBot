@@ -5,8 +5,12 @@ import (
 	"log/slog"
 	"math"
 	"net/http"
+	"net/http/pprof"
+	"os"
 	"runtime"
 	"runtime/debug"
+	"strconv"
+	"strings"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
 	"github.com/stollenaar/statisticsbot/internal/embeddings"
@@ -24,8 +28,22 @@ func addDebug(mux *http.ServeMux) {
 	if !util.ConfigFile.DEBUG {
 		return
 	}
-	slog.Info("DEBUG is set, registering GET /debug")
+	slog.Info("DEBUG is set, registering GET /debug and /debug/pprof/")
 	mux.HandleFunc("GET /debug", debugSnapshot)
+
+	// The snapshot above says how much memory is held; pprof says by what.
+	//
+	//	go tool pprof http://host:8080/debug/pprof/heap
+	//
+	// Reached through the same token gate as everything else, which matters
+	// rather more here: these handlers expose symbol names, command line and
+	// stacks. /debug/pprof/profile and /trace block for their sample window, so
+	// they are deliberately slow rather than broken.
+	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
+	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
 }
 
 type debugResponse struct {
@@ -45,13 +63,35 @@ type buildInfo struct {
 }
 
 type runtimeInfo struct {
-	NumCPU         int    `json:"numCPU"`
-	GOMAXPROCS     int    `json:"gomaxprocs"`
-	Goroutines     int    `json:"goroutines"`
+	NumCPU     int `json:"numCPU"`
+	GOMAXPROCS int `json:"gomaxprocs"`
+	Goroutines int `json:"goroutines"`
+
+	// Where the memory actually is. HeapAlloc alone cannot tell "3 GiB of live
+	// data" from "3 GiB the runtime is holding but not using":
+	//   HeapInuse - HeapAlloc  is fragmentation inside used spans
+	//   HeapIdle  - HeapReleased  is heap held back from the OS, reusable and
+	//                             still counted against the container limit
+	//   Sys - HeapSys  is everything non-heap: stacks, GC metadata, the runtime
+	HeapAlloc     string `json:"heapAlloc"`
+	HeapInuse     string `json:"heapInuse"`
+	HeapIdle      string `json:"heapIdle"`
+	HeapReleased  string `json:"heapReleased"`
+	HeapSys       string `json:"heapSys"`
+	StackInuse    string `json:"stackInuse"`
+	GCSys         string `json:"gcSys"`
+	OtherSys      string `json:"otherSys"`
+	TotalSys      string `json:"totalSys"`
+	NextGCTarget  string `json:"nextGCTarget"`
+	GOMEMLIMIT    string `json:"gomemlimit"`
+	ProcessRSS    string `json:"processRSS,omitempty"`
+	NumGC         uint32 `json:"numGC"`
+	GCCPUFraction string `json:"gcCPUFraction"`
+
+	// Bytes for machines; the strings above are the same values formatted.
 	HeapAllocBytes uint64 `json:"heapAllocBytes"`
 	HeapSysBytes   uint64 `json:"heapSysBytes"`
 	TotalSysBytes  uint64 `json:"totalSysBytes"`
-	NumGC          uint32 `json:"numGC"`
 }
 
 type containerInfo struct {
@@ -86,10 +126,23 @@ func debugSnapshot(w http.ResponseWriter, r *http.Request) {
 			NumCPU:         runtime.NumCPU(),
 			GOMAXPROCS:     runtime.GOMAXPROCS(0),
 			Goroutines:     runtime.NumGoroutine(),
+			HeapAlloc:      humanBytes(int64(mem.HeapAlloc)),
+			HeapInuse:      humanBytes(int64(mem.HeapInuse)),
+			HeapIdle:       humanBytes(int64(mem.HeapIdle)),
+			HeapReleased:   humanBytes(int64(mem.HeapReleased)),
+			HeapSys:        humanBytes(int64(mem.HeapSys)),
+			StackInuse:     humanBytes(int64(mem.StackInuse)),
+			GCSys:          humanBytes(int64(mem.GCSys)),
+			OtherSys:       humanBytes(int64(mem.OtherSys)),
+			TotalSys:       humanBytes(int64(mem.Sys)),
+			NextGCTarget:   humanBytes(int64(mem.NextGC)),
+			GOMEMLIMIT:     memoryLimitLabel(),
+			ProcessRSS:     processRSS(),
+			NumGC:          mem.NumGC,
+			GCCPUFraction:  fmt.Sprintf("%.3f%%", mem.GCCPUFraction*100),
 			HeapAllocBytes: mem.HeapAlloc,
 			HeapSysBytes:   mem.HeapSys,
 			TotalSysBytes:  mem.Sys,
-			NumGC:          mem.NumGC,
 		},
 		Models: modelInfo{
 			Embedding: embeddings.ModelName(),
@@ -161,4 +214,41 @@ func humanBytes(n int64) string {
 		}
 	}
 	return fmt.Sprintf("%.2f PiB", value/unit)
+}
+
+// memoryLimitLabel reports the Go runtime's soft memory limit. Unset it is
+// math.MaxInt64, which means the runtime will grow the heap until the kernel
+// objects — setting GOMEMLIMIT below the container limit makes the collector
+// work harder instead, which only helps if the memory is actually reclaimable.
+func memoryLimitLabel() string {
+	limit := debug.SetMemoryLimit(-1) // -1 reads without changing
+	if limit == math.MaxInt64 {
+		return "unset (no soft limit)"
+	}
+	return humanBytes(limit)
+}
+
+// processRSS reads the process's resident set size, which is what the container
+// limit is actually enforced against — Go's own accounting excludes the models
+// and anything else allocated outside the heap.
+func processRSS() string {
+	raw, err := os.ReadFile("/proc/self/status")
+	if err != nil {
+		return ""
+	}
+	for line := range strings.SplitSeq(string(raw), "\n") {
+		if !strings.HasPrefix(line, "VmRSS:") {
+			continue
+		}
+		fields := strings.Fields(line)
+		if len(fields) < 2 {
+			return ""
+		}
+		kb, err := strconv.ParseInt(fields[1], 10, 64)
+		if err != nil {
+			return ""
+		}
+		return humanBytes(kb * 1024)
+	}
+	return ""
 }
