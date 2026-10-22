@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 	"sync"
 
@@ -48,8 +49,7 @@ const (
 )
 
 var (
-	moodOnce sync.Once
-	moodErr  error
+	moodGuard pipelineGuard
 
 	// moodMu serializes scoring for the same reason runMu does for embedding:
 	// one shared pipeline, and the gain from parallel calls is not worth the
@@ -77,22 +77,24 @@ type Mood struct {
 // session the first time. Like embedPipeline it reads the pipeline back from the
 // session by name instead of caching it.
 func moodClassifier() (*pipelines.TextClassificationPipeline, error) {
-	moodOnce.Do(func() {
+	if err := moodGuard.ensure(func() error {
 		s, err := ensureSession()
 		if err != nil {
-			moodErr = err
-			return
+			return err
 		}
 
 		modelPath, err := ensureModelWithOnnx(context.Background(), MOOD_MODEL_NAME, moodOnnxPath)
 		if err != nil {
-			moodErr = err
-			return
+			return err
 		}
 
-		_, moodErr = s.NewPipeline(hugot.TextClassificationConfig{
+		_, err = s.NewPipeline(hugot.TextClassificationConfig{
 			ModelPath: modelPath,
-			Name:      moodPipelineName,
+			// Named explicitly: hugot refuses to guess when a model directory
+			// holds more than one .onnx, which this one does as soon as the
+			// quantized variant mentioned above is fetched beside the full one.
+			OnnxFilename: path.Base(moodOnnxPath),
+			Name:         moodPipelineName,
 			Options: []hugot.TextClassificationOption{
 				// go_emotions is multi-label: a message can be both "joy" and
 				// "gratitude", so the scores are independent sigmoids rather than
@@ -104,9 +106,9 @@ func moodClassifier() (*pipelines.TextClassificationPipeline, error) {
 				pipelines.WithFixedPadding(moodSequenceLength),
 			},
 		})
-	})
-	if moodErr != nil {
-		return nil, moodErr
+		return err
+	}); err != nil {
+		return nil, err
 	}
 	return session.GetPipeline[*pipelines.TextClassificationPipeline](moodPipelineName)
 }

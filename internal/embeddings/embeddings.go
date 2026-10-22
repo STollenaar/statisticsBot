@@ -31,8 +31,7 @@ const (
 )
 
 var (
-	embedOnce sync.Once
-	embedErr  error
+	embedGuard pipelineGuard
 
 	runMu sync.Mutex
 )
@@ -43,32 +42,31 @@ func ModelName() string {
 	return MODEL_NAME
 }
 
-// embedPipeline returns the feature-extraction pipeline, creating it on the
-// shared session the first time.
+// embedPipeline returns the feature-extraction pipeline, building it on the
+// shared session the first time it is asked for, and again after each recycle.
 //
 // The pipeline is read back from the session by name rather than cached here, so
-// the session stays the single owner of its lifetime.
+// the session stays the single owner of its lifetime — which is what lets
+// RecycleEmbeddings close and rebuild it underneath callers.
 func embedPipeline() (*pipelines.FeatureExtractionPipeline, error) {
-	embedOnce.Do(func() {
+	if err := embedGuard.ensure(func() error {
 		s, err := ensureSession()
 		if err != nil {
-			embedErr = err
-			return
+			return err
 		}
 
 		modelPath, err := ensureModel(context.Background(), MODEL_NAME)
 		if err != nil {
-			embedErr = err
-			return
+			return err
 		}
 
-		_, embedErr = s.NewPipeline(hugot.FeatureExtractionConfig{
+		_, err = s.NewPipeline(hugot.FeatureExtractionConfig{
 			ModelPath: modelPath,
 			Name:      embedPipelineName,
 		})
-	})
-	if embedErr != nil {
-		return nil, embedErr
+		return err
+	}); err != nil {
+		return nil, err
 	}
 	return session.GetPipeline[*pipelines.FeatureExtractionPipeline](embedPipelineName)
 }

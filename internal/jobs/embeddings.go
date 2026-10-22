@@ -4,6 +4,7 @@ import (
 	"log/slog"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/embeddings"
 )
 
 // embedLogInterval is how many messages the backfill embeds between progress log
@@ -72,6 +73,21 @@ func runEmbeddingBackfill() {
 		// Advance past the chunk whether or not every message in it succeeded, so
 		// a message that always fails cannot stall the backfill on it.
 		afterID = messages[len(messages)-1].MessageID
+
+		// Rebuild the pipeline once per chunk. The pure-Go inference backend
+		// retains a few hundred KiB of buffers per message and never returns
+		// them, which over a backfill of this size is hundreds of gigabytes;
+		// closing the pipeline releases all of it, measured back to baseline.
+		//
+		// The cadence is backfillChunkSize deliberately: one reload per chunk
+		// spreads its few seconds over a chunk's worth of inference, so there is
+		// no second knob to keep in step with the first.
+		if err := embeddings.RecycleEmbeddings(); err != nil {
+			// Not fatal. The name is already free, so the next message rebuilds
+			// the pipeline; all that is lost is the memory this close meant to
+			// release.
+			slog.Warn("failed to recycle the embedding pipeline", slog.Any("err", err))
+		}
 	}
 
 	embedJob.finish(PhaseDone, nil)

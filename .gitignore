@@ -15,4 +15,5 @@ venv/
 tools/charts/chart.html
 vendor/
 cmd/statisticsbot/models/
+internal/embeddings/models/
 TODO.md

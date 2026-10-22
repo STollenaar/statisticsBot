@@ -37,6 +37,11 @@ const (
 // time. Small enough that the rows are a rounding error against the models held
 // in memory, large enough that the query cost per chunk is irrelevant next to
 // per-message inference.
+//
+// It is also how often the backfills recycle their inference pipeline to release
+// the backend's leaked buffers, which is the constraint that actually fixes the
+// value: a chunk is several minutes of inference, so the few seconds a reload
+// costs disappear into it.
 const backfillChunkSize = 1000
 
 // registry holds every job by its persistence key, so startup can restore and
