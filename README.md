@@ -130,6 +130,13 @@ Three states, and the third is the important one:
 | no token set | serves unauthenticated, with a startup `WARN` |
 | token resolved | 401 without a valid token |
 | token configured but unreadable | **503 on everything** — fails closed rather than silently serving open |
+| **`DEBUG` set** | **auth is bypassed on every route**, whatever the token says |
+
+`DEBUG` disabling auth is deliberate — it lets `go tool pprof` fetch profiles
+directly, which it cannot do otherwise — but it opens `DELETE /fixMessages`,
+`POST /backup` and `POST /userMessages` along with them. Do not set `DEBUG` on a
+deployment reachable from outside the cluster. The bot logs a `WARN` naming this
+on every start.
 
 ## Configuration
 
@@ -292,11 +299,24 @@ DuckDB's usage per allocation tag, and every job's state. `processRSS` is the
 figure the container limit is enforced against; Go's own accounting excludes the
 ONNX models.
 
-For *what* is holding memory rather than how much, the pprof endpoints are
-behind the same gate:
+For *what* is holding memory rather than how much, use pprof. `DEBUG` bypasses
+auth (see above), which is what lets pprof fetch the URL itself — it has no flag
+for sending an auth header, only TLS client certs:
 
 ```sh
-go tool pprof http://<host>:8080/debug/pprof/heap     # add the auth header via -http-header
+kubectl port-forward deploy/statisticsbot 8080:8080
+
+go tool pprof -top http://localhost:8080/debug/pprof/heap   # biggest allocators
+go tool pprof -http=:8081 http://localhost:8080/debug/pprof/heap
+```
+
+`goroutine`, `allocs`, `profile` and `trace` work the same way. If auth is ever
+enforced on these, fetch first and analyse the file instead:
+
+```sh
+curl -sS --fail -H "X-Auth-Token: $HTTP_AUTH_TOKEN" \
+     -o heap.pprof http://localhost:8080/debug/pprof/heap
+go tool pprof -top heap.pprof
 ```
 
 Inference is the usual answer. hugot's pure-Go backend caches a compiled graph

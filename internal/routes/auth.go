@@ -28,6 +28,12 @@ var gate authGate
 // is an admin surface, and the Discord side of the bot must keep running even
 // when it is misconfigured.
 func resolveAuth() {
+	if util.ConfigFile.DEBUG {
+		slog.Warn("DEBUG is set: the internal API serves EVERY route unauthenticated, " +
+			"including DELETE /fixMessages and POST /backup. Do not run this on anything " +
+			"reachable from outside the cluster")
+	}
+
 	token, err := util.GetHTTPAuthToken()
 	switch {
 	case err != nil:
@@ -52,6 +58,19 @@ func resolveAuth() {
 func withAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method == http.MethodGet && r.URL.Path == "/ping" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// DEBUG switches the whole gate off. This exists so `go tool pprof` can
+		// be pointed straight at /debug/pprof/, which it cannot otherwise reach:
+		// it has no flag for sending an auth header, only TLS client certs.
+		//
+		// The cost is that it opens every route, not just the profiles —
+		// DELETE /fixMessages deletes rows, POST /backup triggers an export, and
+		// POST /userMessages reads message records. DEBUG must therefore never be
+		// set on a deployment reachable from outside the cluster. resolveAuth
+		// warns about this on every start.
+		if util.ConfigFile.DEBUG {
 			next.ServeHTTP(w, r)
 			return
 		}
