@@ -120,11 +120,6 @@ func modelDir(modelsDir, name string) string {
 // pipeline during graph construction, so the text is capped up front and, if it
 // still overflows, halved and retried until it fits.
 func Embed(text string) ([]float32, error) {
-	pipeline, err := embedPipeline()
-	if err != nil {
-		return nil, err
-	}
-
 	runes := []rune(strings.TrimSpace(text))
 	if len(runes) == 0 {
 		return nil, errors.New("cannot embed empty text")
@@ -135,9 +130,12 @@ func Embed(text string) ([]float32, error) {
 		limit = firstAttemptRunes
 	}
 
+	// Every caller counts toward the recycle interval; see ScoreMood.
+	defer recycleEmbeddingsIfDue()
+
 	var lastErr error
 	for {
-		vec, err := runEmbed(pipeline, string(runes[:limit]))
+		vec, err := runEmbed(string(runes[:limit]))
 		if err == nil {
 			return vec, nil
 		}
@@ -151,10 +149,19 @@ func Embed(text string) ([]float32, error) {
 	}
 }
 
-// runEmbed runs a single input through the pipeline under the run lock.
-func runEmbed(pipeline *pipelines.FeatureExtractionPipeline, text string) ([]float32, error) {
+// runEmbed runs a single input through the pipeline under the run lock. Like
+// runScore it fetches the pipeline itself, so the pipeline is only ever touched
+// with the lock held and the shrink-and-retry loop above cannot carry a stale
+// one across a recycle.
+func runEmbed(text string) ([]float32, error) {
 	runMu.Lock()
 	defer runMu.Unlock()
+
+	pipeline, err := embedPipeline()
+	if err != nil {
+		return nil, err
+	}
+	embedGuard.ran()
 
 	out, err := pipeline.RunPipeline(context.Background(), []string{text})
 	if err != nil {

@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/stollenaar/statisticsbot/internal/database"
+	"github.com/stollenaar/statisticsbot/internal/embeddings"
 )
 
 type Phase string
@@ -38,11 +39,11 @@ const (
 // in memory, large enough that the query cost per chunk is irrelevant next to
 // per-message inference.
 //
-// It is also how often the backfills recycle their inference pipeline to release
-// the backend's leaked buffers, which is the constraint that actually fixes the
-// value: a chunk is several minutes of inference, so the few seconds a reload
-// costs disappear into it.
-const backfillChunkSize = 1000
+// Pinned to the interval at which the inference pipelines rebuild themselves to
+// release the backend's leaked buffers, so a recycle lands on a chunk boundary
+// rather than part way through one. That interval is the number with a real
+// constraint behind it, and it lives next to the leak it works around.
+const backfillChunkSize = embeddings.RecycleInterval
 
 // registry holds every job by its persistence key, so startup can restore and
 // resume them without each job file wiring itself in.

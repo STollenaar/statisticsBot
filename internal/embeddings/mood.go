@@ -120,22 +120,34 @@ func moodClassifier() (*pipelines.TextClassificationPipeline, error) {
 // input the same tensor shape and silently truncates anything longer, so an
 // over-long input cannot fail to compile.
 func ScoreMood(text string) (Mood, error) {
-	classifier, err := moodClassifier()
-	if err != nil {
-		return Mood{}, err
-	}
-
 	runes := []rune(strings.TrimSpace(text))
 	if len(runes) == 0 {
 		return Mood{}, errors.New("cannot score empty text")
 	}
-	return runScore(classifier, string(runes[:min(len(runes), moodMaxRunes)]))
+
+	// Every caller counts toward the recycle interval, not just the backfill:
+	// the listener scores each posted and edited message, and that path runs for
+	// as long as the process does.
+	defer recycleMoodIfDue()
+	return runScore(string(runes[:min(len(runes), moodMaxRunes)]))
 }
 
 // runScore runs a single input through the classifier under the mood lock.
-func runScore(classifier *pipelines.TextClassificationPipeline, text string) (Mood, error) {
+//
+// The classifier is fetched here rather than passed in, so it is only ever
+// obtained and used while the lock is held. That is what makes recycling safe:
+// a concurrent recycle takes the same lock, so it cannot close the model out
+// from under a run, and a caller cannot be left holding a pipeline that has
+// since been torn down.
+func runScore(text string) (Mood, error) {
 	moodMu.Lock()
 	defer moodMu.Unlock()
+
+	classifier, err := moodClassifier()
+	if err != nil {
+		return Mood{}, err
+	}
+	moodGuard.ran()
 
 	out, err := classifier.RunPipeline(context.Background(), []string{text})
 	if err != nil {
