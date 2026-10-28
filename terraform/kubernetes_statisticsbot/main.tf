@@ -84,7 +84,7 @@ resource "kubernetes_deployment" "statisticsbot" {
             }
             env {
               name  = "OLLAMA_MODEL"
-              value = "llama3.2:3b"
+              value = "qwen3.8-27b"
             }
             env {
               name  = "AWS_OLLAMA_API_KEY"
