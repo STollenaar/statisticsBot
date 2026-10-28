@@ -65,31 +65,31 @@ resource "kubernetes_deployment" "statisticsbot" {
             name = "AWS_HTTP_AUTH_TOKEN"
             value =  "/statisticsbot/auth_token"
           }
-          env {
-            name  = "OLLAMA_URL"
-            value = "ollama.ollama.svc.cluster.local:11434/v1/chat/completions"
-          }
-          env {
-            name  = "OLLAMA_MODEL"
-            value = "llama3.2:3b"
-          }
+        #   env {
+        #     name  = "OLLAMA_URL"
+        #     value = "ollama.ollama.svc.cluster.local:11434/v1/chat/completions"
+        #   }
+        #   env {
+        #     name  = "OLLAMA_MODEL"
+        #     value = "llama3.2:3b"
+        #   }
 
-          #   env {
-          #     name  = "OLLAMA_AUTH_TYPE"
-          #     value = "api_key"
-          #   }
-          #   env {
-          #     name  = "OLLAMA_URL"
-          #     value = "llm.home.spicedelver.me/chat/completions"
-          #   }
-          #   env {
-          #     name  = "OLLAMA_MODEL"
-          #     value = "llama3.2:3b"
-          #   }
-          #   env {
-          #     name  = "AWS_OLLAMA_API_KEY"
-          #     value = "/ollama/self_api_key"
-          #   }
+            env {
+              name  = "OLLAMA_AUTH_TYPE"
+              value = "api_key"
+            }
+            env {
+              name  = "OLLAMA_URL"
+              value = "llm.home.spicedelver.me/chat/completions"
+            }
+            env {
+              name  = "OLLAMA_MODEL"
+              value = "llama3.2:3b"
+            }
+            env {
+              name  = "AWS_OLLAMA_API_KEY"
+              value = "/ollama/self_api_key"
+            }
           #   env {
           #     name  = "OLLAMA_URL"
           #     value = "llm.ops.bootleg.technology/chat/completions"

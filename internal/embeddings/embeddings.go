@@ -31,7 +31,11 @@ const (
 )
 
 var (
-	embedGuard pipelineGuard
+	embedGuard = pipelineGuard{
+		name:     embedPipelineName,
+		interval: embedRecycleInterval,
+		runLock:  &runMu,
+	}
 
 	runMu sync.Mutex
 )
@@ -131,7 +135,7 @@ func Embed(text string) ([]float32, error) {
 	}
 
 	// Every caller counts toward the recycle interval; see ScoreMood.
-	defer recycleEmbeddingsIfDue()
+	defer embedGuard.recycleIfDue()
 
 	var lastErr error
 	for {

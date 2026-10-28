@@ -49,7 +49,11 @@ const (
 )
 
 var (
-	moodGuard pipelineGuard
+	moodGuard = pipelineGuard{
+		name:     moodPipelineName,
+		interval: moodRecycleInterval,
+		runLock:  &moodMu,
+	}
 
 	// moodMu serializes scoring for the same reason runMu does for embedding:
 	// one shared pipeline, and the gain from parallel calls is not worth the
@@ -128,7 +132,7 @@ func ScoreMood(text string) (Mood, error) {
 	// Every caller counts toward the recycle interval, not just the backfill:
 	// the listener scores each posted and edited message, and that path runs for
 	// as long as the process does.
-	defer recycleMoodIfDue()
+	defer moodGuard.recycleIfDue()
 	return runScore(string(runes[:min(len(runes), moodMaxRunes)]))
 }
 
