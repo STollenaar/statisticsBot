@@ -17,7 +17,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
 	github.com/klauspost/compress v1.20.3
-	github.com/knights-analytics/hugot v0.8.4
+	github.com/knights-analytics/hugot v0.8.5
 	github.com/marcboeker/go-duckdb/v2 v2.4.3
 	github.com/stollenaar/aws-rotating-credentials-provider/credentials v0.0.0-20250330204128-299effe6093c
 	golang.org/x/text v0.43.0
@@ -75,7 +75,7 @@ require (
 	github.com/knights-analytics/ortgenai v0.3.4 // indirect
 	github.com/marcboeker/go-duckdb/arrowmapping v0.0.21 // indirect
 	github.com/marcboeker/go-duckdb/mapping v0.0.21 // indirect
-	github.com/microsoft/onnxruntime/go v0.0.0-20261029142256-a371cbde5d83 // indirect
+	github.com/microsoft/onnxruntime/go v0.0.0-20261030073735-b5fe413d0b05 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.26 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
