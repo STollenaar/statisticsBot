@@ -169,6 +169,8 @@ github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzh
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
 github.com/knights-analytics/hugot v0.8.4 h1:Ld0Iht+J0bpqyBWRLG06ZDdb2dFoDpWJvdgvfi8YJ9o=
 github.com/knights-analytics/hugot v0.8.4/go.mod h1:ygTrBcnjybFJy3xgo1ZuOtZbFMHec/i+PkM2STz+f4k=
+github.com/knights-analytics/hugot v0.8.5 h1:eNyLDj38OBfF2mRv4r5deBtCEFFJmXeKdovSCFDPTzU=
+github.com/knights-analytics/hugot v0.8.5/go.mod h1:wKZc95rhljOTbJ22YyDCFlFdpDPMF81Cov7Ztv43djI=
 github.com/knights-analytics/ortgenai v0.3.4 h1:dPQToHAi2uLSp7hTJDh7qPAvPZWH1LZvoHofbh2RGNQ=
 github.com/knights-analytics/ortgenai v0.3.4/go.mod h1:TKJS9xWIv1XPnTydTm6NoUclgcAESWNHJvvCHQzgPHI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
@@ -191,6 +193,8 @@ github.com/mattn/go-runewidth v0.0.21 h1:jJKAZiQH+2mIinzCJIaIG9Be1+0NR+5sz/lYEEj
 github.com/mattn/go-runewidth v0.0.21/go.mod h1:XBkDxAl56ILZc9knddidhrOlY5R/pDhgLpndooCuJAs=
 github.com/microsoft/onnxruntime/go v0.0.0-20261029142256-a371cbde5d83 h1:S7yeRyxfrgHFX5rYLBw8UyKLjVmdhI6VT3T28ZBuMIU=
 github.com/microsoft/onnxruntime/go v0.0.0-20261029142256-a371cbde5d83/go.mod h1:y6lrwg9wJfp1/eahM089k+5YM7nekCeWhl8UGvefyzo=
+github.com/microsoft/onnxruntime/go v0.0.0-20261030073735-b5fe413d0b05 h1:3V2ZF3Ti+NxtORcyZCCS+c8AGhp/SHM9mj4rBqq2xws=
+github.com/microsoft/onnxruntime/go v0.0.0-20261030073735-b5fe413d0b05/go.mod h1:y6lrwg9wJfp1/eahM089k+5YM7nekCeWhl8UGvefyzo=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8 h1:AMFGa4R4MiIpspGNG7Z948v4n35fFGB3RR3G/ry4FWs=
 github.com/minio/asm2plan9s v0.0.0-20200509001527-cdd76441f9d8/go.mod h1:mC1jAcsrzbxHt8iiaC+zU4b1ylILSosueou12R++wfY=
 github.com/minio/c2goasm v0.0.0-20190812172519-36a3d3bbc4f3 h1:+n/aFZefKZp7spd8DFdX7uMikMLXX4oubIzJF4kv/wI=
