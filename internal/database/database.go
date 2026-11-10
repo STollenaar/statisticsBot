@@ -218,7 +218,7 @@ func Init(client *bot.Client, GuildID *string) {
 	if GuildID != nil {
 		for _, v := range guilds {
 			if v.ID.String() == *GuildID {
-				guilds = []discord.Guild{}
+				guilds = []discord.CacheGuild{}
 				guilds = append(guilds, v)
 				break
 			}
