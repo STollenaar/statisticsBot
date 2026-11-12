@@ -7,44 +7,43 @@ import (
 	"time"
 )
 
-// How many inference runs each pipeline serves before it is closed and rebuilt
-// from scratch.
+// recycleInterval is how many inference runs a pipeline serves before it is
+// closed and rebuilt from scratch.
 //
-// The pure-Go backend never gives a buffer back, so a pipeline only ever grows
-// and the sole way to reclaim it is to throw the pipeline away. What one run
-// costs differs sharply between the two models, so the intervals do too:
+// This exists because of two faults in the pure-Go inference backend, both of
+// which were fixed upstream in the dependency bumps of late 2026 (hugot v0.8.5,
+// gomlx/compute v0.1.16) and are kept here only as a brake:
 //
-//   - The classifier is pinned to one tensor shape by
-//     [pipelines.WithFixedPadding], so it compiles a single graph and a run adds
-//     only its own scratch. It can serve a long interval, and wants to: the
-//     125M-parameter model takes ~9s to reload.
+//   - Buffers taken per execution and never returned: measured at 317 KiB per
+//     message, 1.96 GiB/hour, which killed a 12 GiB pod about three hours into a
+//     backfill. Now measured at 0.1 KiB per run over 200 runs, flat.
 //
-//   - Feature extraction has no such pin. hugot exposes WithFixedPadding only
-//     for *TextClassificationPipeline, and on the Go backend sequence padding is
-//     off (backends.backend.go passes runtime == BackendXLA for it), so
-//     WithGoMLXSequenceBuckets is inert too. Every distinct token length
-//     therefore compiles and retains its own graph, each holding its own copy of
-//     the weights as constants plus a prepacked copy inside matmul's sync.Once:
-//     **measured 153 MiB per distinct sequence length**, against 348 MiB for the
-//     first. Fifty distinct lengths is ~8 GiB, which is exactly where a
-//     production pod ended up.
+//   - One compiled graph retained per distinct sequence length, each holding its
+//     own copy of the weights: 153 MiB per novel length, ~8 GiB once a process
+//     had seen fifty of them. hugot now builds a dynamic-axis graph for text
+//     models, so the embedding pipeline serves every length from one graph:
+//     measured at 0.2 MiB per novel length, 40 of them costing 7 MiB in total.
 //
-// So the embedding interval is a memory budget, not a throughput knob: at worst
-// one new graph per run, 20 runs caps the pipeline near 3 GiB. The model is
-// small enough (~87 MB) that reloading it that often is affordable.
-const (
-	embedRecycleInterval = 20
-	moodRecycleInterval  = 1000
-)
+// With both fixed there is no longer any reason for the two pipelines to differ,
+// so one interval covers both. It is deliberately loose: at these rates it
+// reclaims almost nothing, and its real job is to be a bound that exists at all
+// if either fault returns in a future bump.
+//
+// Note the classifier does not get the dynamic-axis path. Its ONNX export folds
+// the position-embedding add to a constant [1, 513, 768], which cannot broadcast
+// against a dynamic sequence axis, so hugot prints "dynamic axes failed for
+// model" once per load and falls back to concrete shapes. That is why the
+// classifier still needs [pipelines.WithFixedPadding] to hold one shape.
+const recycleInterval = 1000
 
 // maxPipelineAge rebuilds a pipeline that has been alive this long whatever its
 // run count.
 //
 // Run counts alone are no bound on a bot: live traffic measured ~1 message every
-// 4 minutes, so 1000 runs is nearly three days away, while the set of distinct
-// sequence lengths saturates within the first few hundred messages. The process
-// parked on 9 GiB of graphs for days, 1.4 GiB under its limit, having stopped
-// doing anything that needed them.
+// 4 minutes, so 1000 runs is nearly three days away. This is now the trigger
+// that does the real work, and what it reclaims is the models themselves —
+// ~2.2 GiB for the classifier and ~350 MiB for the embedder, held by a process
+// that has stopped doing anything that needs them.
 //
 // This is checked on the same deferred path as the run count, so it releases on
 // the first use after expiry rather than the moment it expires. A process that
@@ -62,12 +61,11 @@ const maxPipelineAge = 15 * time.Minute
 // a backfill calling this a million times must not retry a failing model
 // download on every message. A recycle clears it.
 type pipelineGuard struct {
-	// name, interval and runLock are set at construction and never change.
-	// runLock is the lock that serializes this pipeline's execution, held during
-	// a recycle so one cannot land mid-inference and free buffers in use.
-	name     string
-	interval int
-	runLock  *sync.Mutex
+	// name and runLock are set at construction and never change. runLock is the
+	// lock that serializes this pipeline's execution, held during a recycle so
+	// one cannot land mid-inference and free buffers in use.
+	name    string
+	runLock *sync.Mutex
 
 	mu        sync.Mutex
 	attempted bool
@@ -97,14 +95,14 @@ func (g *pipelineGuard) ran() {
 	g.runs.Add(1)
 }
 
-// due reports whether the pipeline is worth rebuilding: it has served its
-// interval, or it has outlived maxPipelineAge. Either way at least one run must
+// due reports whether the pipeline is worth rebuilding: it has served
+// recycleInterval runs, or it has outlived maxPipelineAge. Either way at least one run must
 // have happened, so a pipeline built and not yet used is left alone.
 func (g *pipelineGuard) due() bool {
 	if g.runs.Load() == 0 {
 		return false
 	}
-	if g.runs.Load() >= int64(g.interval) {
+	if g.runs.Load() >= recycleInterval {
 		return true
 	}
 	g.mu.Lock()

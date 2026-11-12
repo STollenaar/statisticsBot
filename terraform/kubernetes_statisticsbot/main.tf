@@ -42,10 +42,6 @@ resource "kubernetes_deployment" "statisticsbot" {
           image = local.image
           name  = local.name
           env {
-            name = "DEBUG"
-            value = "true"
-          }
-          env {
             name  = "AWS_REGION"
             value = data.aws_region.current.name
           }

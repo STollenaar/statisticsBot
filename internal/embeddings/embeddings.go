@@ -32,9 +32,8 @@ const (
 
 var (
 	embedGuard = pipelineGuard{
-		name:     embedPipelineName,
-		interval: embedRecycleInterval,
-		runLock:  &runMu,
+		name:    embedPipelineName,
+		runLock: &runMu,
 	}
 
 	runMu sync.Mutex

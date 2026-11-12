@@ -50,9 +50,8 @@ const (
 
 var (
 	moodGuard = pipelineGuard{
-		name:     moodPipelineName,
-		interval: moodRecycleInterval,
-		runLock:  &moodMu,
+		name:    moodPipelineName,
+		runLock: &moodMu,
 	}
 
 	// moodMu serializes scoring for the same reason runMu does for embedding:
