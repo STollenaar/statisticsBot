@@ -118,6 +118,10 @@ resource "kubernetes_deployment" "statisticsbot" {
             name  = "AWS_B2_APPLICATION_KEY"
             value = "/backblaze/${local.name}/application_key"
           }
+          env {
+            name  = "AWS_BACKUP_RECIPIENTS"
+            value = "/statisticsbot/encryption_public"
+          }
 
           port {
             container_port = 8080

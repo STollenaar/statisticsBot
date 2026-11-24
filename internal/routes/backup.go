@@ -32,5 +32,8 @@ func runBackup(w http.ResponseWriter, r *http.Request) {
 		"key":   result.Key,
 		"bytes": result.Bytes,
 		"took":  result.Took.Round(time.Millisecond).String(),
+		// Reported so the CronJob's output says which of the two happened,
+		// rather than it taking a download to find out.
+		"encrypted": result.Encrypted,
 	})
 }

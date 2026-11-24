@@ -51,6 +51,27 @@ type Config struct {
 	AWS_B2_KEY_ID          string
 	B2_APPLICATION_KEY     string
 	AWS_B2_APPLICATION_KEY string
+
+	// BACKUP_RECIPIENTS holds one or more age public keys, separated by commas
+	// or whitespace, that uploaded backups are encrypted to.
+	// AWS_BACKUP_RECIPIENTS instead names the SSM parameter holding them.
+	//
+	// The matching private key never exists in the cluster, so a compromised
+	// pod — or anyone who gets the B2 credentials — can write backups it cannot
+	// read. Listing several recipients encrypts to all of them, so a second key
+	// can be introduced before the first is retired without re-encrypting
+	// anything.
+	//
+	// Resolved per backup rather than cached at startup, like the Backblaze
+	// credentials, so rotating the recipient is a parameter edit and nothing
+	// else: no apply, no restart.
+	BACKUP_RECIPIENTS     string
+	AWS_BACKUP_RECIPIENTS string
+
+	// BACKUP_ENCRYPTION set to "off" uploads plaintext. Backups carry every
+	// message in the guild, so the insecure path has to be asked for out loud
+	// rather than being what happens when a variable is missing.
+	BACKUP_ENCRYPTION string
 }
 
 var (
@@ -97,6 +118,9 @@ func init() {
 		AWS_B2_KEY_ID:            os.Getenv("AWS_B2_KEY_ID"),
 		B2_APPLICATION_KEY:       os.Getenv("B2_APPLICATION_KEY"),
 		AWS_B2_APPLICATION_KEY:   os.Getenv("AWS_B2_APPLICATION_KEY"),
+		BACKUP_RECIPIENTS:        os.Getenv("BACKUP_RECIPIENTS"),
+		AWS_BACKUP_RECIPIENTS:    os.Getenv("AWS_BACKUP_RECIPIENTS"),
+		BACKUP_ENCRYPTION:        os.Getenv("BACKUP_ENCRYPTION"),
 	}
 	if ConfigFile.TERMINAL_REGEX == "" {
 		ConfigFile.TERMINAL_REGEX = `(\.|,|:|;|\?|!)$`
@@ -241,6 +265,23 @@ func GetB2KeyID() (string, error) {
 		return "", fmt.Errorf("neither B2_KEY_ID nor AWS_B2_KEY_ID is set")
 	}
 	return getAWSParameter(ConfigFile.AWS_B2_KEY_ID)
+}
+
+// GetBackupRecipients returns the age public keys backups are encrypted to.
+//
+// Returns an empty string when neither variable is set, rather than an error:
+// the backup package decides what an absent recipient means, and it has the
+// context to say so usefully. A configured parameter that cannot be read *is*
+// an error, so a transient SSM failure fails the backup instead of looking like
+// no recipient was ever configured.
+func GetBackupRecipients() (string, error) {
+	if ConfigFile.BACKUP_RECIPIENTS != "" {
+		return ConfigFile.BACKUP_RECIPIENTS, nil
+	}
+	if ConfigFile.AWS_BACKUP_RECIPIENTS == "" {
+		return "", nil
+	}
+	return getAWSParameter(ConfigFile.AWS_BACKUP_RECIPIENTS)
 }
 
 // GetB2ApplicationKey returns the Backblaze application key.

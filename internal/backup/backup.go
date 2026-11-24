@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"filippo.io/age"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager"
@@ -45,6 +46,9 @@ type Result struct {
 	Key   string
 	Bytes int64
 	Took  time.Duration
+	// Encrypted is false only when BACKUP_ENCRYPTION=off was set, so whoever
+	// triggered the backup can see which of the two happened.
+	Encrypted bool
 }
 
 // Run exports the database, packs it into a tar.zst and uploads it to B2 under
@@ -57,6 +61,17 @@ func Run(ctx context.Context) (Result, error) {
 	defer running.Unlock()
 
 	start := time.Now()
+
+	// Resolved first, before anything expensive: a missing or mistyped
+	// recipient should fail in milliseconds rather than after an export has
+	// spent minutes writing gigabytes of staging files.
+	to, err := recipients()
+	if err != nil {
+		return Result{}, err
+	}
+	if len(to) == 0 {
+		slog.Warn("BACKUP_ENCRYPTION=off: uploading an unencrypted backup of every stored message")
+	}
 
 	uploader, err := newUploader()
 	if err != nil {
@@ -80,31 +95,44 @@ func Run(ctx context.Context) (Result, error) {
 	}
 
 	key := fmt.Sprintf("%s/statsbot-%s.tar.zst", util.ConfigFile.B2_PREFIX, start.UTC().Format("2006-01-02T15-04-05Z"))
+	contentType := "application/zstd"
+	if len(to) > 0 {
+		key += AgeFileExtension
+		// age has no registered media type, and calling the object zstd would
+		// invite a tool to try to decompress ciphertext.
+		contentType = "application/octet-stream"
+	}
 
 	var written atomic.Int64
 	reader, writer := io.Pipe()
 	go func() {
 		// Closing with the archive error surfaces it on the uploader's read side,
 		// aborting the upload instead of storing a truncated object.
-		writer.CloseWithError(writeArchive(&countingWriter{w: writer, n: &written}, dir))
+		writer.CloseWithError(writeArchive(&countingWriter{w: writer, n: &written}, dir, to))
 	}()
 
 	_, err = uploader.UploadObject(ctx, &transfermanager.UploadObjectInput{
 		Bucket:      aws.String(util.ConfigFile.B2_BUCKET),
 		Key:         aws.String(key),
 		Body:        reader,
-		ContentType: aws.String("application/zstd"),
+		ContentType: aws.String(contentType),
 	})
 	if err != nil {
 		reader.CloseWithError(err)
 		return Result{}, fmt.Errorf("failed to upload %s: %w", key, err)
 	}
 
-	result := Result{Key: key, Bytes: written.Load(), Took: time.Since(start)}
+	result := Result{
+		Key:       key,
+		Bytes:     written.Load(),
+		Took:      time.Since(start),
+		Encrypted: len(to) > 0,
+	}
 	slog.Info("backup uploaded",
 		slog.String("bucket", util.ConfigFile.B2_BUCKET),
 		slog.String("key", result.Key),
 		slog.Int64("bytes", result.Bytes),
+		slog.Bool("encrypted", result.Encrypted),
 		slog.Duration("took", result.Took.Round(time.Millisecond)),
 	)
 	return result, nil
@@ -156,10 +184,25 @@ func newUploader() (*transfermanager.Client, error) {
 }
 
 // writeArchive tars every file the export produced into w, compressed with
-// zstd. The parquet files are already compressed; this mostly pays off on the
+// zstd and, unless encryption was disabled, encrypted to the given recipients.
+// The parquet files are already compressed; compression mostly pays off on the
 // schema.sql/load.sql pair and the tar padding.
-func writeArchive(w io.Writer, dir string) error {
-	encoder, err := zstd.NewWriter(w, zstd.WithEncoderLevel(zstd.SpeedFastest))
+//
+// The layers run tar -> zstd -> age -> w, in that order, because ciphertext is
+// indistinguishable from random and does not compress: encrypting first would
+// leave zstd nothing to do.
+func writeArchive(w io.Writer, dir string, to []age.Recipient) error {
+	sink := w
+	var encrypted io.WriteCloser
+	if len(to) > 0 {
+		var err error
+		if encrypted, err = age.Encrypt(w, to...); err != nil {
+			return fmt.Errorf("failed to start encrypting: %w", err)
+		}
+		sink = encrypted
+	}
+
+	encoder, err := zstd.NewWriter(sink, zstd.WithEncoderLevel(zstd.SpeedFastest))
 	if err != nil {
 		return fmt.Errorf("failed to create zstd writer: %w", err)
 	}
@@ -207,7 +250,18 @@ func writeArchive(w io.Writer, dir string) error {
 	if err := archive.Close(); err != nil {
 		return fmt.Errorf("failed to finish archive: %w", err)
 	}
-	return encoder.Close()
+	if err := encoder.Close(); err != nil {
+		return fmt.Errorf("failed to finish compressing: %w", err)
+	}
+	if encrypted != nil {
+		// Closing is what writes age's last chunk and its authentication tag.
+		// Without it the object is a well-formed-looking file that no identity
+		// can decrypt, and nothing else would report the difference.
+		if err := encrypted.Close(); err != nil {
+			return fmt.Errorf("failed to finish encrypting: %w", err)
+		}
+	}
+	return nil
 }
 
 // countingWriter tracks how many compressed bytes end up in the upload.
