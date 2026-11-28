@@ -4,12 +4,12 @@ go 1.27.0
 
 require (
 	filippo.io/age v1.3.2
-	github.com/aws/aws-sdk-go-v2 v1.48.1
-	github.com/aws/aws-sdk-go-v2/config v1.33.22
-	github.com/aws/aws-sdk-go-v2/credentials v1.21.4
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.5.13
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.1
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.84.1
+	github.com/aws/aws-sdk-go-v2 v1.48.2
+	github.com/aws/aws-sdk-go-v2/config v1.33.23
+	github.com/aws/aws-sdk-go-v2/credentials v1.21.5
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.5.14
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.116.2
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.84.2
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/disgoorg/disgo v0.20.0
 	github.com/disgoorg/snowflake/v2 v2.0.3
@@ -27,20 +27,20 @@ require (
 require (
 	filippo.io/hpke v0.4.0 // indirect
 	github.com/apache/arrow-go/v18 v18.4.1 // indirect
-	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.28 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.10 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.26 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.14 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.13 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.14.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.39.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.53.1 // indirect
-	github.com/aws/smithy-go v1.28.10 // indirect
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.29 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.11 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.14 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.14 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.27 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.11.15 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.14 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.14.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.39.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.44.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.53.2 // indirect
+	github.com/aws/smithy-go v1.28.11 // indirect
 	github.com/chromedp/cdproto v0.0.0-20250429231605-6ed5b53462d4 // indirect
 	github.com/chromedp/chromedp v0.13.6 // indirect
 	github.com/chromedp/sysutil v1.1.0 // indirect
